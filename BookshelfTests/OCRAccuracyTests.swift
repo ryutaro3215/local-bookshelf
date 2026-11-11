@@ -15,8 +15,15 @@ nonisolated enum OCRSamples {
     static let rawTitles = directory.appending(path: "raw-titles.json")
     static let coverCategories = directory.appending(path: "cover-categories.json")
 
+    /// 精度の実測は時間がかかる（約36秒）ため、環境変数 BOOKSHELF_ACCURACY=1 のときだけ動かす（N-026）。
+    /// 実行例: `TEST_RUNNER_BOOKSHELF_ACCURACY=1 xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf ...`
+    /// （xcodebuild は TEST_RUNNER_ を外した名前でテストに渡す）
+    static var isEnabled: Bool {
+        ProcessInfo.processInfo.environment["BOOKSHELF_ACCURACY"] == "1"
+    }
+
     static var isAvailable: Bool {
-        FileManager.default.fileExists(atPath: manifest.path)
+        isEnabled && FileManager.default.fileExists(atPath: manifest.path)
             && FileManager.default.fileExists(atPath: rawTitles.path)
     }
 }
@@ -42,7 +49,9 @@ nonisolated struct OCRScore: Sendable {
     var containsTitle: Bool
 }
 
-@Suite(.enabled(if: OCRSamples.isAvailable, "実写のサンプル（design/sample-covers）が無いためスキップ"), .serialized)
+@Suite(
+    .enabled(if: OCRSamples.isAvailable, "BOOKSHELF_ACCURACY=1 でないか、実写のサンプル（design/sample-covers）が無いためスキップ"),
+    .serialized)
 nonisolated struct OCRAccuracyTests {
     let recognizer = TitleRecognizer()
 

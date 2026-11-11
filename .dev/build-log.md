@@ -98,3 +98,66 @@
   - 題名の整え方（制御文字除去・200文字）は `LibraryStore.sanitize` と同じ処理を TitleRecognizer 内に持たせた（LibraryStore は MainActor のため nonisolated の認識処理から呼べず、また plan の files 外のため）。T9 で題名を確定するときは従来どおり LibraryStore 側で再度整える
   - フィクスチャ生成には pillow・numpy が要る（アプリの依存ではない）。手元の Python に入っていなかったため、作業用の venv（リポジトリ外）に入れて実行した
   - 計画とのズレ: なし（files の範囲内。データファイル cover-categories.json は plan の data に無い名前だが、依頼どおり git 管理外の design/sample-covers/ に置いた）
+
+## T5: 撮影登録フロー（自作カメラ・連続撮影・登録待ちの一覧） — done（実機計測・Figma 目視はオーナー待ち） (2026-11-11)
+- changed:
+  - Bookshelf/Capture/CameraController.swift: `CameraSource` プロトコル（許可状態・ライブの四隅・撮影）、実機用 `CameraController`（AVCaptureSession・写真出力 `.speed` 優先・縦向き 90°・映像出力 0.25 秒ごとに `CoverDetector` でライブ検出）、セッションを専用キューで扱う `CaptureSessionBox`、`PhotoCaptureDelegate`、ファインダー `CameraPreviewView`
+  - Bookshelf/Capture/FakeCameraSource.swift（DEBUG のみ）: 起動引数 `-FakeCamera "cover:<架空の題名>,blank,nocover"` の順に合成画像（机の上の少し傾いた架空の表紙／文字の無い表紙／表紙なし）を「撮影」する。シミュレータでは既定でこちらを使う
+  - Bookshelf/Capture/CaptureViewModel.swift: `PendingBook`（題名・OCR 候補・購入済みチェック・ジャンル）、`CoverPipeline`（actor。**CoverProcessor＝CIContext を1つだけ持ち撮影セッション中使い回す**。N-009）、`RecentShelves`（直前に使った棚の履歴・F1-5）、`CaptureViewModel`（30冊上限＝登録待ち＋処理中＋手動調整待ち、撮影→次の撮影可能の os_signpost `ShutterToReady` と Logger の ms 出力、補正・OCR は待たない、検出失敗は N 画面へ、登録＝画像保存→`addBook`（購入済み/買いたい）、失敗時は画像を消して残りを一覧に残す）
+  - Bookshelf/Capture/CaptureView.swift: デザインのトークン `BookshelfStyle`（色・Noto Sans/Serif JP・同梱書体の登録）、A-2 登録方法のシート `RegistrationMethodSheet`、登録先チップ `DestinationMenu`、フロー入れ物 `RegistrationFlowView`、撮影画面 `CaptureView`（A-3・A-4 上限・O-3 許可なし）、撮影ガイド（枠 `GuideFrame` と文言）、ライブ検出の四隅 `QuadOverlay`、写真ピッカーの読込 `PhotoLoader`
+  - Bookshelf/Capture/PendingListView.swift: 登録待ちの一覧（C-2・C-5・C-6）。「登録待ち n / 30冊」、撮影を追加・ライブラリから追加（選べる数＝残り）、購入済み n / m冊・すべて選択／すべて解除、行（チェック・表紙・題名欄〔読み取り中・必須〕・ジャンル・状態）、題名未入力の案内と「順に入力する」、登録ボタン（未入力があると押せず「題名を入力すると登録できます」）、閉じるときの確認
+  - Bookshelf/Capture/CornerAdjustView.swift: N-1・N-2。初期の四隅は画像の各辺から10%内側、4つのハンドルをドラッグ、ドラッグ中はルーペ（2倍）と文言の切り替え、「撮り直す」「この範囲で使う」
+  - Bookshelf/Imaging/CoverDetector.swift: 検出の改善。`VNDetectDocumentSegmentationRequest` を主に、近く（各頂点 0.05 以内）に `VNDetectRectanglesRequest` の四角形があればそれに寄せる。輪郭が表紙らしくない（凸でない・面積 8% 未満・縦横比 0.4〜1.0 外・向かい合う辺の比 0.6 未満・角が直角から 35° 超・画像全体・画像の3辺以上に貼りつく）ときは従来の四角形検出（最小 0.4）へ戻る。ライブ検出用に `detect(in: CVPixelBuffer)`、N 画面用に `CoverQuad.inset(_:)` を追加
+  - BookshelfTests/CoverDetectionAccuracyTests.swift: 実写 raw 25枚での自動検出の実測。`BOOKSHELF_ACCURACY=1` かつ実写があるときだけ動く。`BOOKSHELF_ACCURACY_OUT` に補正後の表紙 `Rxx.jpg` を書き出す（目視判定用）
+  - BookshelfUITests/CaptureFlowUITests.swift: acceptance ①〜⑧ の8テスト
+  - **計画とのズレ（files 外。必要な変更）**:
+    - Bookshelf.xcodeproj/project.xcproj: UI テストのターゲット BookshelfUITests（`bundle.ui-testing`、`test-host-target`: Bookshelf〔これが無いと自動スキームに入らない〕、`TEST_TARGET_NAME`、フォルダ同期）を追加。xcprojformatter で読めることを確認
+    - Bookshelf/BookshelfApp.swift: 起動時に書体を登録し、`AppEnvironment`（ModelContainer・LibraryStore・seedIfNeeded・RecentShelves・カメラの選択）を作る。`-UITestReset` でメモリ上のデータ・一時フォルダ・専用の UserDefaults
+    - Bookshelf/ContentView.swift: **仮の入口**（T6 の閲覧画面で置き換える）。＋（入口 A）・棚ごとの「空き枠」（入口 B）・「見る」（直前に使った棚として記録）・登録した本の一覧（UI テストの確認用）
+    - Bookshelf/Imaging/TitleRecognizer.swift: `candidates(in:)` 2つに `@concurrent`（N-025）
+    - BookshelfTests/OCRAccuracyTests.swift: `BOOKSHELF_ACCURACY=1` のときだけ動く（N-026）
+    - BookshelfTests/CoverProcessorTests.swift: `@Suite(.serialized)` を付けただけ（理由は notes）。アサーションは変えていない
+    - Bookshelf/Resources/Fonts/NotoSansJP-VariableFont_wght.ttf・NotoSerifJP-VariableFont_wght.ttf（design/fonts からコピー。計約 23MB。SIL OFL）
+- verify:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"`（iPhone 17 Pro / iOS 26.5）→ `** TEST SUCCEEDED **`（ユニット 29件＋UI 8件。最後に一括で実行）
+    - ユニット: `✔ Test run with 29 tests in 6 suites passed after 3.952 seconds`（CoverProcessorTests ①〜⑤ 引き続き成功。OCRAccuracyTests・CoverDetectionAccuracyTests は skipped）
+    - UI（CaptureFlowUITests 8件すべて passed）: ① testContinuousCaptureListsThreeBooksWithoutClosingCamera（3冊連続撮影・カメラを閉じずに「3 / 30冊」→一覧に3行・「残り27冊まで選べます」）② testPurchasedChecksAndRegistration（初期は全冊オン、すべて解除で 0 / 3、1冊だけ外して登録 → 哲学・思想に購入済み2冊〔購入日＝今日〕・買いたい1冊〔購入日なし・ジャンルは哲学・思想〕、買いたい本 1冊）③ testRegisterIsDisabledWhileATitleIsEmpty（文字の無い表紙で題名が空 → 登録ボタン無効・「題名を入力すると登録できます」・未入力の案内、入力すると有効）④ testEmptySlotSetsDestination（エッセイの空き枠 → シート・カメラ・行のジャンルがエッセイ、登録後エッセイ 1冊）⑤ testLastUsedShelfSkipsWishlist（記録なし→未分類、小説→買いたい本の順に使う→小説）⑥ testLimitOfThirtyBooks（30回撮影 → シャッター無効・上限の案内・「30 / 30冊」、ライブラリ選択は無効で「残り0冊」、一覧 30 / 30冊・追加ボタン無効）⑦ testCaptureGuideIsShown（ガイドの文言と枠）⑧ testManualCornerAdjustmentWhenDetectionFails（表紙なしの画像 → N 画面、4つのハンドルが画像の各辺から10%内側〔±3pt〕、2つをドラッグして「この範囲で使う」→ 一覧に1冊）
+  - 表紙検出の実測（design/sample-covers/raw 25枚・git 管理外。正誤は builder が補正後の画像を目視）:
+    - 改善前（T3 のコード）: 自動検出 7/25、うち正しい切り抜き **6/25**（1枚は内側の枠）
+    - 改善後: 自動検出 23/25、うち表紙の四隅を正しく取れた **16/25**。失敗 6枚: R02・R04・R05（平らなスキャン画像。手持ちの写真でない）、R03（上の背景の本まで含む）、R09（2冊並び＋看板を1つの輪郭に）、R19（隣の本を含む）。ほかに R06・R20・R22 は表紙は収まるが角が少しずれる（正解に数えていない）
+    - **測定環境の注意**: この値は同じ CoverDetector.swift・CoverProcessor.swift を Mac（macOS 27 の Vision）でビルドした検証用プログラムで出した（scratchpad。リポジトリ外）。iOS 26.5 シミュレータでは `VNDetectDocumentSegmentationRequest` が画像によらず「下端 25% の帯」を返す（全25枚で同じ。CPU 指定でも同じ）ため、`TEST_RUNNER_BOOKSHELF_ACCURACY=1 xcodebuild test ... -only-testing:BookshelfTests/CoverDetectionAccuracyTests` の結果は自動検出 13/25（ほぼ四角形検出だけの値）。実機の値はオーナーの実機確認が必要
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし、exit=0
+  - `scripts/check-no-network.sh` → `OK（Bookshelf に通信の記述なし）`、exit=0
+  - 撮影→次の撮影可能の時間: 実機未計測（下記）。シミュレータ（FakeCameraSource）では Logger に数 ms〜数十 ms
+  - スクリーンショット（リポジトリ外）: /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/8588d00f-6385-4403-8697-77adfaefc869/scratchpad/t5/shots/（A-2-sheet・A-3-camera・A-3-camera-after4・N-1-adjust・C-pending-reading・C-2-pending-untitled・C-6-pending-mixed・00-host）
+- notes:
+  - **オーナー作業が必要**: ①実機（iPhone 13 相当）で撮影ボタン押下→次の撮影可能の時間を測る（Instruments の os_signpost、subsystem `com.ryutaro3215.bookshelf`・category `Capture`・区間 `ShutterToReady`。または Console で「撮影 → 次の撮影可能: n ms」）。1秒以内なら build-log に記録 ②実機で raw 25枚相当の検出が Mac と同じく働くか（ライブの四隅表示と撮影後の切り抜き）を確認。実機でもシミュレータ同様に書類の輪郭が壊れる場合、改善は四角形検出だけ（約 6/25）に戻る ③シミュレータのスクリーンショットを Figma の A-2・A-3・A-4・C-2・C-5・C-6・N-1・N-2・O-3 と並べて目視確認
+  - **CoverProcessorTests を直列にした理由**: `VNDetectDocumentSegmentationRequest` は内部で Swift Concurrency の協調スレッドを使う。Swift Testing が引数付きテストを並列に走らせ、同期の検出が協調スレッドを全部ふさぐと、Vision 内部の処理が動けず止まる（sample で確認・再現あり）。アプリでは CoverPipeline（actor）で1枚ずつ、ライブ検出は GCD のキューなので起きない。CoverDetector.swift にも注意書きを入れた。将来 `CoverProcessor.process` を async（新しい Vision の Swift API）にすれば根本的に解消できる（提案。T3 の files なので未対応）
+  - **デザインと要件の食い違い（裁定していない）**: C-1 は自作の写真グリッドだが、requirements F1-4・S4 は「OS の写真ピッカーで、ライブラリの読み取り権限を要求しない」。T5 は OS の PhotosPicker（`maxSelectionCount`＝残り冊数、選んだ順）で実装した。C-1 の見た目にするには読み取り権限が要るため、どちらを優先するかオーナー判断が必要
+  - 文言で決めたこと（オーナー確認したい）: ⑦の撮影ガイドの2行目「背景と色の違う所で撮ると、表紙を見つけやすくなります」（Figma の L-3 は1行目だけ）。⑧の確定ボタンは acceptance の「確定」ではなく Figma の「この範囲で使う」に合わせた。一覧を閉じるときの確認「登録せずに閉じますか？」は Figma に無いので追加した
+  - 直前に使った棚（F1-5）: 「使った」＝登録先にした棚（登録時に記録）と、閲覧で開いた棚（`RecentShelves.record` を T6 の閲覧画面から呼ぶ想定。仮の画面では「見る」ボタン）。登録だけでは買いたい本が記録されることはないので、⑤は閲覧の記録を前提にしている。T6 で閲覧時の記録をどうするか決めてほしい
+  - 仮の入口: ContentView は T6 で置き換える。T6 では下部バーの＋で `RecentShelves.initialShelf` を初期値に、棚の末尾の空き枠でその棚を初期値にして `RegistrationMethodSheet` → `RegistrationFlowView` を出す（ContentView の `open(from:)`・`beginChosenFlow()` が手本）
+  - 書体: 2つの可変フォントを Bookshelf/Resources/Fonts に同梱し、起動時に `CTFontManagerRegisterFontsForURL`（.process）で登録（Info.plist の UIAppFonts は不要）。**OFL のライセンス文（OFL.txt）は同梱していない**: 文中の URL（http/https）に scripts/check-no-network.sh が反応して exit=1 になるため。リリース前に「ライセンス」表示（設定画面など）か、検査スクリプトを .swift だけに絞る（N-010 と合わせて）対応が必要。トークン `BookshelfStyle` は CaptureView.swift に置いた。T6 で共通のトークン定義に移す想定
+  - figma:figma-swiftui は起動した（Figma → SwiftUI の手順）。公式 Figma MCP は未認証で `get_design_context` は使えなかったため、design-brief.md・design/screens の PNG と、DesignAgent の `get_spec`（A-3 の寸法: ファインダー 402×536・シャッター 72・完了 76×40・ライブラリ 48）で作った
+  - 見た目の残りの差（スクリーンショットと Figma）: A-3 のライブラリボタンは Figma では最後の写真のサムネイル、実装はアイコン／撮影済みのサムネイルは Figma より少し大きい余白・位置の差／C の題名欄の高さ（Figma 約 36pt と同じだが文字が大きく見える）と行の間隔／C-3（題名の編集画面・前の本／次の本）と C-4（棚に並ぶ演出）は未実装（C-3 は「順に入力する」で該当行の題名欄にフォーカス、C-4 は T6 の棚表示ができてから）／A-4 の暗転の濃さ／O-1（許可の説明画面）は未実装（未決定のときは直接 iOS のダイアログを出す。T14 の初回で O-1・O-2 を作る想定）／ライブの四隅の表示はシミュレータでは出ない（FakeCameraSource は検出しない）ので実機で確認が必要
+  - OCR の連結で英語2行の題名が空白なしでつながる（例: 架空の「THE QUIET ORCHARD」→「THE QUIETORCHARD」）。T4 の `rankCandidates` の改善点（未対応・提案）
+  - 既存の追跡ファイル BookshelfTests/LibraryStoreTests.swift に実在の書名が残っている（T4 レビューの指摘・T5 では触っていない）
+  - UI テストの実行中に「Adding 'UIKitToolbar' as a subview of UIHostingController.view is not supported」という実行時の警告が出る（仮の入口の `.toolbar(.bottomBar)` 由来。T6 で仮の入口を消せば無くなる）
+  - 依存の追加なし。ネットワークのコードなし。Swift 6・コンパイル警告なし
+- T5 修正（review FAIL×1）(2026-11-11):
+  - changed:
+    - Bookshelf/Imaging/CoverDetector.swift [must]: 書類の輪郭が使えないときの四角形検出を T3 以上に厳しくした。条件は「四角形の短い方の辺（`min(幅, 高さ)`、ピクセルの比で計算）が画像の短辺の 0.4 以上」かつ「縦長（高さ ≧ 幅×0.95）」かつ「凸」で、満たすものの中で最大のもの。Vision に渡す minimumSize 0.2 は、書類の輪郭に寄せる候補を探すためだけに使う。書類の輪郭にも「縦長であること」を必須にした。これで iOS 26.5 シミュレータが返す「下端 25% の帯」は採用されず、四角形検出へ、それも無ければ N 画面へ回る
+    - Bookshelf/Capture/CaptureViewModel.swift [should]: `register` で画像の保存を同じ `do` の中に入れた。途中で失敗しても、登録済みの本を一覧から外してから投げる（再度の登録で二重にならない）
+    - Bookshelf/Capture/CaptureViewModel.swift・CaptureView.swift・PendingListView.swift [should]: ライブラリで選んだ時点で、枚数分（残り冊数まで）を上限の数に予約する。`importPhotos([PhotosPickerItem])` が1枚ずつ読み込んで処理し、読めなかった分は予約を戻す。読み込み中に撮影しても30冊を超えない
+    - Bookshelf/Capture/PendingListView.swift [should]: 登録待ちの一覧を List（plain）にし、行を左へスワイプして「外す」（VoiceOver のカスタムアクション「登録待ちから外す」も付けた）。Figma に削除の形が無いため iOS 標準の操作にした。**オーナー確認が必要**
+    - Bookshelf/Capture/CaptureViewModel.swift・CaptureView.swift [should]: 「表紙を検出しました」は、ライブの四隅があるとき、または撮影で検出できた直後の 1.5 秒間だけ出す（直前の撮影結果で出続けない）
+    - BookshelfUITests/CaptureFlowUITests.swift: testLimitOfThirtyBooks の最後に「30冊で1行を外す → 登録待ち 29 / 30冊・撮影を追加が押せる → シャッターが押せ、上限の案内が消える」を追加
+  - verify:
+    - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → `** TEST SUCCEEDED **`（ユニット `✔ Test run with 29 tests in 6 suites passed`、UI は CaptureFlowUITests 8件すべて passed。testLimitOfThirtyBooks に追加した「1行外す」の確認も含む）
+    - 表紙検出の再測定（raw 25枚。補正後の画像を目視）:
+      - **シミュレータ**（`TEST_RUNNER_BOOKSHELF_ACCURACY=1 TEST_RUNNER_BOOKSHELF_ACCURACY_OUT=<scratchpad> ... -only-testing:BookshelfTests/CoverDetectionAccuracyTests`）: 自動検出 7/25。うち正しい切り抜き **5/25**（R04・R08・R10・R11・R21）、**誤った切り抜き 2**（R02＝新書の表紙の内側の色の面、R13＝表紙の内側の枠。T3 の誤りと同じもの）。残る18枚は N 画面に回る。修正前のシミュレータは検出12（誤り5）、T3 は正しい6・誤り1
+      - **Mac**（同じ CoverDetector.swift・CoverProcessor.swift を macOS の Vision でビルドした検証用プログラム。リポジトリ外）: 自動検出 22/25。うち正しい切り抜き **16/25**、**誤った切り抜き 3**（R02＝スキャン画像を台形に取った、R04＝表紙の上の背景の本まで含む、R09＝2冊と看板を1つにした）。角が少しずれるが表紙は収まるもの 3（R06・R20・R22。正解に数えていない）。検出なし（N 画面）3（R03・R05＝平らなスキャン画像、R19＝修正前は隣の本を含む誤りだったものが、縦長の条件で外れた）
+      - **初回エントリの訂正**: 初回の「失敗6枚」の番号は、検証用プログラムの並び順と R 番号の対応を一部取り違えていた。正しくは R02（誤り）・R03（未検出）・R04（背景を含む）・R05（未検出）・R09（2冊）・R19（隣の本）
+      - acceptance の「15/25 以上」は Mac では 16 で満たすが、アプリが動く iOS（シミュレータ）では書類の輪郭検出が壊れているため 5/25。**実機での値は未測定**で、オーナーの実機確認（CoverDetectionAccuracyTests を実機で実行、または同等の確認）が必要。実機でもシミュレータと同じなら到達は約 5/25 で、誤りは T3 並み（2枚）に収まる
+    - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → exit=0 / `scripts/check-no-network.sh` → exit=0
+  - notes: 依頼の範囲外として残したもの（ライブラリ30枚のメモリ、OFL の文、O-3 の UI テスト、協調スレッド上の Vision、nit）は未対応。行のスワイプ削除はデザインに無い操作なので、オーナーの確認が要る

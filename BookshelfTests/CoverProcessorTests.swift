@@ -8,6 +8,9 @@ import Testing
 private nonisolated final class FixtureBundleToken {}
 
 /// plan.md T3 の acceptance ①〜⑤。フィクスチャは架空の表紙を合成した画像（scripts/generate-cover-fixtures.py）
+// T5: 四隅検出に VNDetectDocumentSegmentationRequest を加えたため、同期の検出を並列に多数走らせると
+// 協調スレッドが尽きて止まる（CoverDetector.swift の注意を参照）。このスイートは直列に実行する
+@Suite(.serialized)
 nonisolated struct CoverProcessorTests {
     /// 表紙を斜めから撮った画像（架空の表紙の縦横比は 1:1.45）
     static let coverFixtures = [

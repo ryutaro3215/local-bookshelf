@@ -32,7 +32,9 @@ nonisolated struct TitleRecognizer: Sendable {
 
     private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "TitleRecognizer")
 
-    /// 画像データ（JPEG・HEIC など）から題名の候補を返す。題名らしい順。読めなければ空
+    /// 画像データ（JPEG・HEIC など）から題名の候補を返す。題名らしい順。読めなければ空。
+    /// `@concurrent`: 画面（MainActor）から呼んでも、画像のデコードと並べ替えはバックグラウンドで動く（N-025・F2-2）
+    @concurrent
     func candidates(in data: Data) async -> [String] {
         guard let image = Self.uprightImage(from: data) else {
             Self.logger.error("題名の認識: 画像を読み込めなかった")
@@ -42,6 +44,7 @@ nonisolated struct TitleRecognizer: Sendable {
     }
 
     /// 上向き（orientation .up）の画像から題名の候補を返す。題名らしい順。読めなければ空
+    @concurrent
     func candidates(in image: CGImage) async -> [String] {
         do {
             let lines = try await recognizeLines(in: image)
