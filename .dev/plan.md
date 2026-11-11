@@ -1,12 +1,15 @@
 # Plan — local-bookshelf（仮称）
 status: approved
-stack: Swift 6 / Xcode（フォルダ同期グループ）/ iOS 26+ / iPhoneのみ / SwiftUI（アプリ全体）＋ UIKit UICollectionView（棚の表示・ドラッグ並べ替え）/ SwiftData（Book・Shelf）＋ 画像はApplication Support配下のファイル保存（原寸・サムネイル）/ AVFoundation（自作カメラ）/ Vision（四隅検出・日本語英語OCR）/ Core Image（台形補正）/ ImageRenderer（共有画像）/ PhotoKit（追加のみ権限）/ Swift Testing ＋ XCUITest / swift-format（Xcode付属）。サードパーティ依存なし（外部通信ゼロの保証のため）。2026-11-09 ユーザー承認（UI: SwiftUI＋棚だけUIKit、保存: SwiftData、カメラ: 自作）
+stack: Swift 6 / Xcode（フォルダ同期グループ）/ iOS 26+ / iPhoneのみ / SwiftUI（アプリ全体）＋ UIKit UICollectionView（棚の表示・ドラッグ並べ替え）/ SwiftData（Book・Shelf）＋ 画像はApplication Support配下のファイル保存（原寸・サムネイル）/ AVFoundation（自作カメラ）/ Vision（四隅検出・日本語英語OCR）/ Core Image（台形補正）/ ImageRenderer（共有画像）/ PhotoKit（追加のみ権限）/ Swift Testing ＋ XCUITest / swift-format（Xcode付属）。サードパーティ依存なし（外部通信ゼロの保証のため）。2026-11-09 ユーザー承認（UI: SwiftUI＋棚だけUIKit、保存: SwiftData、カメラ: 自作）/ バンドルID: com.ryutaro3215.bookshelf（2026-11-11 オーナー決定）
 external_skills:
   - （デザインはオーナーが Figma で作成する。Figma の要約として .dev/design-brief.md を使う（2026-11-11 作成・オーナー承認）。dev-design スキルは使わない — 2026-11-09 オーナー判断）
   - figma:figma-swiftui: オーナーの Figma デザインを SwiftUI 画面へ落とし込む（T5・T6・T8・T9・T10・T11）
   - figma:figma-design-to-code: Figma のノードからデザインコンテキスト（寸法・色・タイポグラフィ）を取得する際の前提手順（UI タスク全般）
   - designagent:design-to-code: Figma から DESIGN.md をエクスポートした場合、デザイントークン（色・書体・余白）を Swift のトークン定義に実装する（T6）
   - dev-reviewer / dev-security / dev-docs: 各タスクの検収、リリース前の監査（外部通信ゼロの確認を含む）、README
+
+## 変更メモ
+- 2026-11-11 オーナー承認: ①T4 を「自動テスト用の合成フィクスチャ（git 管理）」と「オーナーの実写での精度実測（git 管理外）」に分けた（表紙は著作物のため git に入れない）②T5 の acceptance に表紙検出の改善（撮影ガイド・`VNDetectDocumentSegmentationRequest` 併用と閾値の再調整・手動調整の軽量化。現状の実写自動検出 7/25 → 目標 15/25 以上）と CIContext の使い回しを追加（T3 レビューより）③stack にバンドルIDを記録 ④T1・T3 の files を実態に合わせた（自動生成 Info.plist、.gitignore、scripts/generate-cover-fixtures.py）
 
 ## 共通事項
 - `$SIM` は利用可能な iPhone シミュレータ名（例: `xcrun simctl list devices available` で確認）
@@ -16,7 +19,7 @@ external_skills:
 
 ## T1: プロジェクト初期化
 - goal: ビルド可能な空のiOSアプリと、外部通信ゼロを機械的に確認するスクリプトを用意する
-- files: Bookshelf.xcodeproj（Xcodeで新規作成 — ユーザー作業: App / SwiftUI / Swift Testing / iOS 26 / iPhone）, Bookshelf/BookshelfApp.swift, Bookshelf/Info.plist（カメラ用途説明・写真追加用途説明）, .swift-format, scripts/check-no-network.sh
+- files: Bookshelf.xcodeproj（Xcodeで新規作成 — ユーザー作業: App / SwiftUI / Swift Testing / iOS 26 / iPhone）, Bookshelf/BookshelfApp.swift, Bookshelf.xcodeproj のビルド設定 `INFOPLIST_KEY_*`（Info.plist は自動生成。カメラ用途説明・写真追加用途説明）, .gitignore, .swift-format, scripts/check-no-network.sh
 - acceptance: `xcodebuild build -scheme Bookshelf -destination "platform=iOS Simulator,name=$SIM"` が BUILD SUCCEEDED を出力する / `scripts/check-no-network.sh` が `URLSession|URLRequest|NWConnection|http://|https://` を Bookshelf/ 配下に検出せず終了コード0を返し、テスト用にそれらを含むファイルを置くと終了コード1を返す / `swift format lint -r Bookshelf` がエラー0件
 - depends: なし
 - skills: なし
@@ -30,22 +33,23 @@ external_skills:
 
 ## T3: 画像パイプライン
 - goal: 撮影画像から表紙の四隅を検出して台形補正し、縮小・メタデータ除去・サムネイル生成を行う
-- files: Bookshelf/Imaging/CoverDetector.swift, Bookshelf/Imaging/CoverProcessor.swift, BookshelfTests/CoverProcessorTests.swift, BookshelfTests/Fixtures/（表紙を斜めから撮った画像3枚以上）
+- files: Bookshelf/Imaging/CoverDetector.swift, Bookshelf/Imaging/CoverProcessor.swift, BookshelfTests/CoverProcessorTests.swift, BookshelfTests/Fixtures/（表紙を斜めから撮った画像3枚以上。合成画像）, scripts/generate-cover-fixtures.py（フィクスチャ生成）
 - acceptance: テスト実行で CoverProcessorTests が通る — ①フィクスチャ画像で四隅が検出され出力が矩形になる ②出力の長辺が1600px以下 ③サムネイルが生成される ④出力画像に位置情報（GPS）等のEXIFが含まれない（CGImageSourceで確認）⑤四隅が検出できない画像では元画像を返し「検出失敗」を示す
 - depends: T1
 - skills: なし
 
 ## T4: 端末内OCRによる題名候補と精度の実測
 - goal: 表紙画像から題名候補を非同期に抽出し、オーナーの蔵書サンプルで精度を実測する（business-plan 検証方法1）
-- files: Bookshelf/Imaging/TitleRecognizer.swift, BookshelfTests/TitleRecognizerTests.swift, BookshelfTests/Fixtures/ocr/（オーナーの表紙写真20枚以上と正解題名のJSON）, .dev/ocr-accuracy.md
-- acceptance: テスト実行で TitleRecognizerTests が通る — ①横書き英語・横書き日本語のフィクスチャで正解題名を候補に含む ②認識失敗時は空の候補を返しエラーにしない / 実測結果（全体・縦書き・装飾書体・帯ありの各正解率）が .dev/ocr-accuracy.md に表で記録されている
+- files: Bookshelf/Imaging/TitleRecognizer.swift, BookshelfTests/TitleRecognizerTests.swift, BookshelfTests/OCRAccuracyTests.swift（実写での精度実測。実写ファイルが無いときはスキップ）, BookshelfTests/Fixtures/ocr-*.png（スクリプトで生成した架空の表紙。フォルダ同期グループがテストバンドルへ平らにコピーするため、サブフォルダにせず `ocr-` を接頭辞にする）, scripts/generate-ocr-fixtures.py（または scripts/generate-cover-fixtures.py を拡張）, .dev/ocr-accuracy.md
+- data（git 管理外・.gitignore 済み。files ではない）: design/sample-covers/manifest.json（切り抜き済み23枚の正解題名）, design/sample-covers/raw/（未加工の実写25枚）, design/sample-covers/raw-titles.json（raw の正解題名。builder が写真を読んで下書きし、オーナーが確認して確定する）
+- acceptance: テスト実行で TitleRecognizerTests が通る — ①合成フィクスチャの横書き英語・横書き日本語で正解題名を候補に含む ②認識失敗時は空の候補を返しエラーにしない / 実写ファイル（manifest.json・raw-titles.json）が無い環境（CI・クリーンなチェックアウト）では OCRAccuracyTests がスキップされ、テスト全体が通る / 実写での実測結果が .dev/ocr-accuracy.md に表で記録されている — 全体・縦書き・装飾書体・帯ありの各カテゴリについてサンプル数と正解数・正解率（切り抜き23枚と raw 25枚を分けて記載）。表紙画像は含めず、本の題名も載せない（サンプルは番号で示す）/ サンプル数が5未満のカテゴリはその旨を ocr-accuracy.md に記録し、オーナーに追加撮影を依頼するよう報告する / 表紙画像・正解題名のファイルが git の追跡対象に入っていない（`git status --ignored` で ignored と表示される）
 - depends: T3
 - skills: なし
 
 ## T5: 撮影登録フロー（自作カメラ・連続撮影・登録待ちの一覧）
 - goal: アプリ内カメラで表紙を連続撮影し、登録待ちの一覧で題名・ジャンル・購入済みチェックを確認して登録できるようにする。入口は下部バーの＋と棚の末尾の空き枠（F1-6。2026-11-10 更新）
-- files: Bookshelf/Capture/CameraController.swift, Bookshelf/Capture/CaptureView.swift, Bookshelf/Capture/CaptureViewModel.swift, Bookshelf/Capture/PendingListView.swift, Bookshelf/Capture/FakeCameraSource.swift（シミュレータ・UIテスト用）, BookshelfUITests/CaptureFlowUITests.swift
-- acceptance: UIテスト実行で CaptureFlowUITests が通る — ①FakeCameraSource で3冊を連続撮影し、カメラを閉じずに登録待ちの一覧に3冊並ぶ ②一覧の初期状態は全冊が購入済みにチェックされ、「すべて解除」で全冊が外れ、1冊だけチェックを外して登録するとその本は買いたい本に、残りは選んだジャンルに購入日=今日で並ぶ ③題名が空の本があると登録ボタンが押せない ④棚の末尾の空き枠から始めると、その棚が登録先になる ⑤直前に使った棚が買いたい本のときは、それ以外で直前に使った棚が初期値になる ⑥登録待ちが30冊になると撮影ボタンが押せなくなり上限の案内が出る。ライブラリの選択は残りの冊数までに制限される（F1-8。2026-11-11 追加） / 実機（iPhone 13相当）で撮影ボタン押下から次の撮影可能までの時間を計測し1秒以内であることを build-log に記録 / 見た目・演出が Figma の A・B・C 行と一致 / 見た目・文言・画面構成が .dev/design-brief.md と Figma の詳細デザイン（A・C・N 行）に一致
+- files: Bookshelf/Capture/CameraController.swift, Bookshelf/Capture/CaptureView.swift（撮影ガイドを含む）, Bookshelf/Capture/CaptureViewModel.swift, Bookshelf/Capture/PendingListView.swift, Bookshelf/Capture/CornerAdjustView.swift（N画面: 手動の四隅調整）, Bookshelf/Capture/FakeCameraSource.swift（シミュレータ・UIテスト用）, Bookshelf/Imaging/CoverDetector.swift（検出の改善）, BookshelfTests/CoverDetectionAccuracyTests.swift（実写での検出率の実測。実写ファイルが無いときはスキップ）, BookshelfUITests/CaptureFlowUITests.swift
+- acceptance: UIテスト実行で CaptureFlowUITests が通る — ①FakeCameraSource で3冊を連続撮影し、カメラを閉じずに登録待ちの一覧に3冊並ぶ ②一覧の初期状態は全冊が購入済みにチェックされ、「すべて解除」で全冊が外れ、1冊だけチェックを外して登録するとその本は買いたい本に、残りは選んだジャンルに購入日=今日で並ぶ ③題名が空の本があると登録ボタンが押せない ④棚の末尾の空き枠から始めると、その棚が登録先になる ⑤直前に使った棚が買いたい本のときは、それ以外で直前に使った棚が初期値になる ⑥登録待ちが30冊になると撮影ボタンが押せなくなり上限の案内が出る。ライブラリの選択は残りの冊数までに制限される（F1-8。2026-11-11 追加）⑦カメラ画面に撮影ガイド（表紙を枠いっぱいに入れる・背景と分ける旨の枠と文言）が表示される ⑧四隅の検出に失敗した本は N 画面で、画像の内側（各辺から約10%内側）に初期の四隅が置かれ、四隅のハンドルをドラッグして「確定」すると補正済みの表紙が登録待ちの一覧に入る（2026-11-11 追加） / 表紙検出の改善（F1-2。T3 レビューより。2026-11-11 追加）: `VNDetectDocumentSegmentationRequest` を `VNDetectRectanglesRequest` と併用し閾値を再調整したうえで、design/sample-covers/raw の実写25枚（git 管理外）で CoverDetectionAccuracyTests を実行し、自動検出の成功（表紙の四隅を正しく取れた枚数。表紙の内側の枠など表紙以外を取ったものは失敗に数える。正誤は builder が出力画像を目視確認）が現状 7/25 から **15/25 以上** になったことを build-log に枚数で記録する（実写ファイルが無い環境ではテストはスキップされテスト全体が通る。15/25 に届かない場合は到達枚数と原因の見立てを記録してオーナーに報告し、判断を仰ぐ）/ T3 の合成フィクスチャでの CoverProcessorTests が引き続き通る / 連続撮影中は1つの CIContext を使い回し、1枚ごとに作り直さない（コードレビューで確認）/ 実機（iPhone 13相当）で撮影ボタン押下から次の撮影可能までの時間を計測し1秒以内であることを build-log に記録 / 見た目・演出が Figma の A・B・C 行と一致 / 見た目・文言・画面構成が .dev/design-brief.md と Figma の詳細デザイン（A・C・N 行）に一致
 - depends: T2, T3
 - skills: figma:figma-swiftui
 

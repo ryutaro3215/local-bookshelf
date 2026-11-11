@@ -38,3 +38,20 @@
   - [should] Bookshelf/Imaging/CoverProcessor.swift:34 `CIContext` を `CoverProcessor` ごとに作っている。T5 の連続撮影で1枚ごとに作り直すと遅くなるので、呼ぶ側で1つを使い回す設計にすること（builder の申し送りと同じ）
   - [nit] scripts/generate-cover-fixtures.py は plan.md の files 外だが、フィクスチャを作り直せるようにするためのもので妥当。plan.md の files への追記を dev-architect に推奨
   - [nit] ④ ImageIO の JPEG 出力には EXIF 辞書の ColorSpace・PixelXDimension・PixelYDimension の3項目が必ず残る。撮影日時・機種・位置情報は残らないので S6 の趣旨は満たしている
+
+## T4: PASS (2026-11-11)
+- acceptance再実行:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"`（iPhone 17 Pro / iOS 26.5）→ `✔ Test run with 28 tests in 5 suites passed after 39.141 seconds`、`** TEST SUCCEEDED **`。TitleRecognizerTests（①横書き英語・横書き日本語・縦書き日本語で候補に含む／先頭になる、②文字のない表紙・空 Data・画像でない Data で空の候補）と並べ方の単体テストがすべて成功。並行処理の警告なし
+  - OCRAccuracyTests の出力（切り抜き23枚・raw 25枚の表、四隅の自動検出 7/25、サンプルごとの判定）が .dev/ocr-accuracy.md の表・サンプルごとの判定と完全に一致することを確認
+  - スキップの確認: design/sample-covers の manifest.json と raw-titles.json を一時的に退避して同じコマンドを実行 → `Suite OCRAccuracyTests skipped: "実写のサンプル（design/sample-covers）が無いためスキップ"`、`✔ Test run with 28 tests in 5 suites passed after 2.785 seconds`、`** TEST SUCCEEDED **`。実行後に元へ戻し、shasum と `ls -l` が退避前と一致することを確認
+  - `swift format lint -r Bookshelf BookshelfTests` → 出力なし、exit=0
+  - `scripts/check-no-network.sh` → exit=0（S1）
+  - `git status --porcelain --ignored` → `design/sample-covers/` は `!!`（ignored）。追跡対象の新規ファイルは TitleRecognizer.swift・テスト2本・ocr-*.png 4枚・generate-ocr-fixtures.py・ocr-accuracy.md のみ
+  - 著作権の確認: ocr-*.png 4枚を目視し、すべて架空の題名・著者・出版社の合成表紙であることを確認。manifest.json（23件）・raw-titles.json（25件）の正解題名を、`git ls-files` と未追跡（ignore されていない）の全テキストファイルに対して照合（原文と NFKC・空白約物除去後の両方）→ T4 で追加・変更したファイルには一致なし。ocr-accuracy.md はサンプルを番号（Cxx・Rxx）だけで示している
+- 要件との整合: F2-4（ja-JP・en-US、縦書きは合成フィクスチャで先頭候補になることを確認）、S1（Vision の端末内認識のみ・通信なし）、S6（候補は制御文字を除き200文字まで。つないだ候補も append 時に再度整える）、失敗時は os.Logger に記録して空配列を返し投げない（空 catch なし）。実測値が暫定なのは raw-titles.json・cover-categories.json が `"status": "draft"`（オーナー確認待ち）のためで、計画どおり。装飾書体が5枚未満であることは ocr-accuracy.md に記録され、追加撮影の依頼が build-log の notes にある
+- 指摘:
+  - [should] Bookshelf/Imaging/TitleRecognizer.swift:36,45 プロジェクトは `SWIFT_APPROACHABLE_CONCURRENCY=YES`（nonisolated(nonsending) が既定）・`SWIFT_DEFAULT_ACTOR_ISOLATION=MainActor` のため、`nonisolated` 型の `async` 関数は呼んだ側の actor で動く。T5 で MainActor（画面）から `candidates(in:)` を呼ぶと、`uprightImage`（ImageIO による12MP 画像の縮小デコード）と `rankCandidates` がメインスレッドで実行され、撮影の操作が一瞬止まりうる（F2-2「撮影・登録の操作は OCR 完了を待たない」）。2つの `candidates(in:)` に `@concurrent` を付けて、確実に呼び出し元の actor から外すべき。T4 の acceptance には呼び出し元がないため PASS の判定には影響しない
+  - [should] BookshelfTests/OCRAccuracyTests.swift:45 実写ファイルがある環境（オーナーの Mac）では、通常の `xcodebuild test` が 約3秒 → 約39秒になる（OCRAccuracyTests が約36秒）。閾値の判定はなく（件数 23・25 の確認のみ）、結果がぶれてもテストは落ちないので不安定ではないが、T5 以降の毎回のテストが遅くなる。環境変数（例: `OCR_ACCURACY=1`）が立っているときだけ有効にする、またはタグを付けて別のテストプランに分けることを推奨
+  - [should] 既存の追跡ファイルに実在の書名が残っている（T4 で追加されたものではない）: BookshelfTests/LibraryStoreTests.swift:40-118（T2。サンプルの本の題名をテストデータに使っている。8件一致）、design/mock-todo.md（モックの作業記録。40件以上一致）、.dev/build-log.md:65（T3 の参考記録に1件）。「実在の表紙・題名を git 追跡ファイルに入れない」方針に反する。テストデータを架空の題名に差し替え、mock-todo.md は ignore するか書名を伏せるべき。すでにコミット済みなので、公開リポジトリにする場合は履歴の書き換えも必要。dev-orchestrator で notices に起票し、修正担当（builder / 文書の所有者）を決めることを推奨
+  - [nit] BookshelfTests/OCRAccuracyTests.swift:57 cover-categories.json の読み込みを `try?` で握りつぶしている。ファイルが壊れていると全サンプルのカテゴリが「該当なし」になり、表の数字が黙って変わる。ファイルがあるのに読めないときは `#require` で落とす方が安全
+  - [nit] Bookshelf/Imaging/TitleRecognizer.swift:160 `clean` が `LibraryStore.sanitize` と同じ処理の複製になっている（builder の notes のとおり、MainActor の LibraryStore から呼べないため）。将来どちらかの規則を変えたときにずれないよう、nonisolated の共通関数に寄せるとよい

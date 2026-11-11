@@ -69,3 +69,32 @@
   - フォルダ同期のため、Fixtures の画像はテストバンドルの直下に平らにコピーされる（`Fixtures/` のサブフォルダは保たれない）。T4 の Fixtures/ocr/ でファイル名が重なるとぶつかるので、名前を分けるか、フォルダ参照にする必要がある
   - 実写での検出率（7/25）は低め。書店の棚の前で手に持った写真が多く、手・背景の本・帯が四角形の検出を邪魔している。失敗時は F1-2 の手動調整に回る前提。T5 で実機の撮影ガイド（枠の表示）と合わせて、閾値の再調整や VNDetectDocumentSegmentationRequest の併用を検討したい（今回は未対応）
   - 検出・補正は重い処理（時間は未計測）なので、T5 では MainActor から外して（Task.detached 等で）呼ぶ想定。`CoverProcessor` は `nonisolated` だが CIContext を持つため Sendable にはしていない（呼ぶ側で作る）
+
+## T4: 端末内OCRによる題名候補と精度の実測 — done (2026-11-11)
+- changed:
+  - Bookshelf/Imaging/TitleRecognizer.swift: `TitleRecognizer`（`nonisolated`・Sendable）。Vision の `RecognizeTextRequest`（iOS 18+ の Swift API。accurate、ja-JP・en-US、言語補正あり、端末内・async）で行を読み、`candidates(in: Data)` / `candidates(in: CGImage)` が題名候補（最大5件）を返す。失敗時（読めない画像・Vision のエラー）は os.Logger に記録して空配列を返し、投げない。並べ方（`rankCandidates`）: 数字・記号だけの行を除く → 文字の大きさ（行の短辺。Vision の `isTitle` の行は1.5倍）の大きい順 → 同じ大きさ（比0.75以上）・同じ向きで隣り合う行（間隔が文字の0.8倍以内）はつないだ候補をその前に置く（横書きは上から、縦書きは右の列から）。候補は制御文字を除き200文字まで（S6）。向き（EXIF）を反映して長辺2048pxまで縮めてから認識
+  - BookshelfTests/TitleRecognizerTests.swift: acceptance ①（横書き英語・横書き日本語に加え縦書き日本語で正解を候補に含む／先頭の候補になる）②（文字のない表紙・画像でないデータで空の候補・エラーなし）、並べ方の単体テスト（2行の連結・数字行の除外・縦書きは右から・5件まで・制御文字と200文字）、正解判定の正規化 `TitleMatch` のテスト
+  - BookshelfTests/OCRAccuracyTests.swift: 実写での精度実測。design/sample-covers の manifest.json と raw-titles.json が無ければ `.enabled(if:)` でスイートごとスキップ。パスは `#filePath` からリポジトリの design/sample-covers を辿る（シミュレータからホストのパスを読める）。切り抜き23枚はそのまま、raw 25枚は `CoverProcessor` に通してから認識し、カテゴリ別の表（番号のみ・題名は出さない）を標準出力に出す
+  - BookshelfTests/Fixtures/ocr-horizontal-en.png・ocr-horizontal-ja.png（2行の題名＋帯）・ocr-vertical-ja.png・ocr-blank.png: 架空の題名・著者・出版社の合成表紙（800x1160 PNG、計約190KB）
+  - scripts/generate-ocr-fixtures.py: 上のフィクスチャの生成スクリプト（pillow・numpy、macOS 付属のヒラギノ・Avenir Next を使用）
+  - .dev/ocr-accuracy.md: 実測結果（暫定）。「正解」の定義と正規化の規則、切り抜き/raw 別・カテゴリ別の表、サンプルごとの判定（番号のみ）、不正解の傾向、5枚未満のカテゴリ
+  - git 管理外のデータ（files ではない）: design/sample-covers/raw-titles.json（raw 25枚の正解題名とカテゴリ。`"status": "draft"`）、design/sample-covers/cover-categories.json（切り抜き23枚のカテゴリ。`"status": "draft"`。manifest.json は編集していない）
+- verify:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"`（iPhone 17 Pro / iOS 26.5）→ `✔ Test run with 28 tests in 5 suites passed`、`** TEST SUCCEEDED **`（TitleRecognizerTests・OCRAccuracyTests・CoverProcessorTests・LibraryStoreTests・YomiTests）。警告・並行処理エラーなし
+    - TitleRecognizerTests: 合成表紙の候補 — 英語 先頭「PAPER COMETS」／日本語 先頭は2行をつないだ題名／縦書き 先頭は縦1列の題名／blank は []／空 Data・文字列 Data は []
+  - スキップの確認: manifest.json と raw-titles.json を一時的に退避して同じコマンドを実行 → `Suite OCRAccuracyTests skipped: "実写のサンプル（design/sample-covers）が無いためスキップ"`、`✔ Test run with 28 tests in 5 suites passed`、TEST SUCCEEDED（実行後に元へ戻した）
+  - 実測（シミュレータ・暫定。正解＝正規化後の完全一致）:
+    - 切り抜き23枚: 全体 先頭13/23（57%）・候補内14/23（61%）／縦書き 5/8・6/8／装飾書体 2/3・2/3（5未満）／帯あり 6/14・7/14
+    - raw 25枚（CoverProcessor 経由。四隅の自動検出 7/25）: 全体 先頭15/25（60%）・候補内18/25（72%）／縦書き 5/8・7/8／装飾書体 1/4・2/4（5未満）／帯あり 9/16・11/16
+    - 参考（テスト外。同じコードを macOS で実行）: 切り抜き 先頭15/23・候補内16/23、raw 先頭17/25・候補内21/25。シミュレータの方が1文字の誤読が多い
+  - `swift format lint -r Bookshelf BookshelfTests` → 出力なし、exit=0
+  - `scripts/check-no-network.sh` → exit=0
+  - `git status --short --ignored` → design/sample-covers/（実写・manifest.json・raw-titles.json・cover-categories.json）は `!!`（ignored）。追跡対象の新規ファイルは上の changed のコード・テスト・ocr-*.png・スクリプトのみ。ocr-accuracy.md・テスト・コードに実在の書名が無いことをスクリプトで照合済み
+- notes:
+  - **オーナー確認が必要**: design/sample-covers/raw-titles.json の正解題名（builder が写真を見て下書き）と、raw-titles.json・cover-categories.json のカテゴリ（縦書き・装飾書体・帯あり）。確認したら `status` を `confirmed` にし、OCRAccuracyTests を再実行して ocr-accuracy.md の「暫定」を外す。特に確認してほしい点: R24 の題名を表紙のとおり最後まで（manifest.json の C11 は途中まで）にしたこと、R08/C30 の題名の前の一行（シリーズ名とみなして題名に含めていない）、R18・R19 は切り抜き23枚に無い本
+  - **サンプル数が5未満のカテゴリ**: 装飾書体（切り抜き3枚・raw 4枚）。装飾書体の表紙（手書き風・デザイン文字・写真や絵の上に題名が重なるもの）を5枚以上（できれば10枚）追加撮影してほしい
+  - 実機（Neural Engine）での精度は未測定。シミュレータと Mac で結果が違ったため、実機の値は Mac 側に近い可能性がある。実機確認は T5 の実機計測と合わせて行うのがよい
+  - 不正解の主な原因（ocr-accuracy.md に番号付きで記載）: 1文字の誤読、帯のキャッチコピー・隣の本・看板の大きな文字に負ける、2行の題名の間に英題などの小さな文字が挟まってつなげられない。改善案（未対応・提案）: 撮影時に表紙だけを切り抜く（T5 の検出改善で raw の結果が切り抜きに近づく）、間に小さな文字を挟む2行の連結、帯の領域（表紙下部の色の帯）の重みを下げる
+  - 題名の整え方（制御文字除去・200文字）は `LibraryStore.sanitize` と同じ処理を TitleRecognizer 内に持たせた（LibraryStore は MainActor のため nonisolated の認識処理から呼べず、また plan の files 外のため）。T9 で題名を確定するときは従来どおり LibraryStore 側で再度整える
+  - フィクスチャ生成には pillow・numpy が要る（アプリの依存ではない）。手元の Python に入っていなかったため、作業用の venv（リポジトリ外）に入れて実行した
+  - 計画とのズレ: なし（files の範囲内。データファイル cover-categories.json は plan の data に無い名前だが、依頼どおり git 管理外の design/sample-covers/ に置いた）
