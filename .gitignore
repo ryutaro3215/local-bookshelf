@@ -1,0 +1,10 @@
+# Xcode の個人設定（ユーザーごとのスキーム・ウィンドウの状態など）
+xcuserdata/
+*.xcuserstate
+
+# ビルドの生成物
+DerivedData/
+build/
+
+# macOS が作るファイル
+.DS_Store

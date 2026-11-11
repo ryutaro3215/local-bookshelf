@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>本棚 閲覧ページ モック</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+    background: #eee; color: #111;
+    display: flex; gap: 56px; justify-content: center; align-items: center;
+    min-height: 100vh; padding: 32px;
+  }
+  .phone {
+    width: 393px; height: 852px; flex: none;
+    background: #fff; border: 2px solid #111; border-radius: 54px;
+    position: relative; overflow: hidden;
+    touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab;
+  }
+  .phone.dragging { cursor: grabbing; }
+  .status {
+    position: absolute; inset: 0 0 auto 0; height: 54px; z-index: 20;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 34px; font-size: 15px; font-weight: 600; pointer-events: none;
+  }
+  .island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 124px; height: 36px; border-radius: 20px; background: #111; }
+  .pager { position: absolute; inset: 0; will-change: transform; }
+  .panel { position: absolute; left: 0; width: 100%; height: 852px; }
+
+  .label {
+    position: absolute; top: 108px; left: 50%; transform: translateX(-50%);
+    border: 1.5px solid #111; padding: 6px 22px;
+    font-size: 20px; font-weight: 600; letter-spacing: .12em; white-space: nowrap;
+  }
+  .shelf-count { position: absolute; top: 160px; width: 100%; text-align: center; font-size: 12px; color: #777; }
+
+  .stage { position: absolute; left: 0; right: 0; top: 250px; height: 300px; perspective: 900px; }
+  .book {
+    position: absolute; left: 50%; bottom: 0;
+    border: 1.5px solid #111; background: #fff;
+    transform-origin: 50% 100%; backface-visibility: hidden;
+    overflow: hidden;
+  }
+  .book svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .book .t {
+    position: absolute; left: 8px; right: 8px; top: 12px;
+    font-size: 11px; line-height: 1.35; background: #fff; padding: 2px 3px;
+    border: 1px solid #ccc; text-align: center;
+  }
+  .book .t.none { color: #aaa; border-style: dashed; }
+  .book .size { position: absolute; bottom: 6px; width: 100%; text-align: center; font-size: 9px; color: #999; }
+
+  .info { position: absolute; top: 580px; left: 32px; right: 32px; text-align: center; }
+  .info .title { font-size: 17px; font-weight: 600; min-height: 24px; }
+  .info .title.none { color: #aaa; font-weight: 400; }
+  .info .meta { font-size: 12px; color: #777; margin-top: 6px; }
+  .info .idx { font-size: 12px; color: #777; margin-top: 14px; font-variant-numeric: tabular-nums; }
+
+  .empty {
+    position: absolute; top: 300px; left: 50%; transform: translateX(-50%);
+    width: 180px; height: 220px; border: 1.5px dashed #aaa;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-size: 13px; color: #888; line-height: 1.6;
+  }
+
+  .dots { position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 8px; z-index: 15; pointer-events: none; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; border: 1px solid #111; display: block; transition: background .2s, height .2s; }
+  .dots i.on { background: #111; height: 16px; border-radius: 3px; }
+
+  .hint { position: absolute; bottom: 44px; width: 100%; text-align: center; font-size: 11px; color: #999; z-index: 15; pointer-events: none; }
+  .homebar { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px; background: #111; z-index: 20; }
+
+  .toast {
+    position: absolute; left: 50%; bottom: 90px; transform: translate(-50%, 10px);
+    background: #111; color: #fff; font-size: 12px; padding: 8px 14px; border-radius: 16px;
+    opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 30;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  .notes { width: 300px; font-size: 13px; line-height: 1.8; color: #333; }
+  .notes h1 { font-size: 16px; margin-bottom: 12px; }
+  .notes h2 { font-size: 13px; margin: 18px 0 4px; }
+  .notes li { margin-left: 1.2em; }
+  .notes kbd { border: 1px solid #999; border-radius: 3px; padding: 0 4px; font-size: 11px; background: #fff; }
+  @media (max-width: 760px) { .notes { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="island"></div>
+  <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+  <div class="pager" id="pager"></div>
+  <div class="dots" id="dots"></div>
+  <div class="hint">← → 本をめくる　↑ ↓ 棚をかえる</div>
+  <div class="toast" id="toast"></div>
+  <div class="homebar"></div>
+</div>
+
+<div class="notes">
+  <h1>書籍の閲覧ページ（モック）</h1>
+  <p>色・装飾なしのワイヤーフレーム。手書きスケッチの構成をそのまま再現。</p>
+  <h2>操作</h2>
+  <ul>
+    <li>横スワイプ: 棚の中の本をめくる</li>
+    <li>縦スワイプ: 棚（ジャンル）を切り替える</li>
+    <li>端の本をタップ: その本を中央へ</li>
+    <li>中央の本をタップ: 詳細へ（未作成）</li>
+    <li>PC: ドラッグ / トラックパッド / <kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></li>
+  </ul>
+  <h2>確認できる状態</h2>
+  <ul>
+    <li>縦横比がばらばらの表紙（文庫・新書・単行本・A5・漫画）</li>
+    <li>題名がない本（「題名なし」）</li>
+    <li>0冊の棚（「積読」）</li>
+  </ul>
+</div>
+
+<script>
+// ---- サンプルデータ ----
+const SIZES = { 文庫:[105,148], 新書:[103,182], 単行本:[128,188], A5:[148,210], 漫画:[112,174] };
+const K = 1.12; // mm → px
+const raw = {
+  "哲学":   [["純粋理性批判","文庫"],["存在と時間","単行本"],["論理哲学論考","文庫"],["善悪の彼岸","新書"],["方法序説","文庫"],[null,"A5"],["饗宴","文庫"],["精神現象学","単行本"],["自由論","新書"]],
+  "数学":   [["数学ガール","単行本"],["解析概論","A5"],["線形代数入門","A5"],["集合・位相入門","A5"],["素数の音楽","文庫"],[null,"新書"],["代数学1","単行本"]],
+  "小説":   [["吾輩は猫である","文庫"],["こころ","文庫"],["雪国","文庫"],["人間失格","文庫"],["羅生門","文庫"],["細雪","単行本"],["坊っちゃん","文庫"],["金閣寺","文庫"],["沈黙","文庫"],["砂の女","文庫"],["海辺のカフカ","単行本"],["火車","文庫"],["博士の愛した数式","文庫"],["容疑者Xの献身","単行本"]],
+  "技術書": [["リーダブルコード","A5"],["達人プログラマー","A5"],["Clean Architecture","A5"],["SQLアンチパターン","A5"],[null,"A5"],["プログラミングSwift","単行本"]],
+  "積読":   [],
+  "未分類": [[null,"漫画"],["旅の手帖","A5"],[null,"漫画"]],
+};
+const shelves = Object.entries(raw).map(([name, list], g) => ({
+  name,
+  books: list.map(([title, type], i) => {
+    const [w, h] = SIZES[type];
+    const d = new Date(2026, 10, 1 - (g * 17 + i * 9));
+    return { title, type, w: Math.round(w * K), h: Math.round(h * K),
+      date: `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}` };
+  }),
+  cur: 0, target: 0,
+}));
+
+// ---- DOM 構築 ----
+const H = 852, pager = document.getElementById("pager"), dotsEl = document.getElementById("dots");
+const coverSVG = '<svg preserveAspectRatio="none" viewBox="0 0 100 100"><line x1="0" y1="0" x2="100" y2="100" stroke="#ddd" stroke-width="0.8" vector-effect="non-scaling-stroke"/><line x1="100" y1="0" x2="0" y2="100" stroke="#ddd" stroke-width="0.8" vector-effect="non-scaling-stroke"/></svg>';
+
+shelves.forEach((s, g) => {
+  const p = document.createElement("div");
+  p.className = "panel"; p.style.top = g * H + "px";
+  p.innerHTML = `<div class="label">${s.name}</div><div class="shelf-count">${s.books.length}冊</div>`;
+  if (!s.books.length) {
+    p.innerHTML += `<div class="empty">この棚にはまだ<br>本がありません</div>`;
+  } else {
+    const stage = document.createElement("div"); stage.className = "stage";
+    s.els = s.books.map((b, i) => {
+      const el = document.createElement("div");
+      el.className = "book"; el.dataset.g = g; el.dataset.i = i;
+      el.style.width = b.w + "px"; el.style.height = b.h + "px"; el.style.marginLeft = -b.w / 2 + "px";
+      el.innerHTML = coverSVG + (b.title ? `<div class="t">${b.title}</div>` : `<div class="t none">題名なし</div>`) + `<div class="size">${b.type}</div>`;
+      el.setAttribute("aria-label", b.title || "題名なしの本");
+      stage.appendChild(el); return el;
+    });
+    const info = document.createElement("div"); info.className = "info";
+    info.innerHTML = `<div class="title"></div><div class="meta"></div><div class="idx"></div>`;
+    p.append(stage, info); s.info = info;
+  }
+  pager.appendChild(p);
+  dotsEl.appendChild(document.createElement("i"));
+});
+
+// ---- 配置計算 ----
+const SP = 30; // 2冊目以降の背の間隔
+function layoutShelf(s) {
+  if (!s.els) return;
+  const n = s.books.length, c = s.cur;
+  const lo = Math.max(0, Math.min(n - 1, Math.floor(c))), hi = Math.min(n - 1, lo + 1);
+  const cw = s.books[lo].w + (s.books[hi].w - s.books[lo].w) * (c - lo); // 中央幅を補間
+  s.els.forEach((el, i) => {
+    const d = i - c, a = Math.abs(d), sg = Math.sign(d), t = Math.min(a, 1), w = s.books[i].w;
+    const x = sg * (t * (cw / 2 + w * 0.2 + 8) + Math.max(0, a - 1) * SP);
+    const rot = -sg * t * 68, z = -t * 70;
+    el.style.transform = `translateX(${x}px) translateZ(${z}px) rotateY(${rot}deg)`;
+    el.style.zIndex = 1000 - Math.round(a * 10);
+    el.style.opacity = a > 8 ? 0 : 1;
+  });
+  const b = s.books[Math.round(c)];
+  const tEl = s.info.querySelector(".title");
+  tEl.textContent = b.title || "題名なし"; tEl.classList.toggle("none", !b.title);
+  s.info.querySelector(".meta").textContent = `${b.type}・棚に加えた日 ${b.date}`;
+  s.info.querySelector(".idx").textContent = `${Math.round(c) + 1} / ${s.books.length}`;
+}
+
+// ---- 状態とアニメーション ----
+let gCur = 0, gTarget = 0, drag = null;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function tick() {
+  if (!drag || drag.axis !== "y") gCur += (gTarget - gCur) * 0.16;
+  pager.style.transform = `translateY(${-gCur * H}px)`;
+  shelves.forEach(s => {
+    if (!(drag && drag.axis === "x" && drag.s === s)) s.cur += (s.target - s.cur) * 0.18;
+    layoutShelf(s);
+  });
+  [...dotsEl.children].forEach((d, i) => d.classList.toggle("on", i === Math.round(gCur)));
+  requestAnimationFrame(tick);
+}
+const curShelf = () => shelves[Math.round(gTarget)];
+const goBook = (s, i) => { if (s.books.length) s.target = clamp(i, 0, s.books.length - 1); };
+const goShelf = g => { gTarget = clamp(g, 0, shelves.length - 1); };
+
+// ---- ジェスチャ ----
+const phone = document.getElementById("phone");
+phone.addEventListener("pointerdown", e => {
+  phone.setPointerCapture(e.pointerId);
+  const s = curShelf();
+  drag = { x0: e.clientX, y0: e.clientY, axis: null, s, c0: s.cur, g0: gCur, el: e.target.closest(".book"),
+           lastX: e.clientX, lastY: e.clientY, lastT: performance.now(), vx: 0, vy: 0 };
+  phone.classList.add("dragging");
+});
+phone.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0, now = performance.now(), dt = Math.max(1, now - drag.lastT);
+  drag.vx = (e.clientX - drag.lastX) / dt; drag.vy = (e.clientY - drag.lastY) / dt;
+  drag.lastX = e.clientX; drag.lastY = e.clientY; drag.lastT = now;
+  if (!drag.axis && Math.hypot(dx, dy) > 8) drag.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+  if (drag.axis === "x" && drag.s.books.length) {
+    const n = drag.s.books.length;
+    let c = drag.c0 - dx / 80;
+    if (c < 0) c *= 0.3; if (c > n - 1) c = n - 1 + (c - n + 1) * 0.3; // 端のゴム
+    drag.s.cur = c;
+  } else if (drag.axis === "y") {
+    let g = drag.g0 - dy / H;
+    if (g < 0) g *= 0.3; if (g > shelves.length - 1) g = shelves.length - 1 + (g - shelves.length + 1) * 0.3;
+    gCur = g;
+  }
+});
+function end() {
+  if (!drag) return;
+  if (drag.axis === "x") goBook(drag.s, Math.round(drag.s.cur - drag.vx * 3));
+  else if (drag.axis === "y") {
+    const moved = gCur - drag.g0;
+    goShelf(Math.abs(drag.vy) > 0.4 ? drag.g0 + (drag.vy < 0 ? 1 : -1) : Math.abs(moved) > 0.2 ? drag.g0 + Math.sign(moved) : drag.g0);
+    goShelf(Math.round(gTarget));
+  } else if (drag.el) { // タップ
+    const s = shelves[+drag.el.dataset.g], i = +drag.el.dataset.i;
+    if (i === Math.round(s.target)) toast(`「${s.books[i].title || "題名なし"}」の詳細へ（未作成）`);
+    else goBook(s, i);
+  }
+  drag = null; phone.classList.remove("dragging");
+}
+phone.addEventListener("pointerup", end);
+phone.addEventListener("pointercancel", end);
+
+// トラックパッド / ホイール
+let wx = 0, wy = 0, wLock = 0;
+phone.addEventListener("wheel", e => {
+  e.preventDefault();
+  if (performance.now() < wLock) return;
+  wx += e.deltaX; wy += e.deltaY;
+  if (Math.abs(wx) > 60) { goBook(curShelf(), Math.round(curShelf().target) + Math.sign(wx)); wx = wy = 0; wLock = performance.now() + 120; }
+  else if (Math.abs(wy) > 80) { goShelf(Math.round(gTarget) + Math.sign(wy)); wx = wy = 0; wLock = performance.now() + 450; }
+}, { passive: false });
+
+addEventListener("keydown", e => {
+  const s = curShelf();
+  if (e.key === "ArrowRight") goBook(s, Math.round(s.target) + 1);
+  if (e.key === "ArrowLeft")  goBook(s, Math.round(s.target) - 1);
+  if (e.key === "ArrowDown")  goShelf(Math.round(gTarget) + 1);
+  if (e.key === "ArrowUp")    goShelf(Math.round(gTarget) - 1);
+});
+
+let tt; const toastEl = document.getElementById("toast");
+function toast(msg) { toastEl.textContent = msg; toastEl.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => toastEl.classList.remove("show"), 1400); }
+
+// 初期位置は棚の中ほど（両側に本が見えるように）
+shelves.forEach(s => { s.cur = s.target = Math.floor(s.books.length / 2) - (s.books.length ? 0 : 0); });
+tick();
+</script>
+</body>
+</html>
