@@ -175,4 +175,130 @@ struct LibraryStoreTests {
         #expect(shelves.suffix(2).allSatisfy { $0.categoryID == InitialGenres.system.id })
         #expect(InitialGenres.system.name == "その他")
     }
+
+    // MARK: - T9: 本の編集・購入した（F6-4・§10.3）
+
+    func day(_ y: Int, _ m: Int, _ d: Int) throws -> Date {
+        try #require(Calendar.current.date(from: DateComponents(year: y, month: m, day: d)))
+    }
+
+    func cover(_ byte: UInt8) -> ProcessedCover {
+        ProcessedCover(image: Data([byte, byte]), thumbnail: Data([byte]), corners: nil)
+    }
+
+    @Test("T9 編集: 題名（S6）・ジャンル（移した先の末尾）・購入日を保存する")
+    func editTitleGenreAndDate() throws {
+        let (store, _) = try makeStore()
+        let novel = try genre("小説", store)
+        let essay = try genre("エッセイ", store)
+        let book = try store.addBook(title: "灰色の標本箱", shelf: novel)
+        try store.addBook(title: "遠い観測所", shelf: essay)
+        let date = try day(2026, 1, 15)
+        try store.updateBook(
+            book, with: BookEdit(title: "  灰色の標本箱の記録\u{0007}  ", shelf: essay, ownership: .owned, purchaseDate: date))
+        #expect(book.title == "灰色の標本箱の記録")
+        #expect(book.yomi == Yomi.make(from: "灰色の標本箱の記録"))
+        #expect(store.books(in: essay).map(\.title) == ["遠い観測所", "灰色の標本箱の記録"])
+        #expect(store.books(in: novel).isEmpty)
+        #expect(book.purchaseDate == date)
+        #expect(throws: LibraryError.emptyName) {
+            try store.updateBook(book, with: BookEdit(title: " \n ", shelf: essay, ownership: .owned))
+        }
+        #expect(book.title == "灰色の標本箱の記録")
+    }
+
+    @Test("T9 編集: 「買いたい」にすると購入日が消えジャンルは残る。「購入済み」にするとジャンルの末尾に並ぶ")
+    func editOwnership() throws {
+        let (store, _) = try makeStore()
+        let novel = try genre("小説", store)
+        let wanted = try store.addBook(title: "静かな温室", shelf: novel, ownership: .wanted)
+        try store.addBook(title: "白い回廊", shelf: novel)
+        try store.addBook(title: "冬の地図", shelf: novel)
+        let today = Calendar.current.startOfDay(for: .now)
+        try store.updateBook(
+            wanted, with: BookEdit(title: wanted.title, shelf: novel, ownership: .owned, purchaseDate: today))
+        #expect(store.books(in: novel).map(\.title) == ["白い回廊", "冬の地図", "静かな温室"])
+        #expect(wanted.purchaseDate == today)
+
+        let owned = try #require(store.books(in: novel).first)
+        try store.updateBook(owned, with: BookEdit(title: owned.title, shelf: novel, ownership: .wanted))
+        #expect(owned.ownership == .wanted)
+        #expect(owned.purchaseDate == nil)
+        #expect(owned.shelf?.name == "小説")
+        #expect(try store.wishlistBooks().map(\.title) == ["白い回廊"])
+        #expect(throws: LibraryError.invalidShelfForBook) {
+            try store.updateBook(
+                owned,
+                with: BookEdit(title: owned.title, shelf: try #require(try store.wishlistShelf()), ownership: .wanted))
+        }
+    }
+
+    @Test("T9 編集: 撮り直した表紙は保存できてから入れ替える。失敗したら古い表紙のまま・仮のファイルを残さない")
+    func editReplacesCoverOnlyAfterSave() throws {
+        let (store, _) = try makeStore()
+        let novel = try genre("小説", store)
+        let id = UUID()
+        try store.images.save(original: Data([1, 1]), thumbnail: Data([1]), for: id)
+        let book = try store.addBook(title: "小さな郵便局", shelf: novel, id: id)
+
+        // 題名が空で保存できない → 表紙は古いまま、仮のファイルも無い
+        #expect(throws: LibraryError.emptyName) {
+            try store.updateBook(book, with: BookEdit(title: "", shelf: novel, ownership: .owned), newCover: cover(9))
+        }
+        #expect(store.images.loadOriginal(for: id) == Data([1, 1]))
+        let files = try FileManager.default.contentsOfDirectory(atPath: store.images.directory.path)
+        #expect(files.count == 2)
+
+        try store.updateBook(
+            book, with: BookEdit(title: "小さな郵便局", shelf: novel, ownership: .owned), newCover: cover(2))
+        #expect(store.images.loadOriginal(for: id) == Data([2, 2]))
+        #expect(store.images.loadThumbnail(for: id) == Data([2]))
+        #expect(try FileManager.default.contentsOfDirectory(atPath: store.images.directory.path).count == 2)
+    }
+
+    @Test("T9 購入した: そのジャンルの末尾に並び購入日は今日。取り消すと所持状況・購入日・位置が元に戻る")
+    func purchaseAndUndo() throws {
+        let (store, _) = try makeStore()
+        let novel = try genre("小説", store)
+        try store.addBook(title: "青い時計", shelf: novel)
+        let book = try store.addBook(title: "眠る鯨", shelf: novel, ownership: .wanted)
+        try store.addBook(title: "古い灯台", shelf: novel)
+        let before = book.sortOrder
+        let record = try store.purchase(book)
+        #expect(book.ownership == .owned)
+        #expect(book.purchaseDate == Calendar.current.startOfDay(for: .now))
+        #expect(store.books(in: novel).map(\.title) == ["青い時計", "古い灯台", "眠る鯨"])
+        #expect(try store.wishlistBooks().isEmpty)
+
+        try store.undoPurchase(record)
+        #expect(book.ownership == .wanted)
+        #expect(book.purchaseDate == nil)
+        #expect(book.sortOrder == before)
+        #expect(book.shelf?.name == "小説")
+        #expect(store.books(in: novel).map(\.title) == ["青い時計", "古い灯台"])
+        #expect(try store.wishlistBooks().map(\.title) == ["眠る鯨"])
+    }
+
+    @Test("T9 購入した: 本を削除したあとの取り消しは何も変えずに失敗する（N-060 と同じ守り）")
+    func undoPurchaseAfterDeleteFailsSafely() throws {
+        let (store, _) = try makeStore()
+        let novel = try genre("小説", store)
+        let other = try store.addBook(title: "長い植物園", shelf: novel)
+        let book = try store.addBook(title: "四角い惑星", shelf: novel, ownership: .wanted)
+        let record = try store.purchase(book)
+        try store.deleteBook(book)
+        let orderBefore = other.sortOrder
+        #expect(throws: LibraryError.bookNotFound) { try store.undoPurchase(record) }
+        #expect(other.sortOrder == orderBefore)
+        #expect(store.books(in: novel).map(\.title) == ["長い植物園"])
+
+        // 元のジャンルが削除されていたら、取り消しは shelfNotFound（本は未分類に残る）
+        let essay = try genre("エッセイ", store)
+        let wanted = try store.addBook(title: "夜更けの書架", shelf: essay, ownership: .wanted)
+        let record2 = try store.purchase(wanted)
+        try store.deleteShelf(essay)
+        #expect(throws: LibraryError.shelfNotFound) { try store.undoPurchase(record2) }
+        #expect(wanted.ownership == .owned)
+        #expect(wanted.shelf?.kind == .unsorted)
+    }
 }

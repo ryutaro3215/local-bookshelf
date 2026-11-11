@@ -36,36 +36,34 @@ final class PendingBook: Identifiable {
     var hasTitle: Bool { !LibraryStore.sanitize(title).isEmpty }
 }
 
-/// 四隅を検出できなかった1枚（N 画面で手動調整する）
+/// 四隅を検出できなかった1枚（N 画面で手動調整する）。
+/// 原寸のデータや展開済みの画像は持たず、上向きに縮小した JPEG だけを持つ（N-034: 30枚選んだときのメモリ）
 struct ManualAdjustment: Identifiable {
     let id = UUID()
-    /// 撮影したままの画像データ（手動の四隅でもう一度 CoverProcessor に通す）
-    let original: Data
-    /// 画面に出す上向きの画像
+    /// 上向き・長辺 `PhotoImportHandler.adjustmentLongSide` 以下に縮小した JPEG（メタデータなし）。
+    /// 手動の四隅でもう一度 CoverProcessor に通すのも、この画像
+    let source: Data
+    /// 画面に出す画像。`UIImage(data:)` なので、N 画面に出るまで展開しない
     let preview: UIImage
+
+    init?(source: Data) {
+        guard let preview = UIImage(data: source) else { return nil }
+        self.source = source
+        self.preview = preview
+    }
 }
 
 /// 撮影画像の処理（四隅検出・台形補正・縮小・再エンコード）をメインスレッドの外で順に行う。
 /// CoverProcessor（＝CIContext）を1つだけ持ち、撮影のたびに作り直さない（N-009・plan T5）
 actor CoverPipeline {
     private let processor = CoverProcessor()
-    /// N 画面に出す画像の長辺
-    static let previewLongSide = 1600
-
     func process(_ data: Data, corners: CoverQuad? = nil) throws -> ProcessedCover {
         try processor.process(data, corners: corners)
     }
 
-    /// 向きを反映した上向きの縮小画像（N 画面の表示用）
-    func preview(_ data: Data) -> UIImage? {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
-        let options: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceThumbnailMaxPixelSize: Self.previewLongSide,
-        ]
-        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
-        return UIImage(cgImage: image)
+    /// 手動調整を待つ間に持っておく、上向きの縮小 JPEG（N 画面の表示と、手動の四隅での補正に使う。N-034）
+    func adjustmentSource(_ data: Data) -> Data? {
+        PhotoImportHandler.downscaledJPEG(data, longSide: PhotoImportHandler.adjustmentLongSide)
     }
 }
 
@@ -110,6 +108,12 @@ final class CaptureViewModel {
         case pending
     }
 
+    /// 何のための撮影か。`reshoot` は編集画面の「表紙を撮り直す」（1枚だけ撮る。T9）
+    enum Purpose: Equatable {
+        case registration
+        case reshoot
+    }
+
     private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "Capture")
     /// 撮影ボタン押下 → 次の撮影可能までの時間（実機で Instruments の os_signpost で測る。plan T5: 1秒以内）
     private static let signposter = OSSignposter(subsystem: "com.ryutaro3215.bookshelf", category: "Capture")
@@ -136,13 +140,18 @@ final class CaptureViewModel {
 
     let store: LibraryStore
     let camera: any CameraSource
+    let purpose: Purpose
     @ObservationIgnored private let pipeline = CoverPipeline()
     @ObservationIgnored private let recognizer = TitleRecognizer()
     @ObservationIgnored private let recent: RecentShelves
 
-    init(store: LibraryStore, camera: any CameraSource, destination: Shelf, recent: RecentShelves, screen: Screen) {
+    init(
+        store: LibraryStore, camera: any CameraSource, destination: Shelf, recent: RecentShelves, screen: Screen,
+        purpose: Purpose = .registration
+    ) {
         self.store = store
         self.camera = camera
+        self.purpose = purpose
         self.destination = destination
         self.recent = recent
         self.screen = screen
@@ -150,10 +159,12 @@ final class CaptureViewModel {
 
     // MARK: - 数（F1-8）
 
+    /// 一度に扱える冊数（登録は30冊。表紙の撮り直しは1枚）
+    var capacity: Int { purpose == .reshoot ? 1 : Self.limit }
     /// 上限に数える冊数（登録待ち＋処理中＋手動調整待ち）
     var reservedCount: Int { items.count + processingCount + adjustments.count }
-    var remaining: Int { max(0, Self.limit - reservedCount) }
-    var isAtLimit: Bool { reservedCount >= Self.limit }
+    var remaining: Int { max(0, capacity - reservedCount) }
+    var isAtLimit: Bool { reservedCount >= capacity }
     var canShoot: Bool { !isAtLimit && !isShutterBusy && adjustments.isEmpty }
 
     var ownedCount: Int { items.filter(\.owned).count }
@@ -191,7 +202,7 @@ final class CaptureViewModel {
             lastShutterLatencyMilliseconds = ms
             Self.logger.info("撮影 → 次の撮影可能: \(ms) ms")
             // 補正・OCR は待たない（F2-2）。撮影ボタンはすでに押せる
-            Task { await self.handleCaptured(data) }
+            Task { await self.ingest(data) }
         } catch {
             Self.signposter.endInterval("ShutterToReady", state)
             isShutterBusy = false
@@ -201,8 +212,9 @@ final class CaptureViewModel {
         }
     }
 
-    /// 撮影・ライブラリの画像を処理する。四隅を検出できれば登録待ちへ、できなければ手動調整（N 画面）へ
-    private func handleCaptured(_ data: Data) async {
+    /// 撮影・ライブラリの画像を処理する。四隅を検出できれば登録待ちへ、できなければ手動調整（N 画面）へ。
+    /// 呼ぶ前に `processingCount` を1つ増やしておくこと（撮影は shutter、ライブラリは reserveImport が増やす）
+    func ingest(_ data: Data) async {
         do {
             let result = try await pipeline.process(data)
             processingCount -= 1
@@ -212,11 +224,13 @@ final class CaptureViewModel {
                 append(result)
             } else {
                 lastCaptureDetected = false
-                guard let preview = await pipeline.preview(data) else {
+                guard let source = await pipeline.adjustmentSource(data),
+                    let adjustment = ManualAdjustment(source: source)
+                else {
                     errorMessage = "画像を読み込めませんでした"
                     return
                 }
-                adjustments.append(ManualAdjustment(original: data, preview: preview))
+                adjustments.append(adjustment)
             }
         } catch {
             processingCount -= 1
@@ -238,7 +252,7 @@ final class CaptureViewModel {
     /// N 画面: 手動の四隅で補正して登録待ちへ入れる
     func confirmAdjustment(_ adjustment: ManualAdjustment, corners: CoverQuad) async {
         do {
-            let result = try await pipeline.process(adjustment.original, corners: corners)
+            let result = try await pipeline.process(adjustment.source, corners: corners)
             adjustments.removeAll { $0.id == adjustment.id }
             append(result)
         } catch {
@@ -252,18 +266,21 @@ final class CaptureViewModel {
         adjustments.removeAll { $0.id == adjustment.id }
     }
 
-    /// 写真ライブラリで選んだ写真を、撮影と同じ流れで登録待ちへ入れる（F1-4。選べる数は残りまで）。
-    /// 選んだ時点で枚数分を上限の数に予約し、読み込み中に撮影しても30冊を超えないようにする（F1-8）
-    func importPhotos(_ photos: [PhotosPickerItem]) async {
-        let accepted = Array(photos.prefix(remaining))
-        processingCount += accepted.count
-        for item in accepted {
-            guard let data = await PhotoLoader.load(item) else {
-                processingCount -= 1
-                continue
-            }
-            await handleCaptured(data)
-        }
+    /// 写真ライブラリで選んだ写真を、撮影と同じ流れで登録待ちへ入れる（F1-4。処理は PhotoImportHandler）
+    func importPhotos(_ photos: [some ImportablePhoto]) async {
+        await PhotoImportHandler.importPhotos(photos, into: self)
+    }
+
+    /// ライブラリで選んだ枚数を、上限の数に先に予約する（読み込み中に撮影しても30冊を超えない。F1-8）。予約できた数を返す
+    func reserveImport(_ count: Int) -> Int {
+        let accepted = min(max(count, 0), remaining)
+        processingCount += accepted
+        return accepted
+    }
+
+    /// 予約した1枚を読み込めなかったので、予約を戻す
+    func releaseImportReservation() {
+        processingCount = max(processingCount - 1, 0)
     }
 
     private func append(_ cover: ProcessedCover) {

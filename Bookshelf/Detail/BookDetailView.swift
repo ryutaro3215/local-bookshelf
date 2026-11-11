@@ -11,17 +11,31 @@ enum BookDates {
     }
 }
 
-/// 本の詳細（E-1 購入済み・E-2 買いたい本。F6-3）。データの表示だけ:
+/// 本の詳細（E-1 購入済み・E-2 買いたい本。F6-3）。
 /// 大きな表紙・題名・ジャンル・所持状況・購入日（購入済みの本だけ）。データ追加日は出さない。
-/// 「編集」（F6-4）と「購入した」（§10.3）は T9 でつなぐ（今は押しても何もしない）
+/// 右上の「編集」で編集画面（E-6・E-7。F6-4）、買いたい本の「購入した」で購入済みにして通知（E-8。§10.3）を出す
 struct BookDetailView: View {
     let book: Book
-    /// 戻る先の棚の名前（左上の「‹ 哲学・思想」）
-    let backTitle: String
-    let store: ImageStore
+    let environment: AppEnvironment
+    /// 戻ったときに、この本が並ぶ棚と位置を閲覧画面に見せてもらう（購入・編集・取り消しのあと）
+    let onReveal: (Book) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var cover: UIImage?
+    /// 戻る先の棚の名前（左上の「‹ 哲学・思想」）。購入・編集で本の棚が変わると、並ぶ先の棚の名前にする
+    @State private var backTitle: String
+    @State private var isEditing = false
+    @State private var purchase = PurchaseAction()
+
+    init(book: Book, backTitle: String, environment: AppEnvironment, onReveal: @escaping (Book) -> Void) {
+        self.book = book
+        self.environment = environment
+        self.onReveal = onReveal
+        _backTitle = State(initialValue: backTitle)
+    }
+
+    private var store: ImageStore { environment.store.images }
+    private var coverRevision: Int { CoverImageCache.shared.revision(for: book.id) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -51,10 +65,64 @@ struct BookDetailView: View {
                 .padding(.bottom, 32)
             }
         }
+        .overlay(alignment: .bottom) {
+            if let toast = purchase.toast {
+                PurchaseToastView(toast: toast) { undoPurchase(toast) }
+                    .padding(.bottom, 40)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .task(id: toast.id) {
+                        do {
+                            try await Task.sleep(for: PurchaseAction.toastDuration)
+                        } catch {
+                            return
+                        }
+                        if purchase.toast?.id == toast.id {
+                            purchase.toast = nil
+                        }
+                    }
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: purchase.toast?.id)
         .background(Color.white)
         .toolbar(.hidden, for: .navigationBar)
-        .task(id: book.id) {
+        .task(id: "\(book.id)-\(coverRevision)") {
             cover = await CoverImageCache.shared.original(for: book.id, in: store)
+        }
+        .fullScreenCover(isPresented: $isEditing) {
+            BookEditView(
+                book: book, environment: environment,
+                onSaved: { _ in
+                    isEditing = false
+                    purchase.toast = nil
+                    shelfChanged()
+                },
+                onCancel: { isEditing = false })
+        }
+    }
+
+    /// 本の並ぶ棚の名前（購入済みはジャンル、「買いたい」は買いたい本）
+    private var currentShelfName: String {
+        if book.ownership == .wanted {
+            return (try? environment.store.wishlistShelf())?.name ?? InitialGenres.wishlist.name
+        }
+        return book.shelf?.name ?? InitialGenres.unsorted.name
+    }
+
+    /// 購入・編集・取り消しで本の並ぶ棚が変わった
+    private func shelfChanged() {
+        backTitle = currentShelfName
+        onReveal(book)
+    }
+
+    private func buy() {
+        if purchase.purchase(book, store: environment.store) {
+            shelfChanged()
+        }
+    }
+
+    private func undoPurchase(_ toast: PurchaseAction.Toast) {
+        if purchase.undo(toast, store: environment.store) {
+            shelfChanged()
         }
     }
 
@@ -79,8 +147,9 @@ struct BookDetailView: View {
             .accessibilityLabel("\(backTitle)に戻る")
             .accessibilityIdentifier("detail.back")
             Spacer()
-            // 編集（F6-4）は T9
             Button {
+                purchase.toast = nil
+                isEditing = true
             } label: {
                 Text("編集")
                     .font(BookshelfStyle.sans(15, .medium))
@@ -171,11 +240,10 @@ struct BookDetailView: View {
         .accessibilityIdentifier(id)
     }
 
-    /// 「購入した」（E-2）。押したときの処理（購入済みにする・通知・取り消し）は T9
+    /// 「購入した」（E-2）。押すと購入済みになり、そのジャンルの棚の末尾に並ぶ（購入日は今日）。下に取り消しの通知（E-8）
     private var purchaseButton: some View {
         VStack(spacing: 14) {
-            Button {
-            } label: {
+            Button(action: buy) {
                 Text("購入した")
                     .font(BookshelfStyle.sans(16, .medium))
                     .tracking(0.5)

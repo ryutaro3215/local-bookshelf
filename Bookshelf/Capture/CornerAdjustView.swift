@@ -73,7 +73,9 @@ struct CornerAdjustView: View {
 
     private var topBar: some View {
         ZStack {
-            DestinationMenu(shelves: model.selectableShelves(), destination: $model.destination, dark: true)
+            if model.purpose == .registration {
+                DestinationMenu(shelves: model.selectableShelves(), destination: $model.destination, dark: true)
+            }
             HStack {
                 Button {
                     model.discardAdjustment(adjustment)

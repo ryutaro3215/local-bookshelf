@@ -6,17 +6,22 @@ import os
 nonisolated struct ShelfBookItem: Hashable, Sendable {
     let id: UUID
     let title: String
+    /// 表紙を撮り直した回数（変わるとセルを描き直す。T9）
+    var coverRevision = 0
 }
 
 // MARK: - 表紙の読み込み（サムネイル）
 
 /// 表紙のサムネイルをファイルから読み、表示用にデコードしてメモリに置く（棚・グリッドでは原寸を読まない。N1・N2）
 @MainActor
+@Observable
 final class CoverImageCache {
     static let shared = CoverImageCache()
 
-    private let thumbnails = NSCache<NSUUID, UIImage>()
-    private var loading: [UUID: Task<UIImage?, Never>] = [:]
+    @ObservationIgnored private let thumbnails = NSCache<NSUUID, UIImage>()
+    @ObservationIgnored private var loading: [UUID: Task<UIImage?, Never>] = [:]
+    /// 表紙を入れ替えた本ごとの回数（画面はこれを見て描き直す）
+    private(set) var revisions: [UUID: Int] = [:]
     private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "Shelf")
 
     /// 展開後のサムネイルを置いておく量の上限（バイト。N-051: 長辺 400px で1枚約 0.4〜0.5MB → 約 160〜200 冊分）
@@ -33,6 +38,17 @@ final class CoverImageCache {
             return cgImage.bytesPerRow * cgImage.height
         }
         return Int(image.size.width * image.scale * image.size.height * image.scale * 4)
+    }
+
+    /// 表紙を入れ替えたので、メモリのサムネイルを捨てて次は読み直す（編集画面の「表紙を撮り直す」。T9）
+    func invalidate(_ id: UUID) {
+        thumbnails.removeObject(forKey: id as NSUUID)
+        loading[id] = nil
+        revisions[id, default: 0] += 1
+    }
+
+    func revision(for id: UUID) -> Int {
+        revisions[id] ?? 0
     }
 
     /// すでにメモリにあるサムネイル（無ければ nil。読み込みはしない）

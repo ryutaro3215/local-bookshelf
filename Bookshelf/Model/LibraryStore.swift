@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import os
 
 enum LibraryError: Error, Equatable {
     /// 買いたい本・未分類は削除・名前変更できない
@@ -16,11 +17,24 @@ enum LibraryError: Error, Equatable {
     case shelfNotFound
     /// 区分が無い・ジャンルを置けない区分（システム）を指定した
     case invalidCategory
+    /// 本のデータは保存できたが、新しい表紙の画像に入れ替えられなかった（古い表紙のまま）
+    case coverNotReplaced
+}
+
+/// 編集画面（E-6・E-7）で確定した値（F6-4・§10.3）
+struct BookEdit {
+    var title: String
+    /// ジャンル（買いたい本の棚は選べない）
+    var shelf: Shelf
+    var ownership: Ownership
+    /// 購入日（購入済みのときだけ使う。日付だけを保存する）
+    var purchaseDate: Date?
 }
 
 /// 本とジャンルの操作をまとめる（requirements §10・F4）。
 @MainActor
 final class LibraryStore {
+    private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "LibraryStore")
     /// 題名・ジャンル名の上限（requirements S6）
     static let maxNameLength = 200
 
@@ -28,7 +42,7 @@ final class LibraryStore {
     let container: ModelContainer
     let context: ModelContext
     let images: ImageStore
-    private let calendar: Calendar
+    let calendar: Calendar
 
     init(container: ModelContainer, images: ImageStore, calendar: Calendar = .current) {
         self.container = container
@@ -161,6 +175,79 @@ final class LibraryStore {
         try commit()
     }
 
+    // MARK: - 本の編集（F6-4・§10.3。T9）
+
+    /// 編集画面の「完了」。題名・ジャンル・所持状況・購入日を変え、新しい表紙があれば入れ替える。
+    /// - ジャンルを変えた本、「買いたい」から「購入済み」にした本は、そのジャンルの末尾に並ぶ（「購入した」と同じ）
+    /// - 「買いたい」にすると購入日を消す（ジャンルは残す）
+    /// - 表紙は、まず仮の名前で書き出し、データの保存が成功してから入れ替える。保存に失敗したら仮のファイルを消し、
+    ///   古い表紙をそのまま残す（失敗したときは commit() がメモリ上の変更も取り消す）
+    func updateBook(_ book: Book, with edit: BookEdit, newCover: ProcessedCover? = nil) throws {
+        let cleanTitle = Self.sanitize(edit.title)
+        guard !cleanTitle.isEmpty else { throw LibraryError.emptyName }
+        guard edit.shelf.kind != .wishlist else { throw LibraryError.invalidShelfForBook }
+        guard try containsBook(id: book.id), !book.isDeleted else { throw LibraryError.bookNotFound }
+
+        // 新しい表紙は仮の ID で先に書き出す（ここで失敗しても、データも古い表紙も変わらない）
+        let stagingID = UUID()
+        if let newCover {
+            do {
+                try images.save(original: newCover.image, thumbnail: newCover.thumbnail, for: stagingID)
+            } catch {
+                discardStaged(stagingID)
+                throw error
+            }
+        }
+
+        let wasOwned = book.ownership == .owned
+        let shelfChanged = book.shelf?.persistentModelID != edit.shelf.persistentModelID
+        if book.title != cleanTitle {
+            book.title = cleanTitle
+            book.yomi = Yomi.make(from: cleanTitle)
+        }
+        if shelfChanged || (!wasOwned && edit.ownership == .owned) {
+            book.sortOrder = nextSortOrder(in: edit.shelf, excluding: book)
+        }
+        if shelfChanged {
+            book.shelf = edit.shelf
+        }
+        book.ownership = edit.ownership
+        book.purchaseDate = edit.ownership == .owned ? calendar.startOfDay(for: edit.purchaseDate ?? .now) : nil
+        do {
+            try commit()
+        } catch {
+            if newCover != nil { discardStaged(stagingID) }
+            throw error
+        }
+
+        guard newCover != nil else { return }
+        do {
+            try replaceFile(images.originalURL(for: book.id), with: images.originalURL(for: stagingID))
+            try replaceFile(images.thumbnailURL(for: book.id), with: images.thumbnailURL(for: stagingID))
+        } catch {
+            discardStaged(stagingID)
+            throw LibraryError.coverNotReplaced
+        }
+    }
+
+    /// 仮に書き出した表紙を消す（消せなくても本のデータには関係しないので、記録だけ残す）
+    private func discardStaged(_ id: UUID) {
+        do {
+            try images.delete(for: id)
+        } catch {
+            Self.logger.error("仮の表紙を消せない: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// `target` を `staged` の中身に入れ替える（target が無ければ移すだけ）
+    private func replaceFile(_ target: URL, with staged: URL) throws {
+        if FileManager.default.fileExists(atPath: target.path) {
+            _ = try FileManager.default.replaceItemAt(target, withItemAt: staged)
+        } else {
+            try FileManager.default.moveItem(at: staged, to: target)
+        }
+    }
+
     // MARK: - ジャンルの管理（F4）
 
     /// ジャンルを追加する（既定は区分「マイジャンル」）。選んだ区分の末尾に置く（F-3「選んだ区分の末尾に追加」）。
@@ -242,7 +329,8 @@ final class LibraryStore {
         }
     }
 
-    private func nextSortOrder(in shelf: Shelf) -> Int {
-        (shelf.books.map(\.sortOrder).max() ?? -1) + 1
+    func nextSortOrder(in shelf: Shelf, excluding book: Book? = nil) -> Int {
+        let others = shelf.books.filter { $0.persistentModelID != book?.persistentModelID }
+        return (others.map(\.sortOrder).max() ?? -1) + 1
     }
 }

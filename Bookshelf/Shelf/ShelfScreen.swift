@@ -9,7 +9,11 @@ struct BrowseShelf: Identifiable {
     var isWishlist: Bool { shelf.kind == .wishlist }
     /// 末尾の空き枠（F1-6 B）。買いたい本の棚には出さない
     var showsSlot: Bool { !isWishlist }
-    var items: [ShelfBookItem] { books.map { ShelfBookItem(id: $0.id, title: $0.title) } }
+    var items: [ShelfBookItem] {
+        books.map {
+            ShelfBookItem(id: $0.id, title: $0.title, coverRevision: CoverImageCache.shared.revision(for: $0.id))
+        }
+    }
     /// 長押しで並べ替えられるか（買いたい本は登録した順に並ぶので並べ替えない）
     var allowsReorder: Bool { !isWishlist }
 
@@ -127,7 +131,9 @@ struct ShelfScreen: View {
             }
             .navigationDestination(for: DetailRoute.self) { route in
                 if let book = books.first(where: { $0.id == route.bookID }) {
-                    BookDetailView(book: book, backTitle: route.backTitle, store: environment.store.images)
+                    BookDetailView(
+                        book: book, backTitle: route.backTitle, environment: environment,
+                        onReveal: { reveal($0) })
                 } else {
                     Text("この本は見つかりませんでした")
                         .font(BookshelfStyle.sans(15))
@@ -246,6 +252,26 @@ struct ShelfScreen: View {
             currentID = id
         }
         environment.recent.record(target.shelf)
+    }
+
+    /// 詳細で「購入した」・編集・取り消しをしたあと、戻ったときにその本が並ぶ棚とその位置を見せる（T9）。
+    /// 購入済みはジャンルの棚、「買いたい」は買いたい本の棚
+    private func reveal(_ book: Book) {
+        guard !book.isDeleted, book.modelContext != nil else { return }
+        let target =
+            book.ownership == .wanted ? shelves.first { $0.kind == .wishlist } : book.shelf
+        guard let target else { return }
+        let id = target.persistentModelID
+        let list: [Book]
+        if book.ownership == .wanted {
+            list = books.filter { $0.ownership == .wanted }.sorted { $0.addedAt < $1.addedAt }
+        } else {
+            list = environment.store.books(in: target)
+        }
+        editing.clearSelection()
+        editing.toast = nil
+        positions[id] = max(list.firstIndex { $0.id == book.id } ?? 0, 0)
+        currentID = id
     }
 
     /// 登録を終えたら、登録先の棚の末尾（新しく並んだ本）を見せる（C-4）

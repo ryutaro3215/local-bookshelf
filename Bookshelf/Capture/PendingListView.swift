@@ -9,6 +9,8 @@ struct PendingListView: View {
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var confirmClose = false
     @State private var isPickingPhotos = false
+    /// 題名の編集（C-3）で開いている本
+    @State private var titleEditorStart: TitleEditorStart?
     @FocusState private var focusedItem: UUID?
     private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "PendingList")
 
@@ -71,6 +73,9 @@ struct PendingListView: View {
                 photoItems = []
                 await model.importPhotos(items)
             }
+        }
+        .fullScreenCover(item: $titleEditorStart) { start in
+            PendingTitleEditor(model: model, startID: start.id) { titleEditorStart = nil }
         }
         .confirmationDialog(
             "登録せずに閉じますか？", isPresented: $confirmClose, titleVisibility: .visible
@@ -215,7 +220,10 @@ struct PendingListView: View {
                     .accessibilityIdentifier("pending.untitledNotice")
                 Spacer()
                 Button {
-                    focusedItem = model.items.first(where: { !$0.hasTitle })?.id
+                    // 題名の編集（C-3）を、題名が未入力の最初の本から開く
+                    if let first = model.items.first(where: { !$0.hasTitle }) {
+                        titleEditorStart = TitleEditorStart(id: first.id)
+                    }
                 } label: {
                     HStack(spacing: 4) {
                         Text("順に入力する")
@@ -384,6 +392,245 @@ struct PendingRow: View {
                 .font(BookshelfStyle.sans(11))
                 .foregroundStyle(BookshelfStyle.sub)
                 .accessibilityIdentifier("pending.row.\(index).status")
+        }
+    }
+}
+
+// MARK: - 題名の編集（C-3）
+
+/// 題名の編集を開く本
+struct TitleEditorStart: Identifiable {
+    let id: UUID
+}
+
+/// 題名の編集（C-3）。登録待ちの本を1冊ずつ出し、キーボードの上の「前の本」「次の本へ」で移りながら題名を入れる。
+/// 題名の入力欄と文字認識の候補は、編集画面（E-6・E-7）と同じ TitleEditField を使う（T9）
+struct PendingTitleEditor: View {
+    @Bindable var model: CaptureViewModel
+    let onClose: () -> Void
+    @State private var currentID: UUID
+    @FocusState private var titleFocused: Bool
+
+    init(model: CaptureViewModel, startID: UUID, onClose: @escaping () -> Void) {
+        self.model = model
+        self.onClose = onClose
+        _currentID = State(initialValue: startID)
+    }
+
+    private var index: Int? { model.items.firstIndex { $0.id == currentID } }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            thumbnails
+                .padding(.top, 8)
+            if let index {
+                let item = model.items[index]
+                ScrollView {
+                    page(item)
+                }
+                .scrollDismissesKeyboard(.never)
+            } else {
+                Spacer()
+            }
+        }
+        .background(Color.white.ignoresSafeArea())
+        .preferredColorScheme(.light)
+        // キーボードの上に「前の本」「次の本へ」（C-3）。キーボードが出ていないときは画面の下に出る
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            stepBar
+        }
+        .onAppear { titleFocused = true }
+        .onChange(of: model.items.count) { _, _ in
+            // 外された本を開いていたら閉じる
+            if index == nil { onClose() }
+        }
+    }
+
+    private var stepBar: some View {
+        HStack {
+            Button {
+                step(-1)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "chevron.left")
+                    Text("前の本")
+                }
+                .font(BookshelfStyle.sans(15))
+                .foregroundStyle((index ?? 0) == 0 ? BookshelfStyle.faint : BookshelfStyle.ink)
+                .frame(minHeight: 44)
+            }
+            .disabled((index ?? 0) == 0)
+            .accessibilityIdentifier("titleEditor.previous")
+            Spacer()
+            Button {
+                step(1)
+            } label: {
+                HStack(spacing: 6) {
+                    Text("次の本へ")
+                    Image(systemName: "chevron.right")
+                }
+                .font(BookshelfStyle.sans(15, .medium))
+                .foregroundStyle(Color.white)
+                .padding(.horizontal, 18)
+                .frame(height: 32)
+                .background(Capsule().fill(BookshelfStyle.ink))
+                .frame(minHeight: 44)
+            }
+            .accessibilityLabel(isLast ? "次の未入力の本へ" : "次の本へ")
+            .accessibilityIdentifier("titleEditor.next")
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 16)
+        .frame(height: 50)
+        .background(BookshelfStyle.fill)
+        .overlay(alignment: .top) {
+            Rectangle().fill(BookshelfStyle.line).frame(height: 1)
+        }
+    }
+
+    private var isLast: Bool { (index ?? 0) >= model.items.count - 1 }
+
+    private var header: some View {
+        ZStack {
+            if let index {
+                Text("\(index + 1) / \(model.items.count)")
+                    .font(BookshelfStyle.sans(16, .medium))
+                    .foregroundStyle(BookshelfStyle.ink)
+                    .accessibilityIdentifier("titleEditor.position")
+            }
+            HStack {
+                Button(action: onClose) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .regular))
+                        Text("一覧")
+                            .font(BookshelfStyle.sans(15))
+                    }
+                    .foregroundStyle(BookshelfStyle.ink)
+                    .frame(minHeight: 44)
+                }
+                .accessibilityLabel("一覧に戻る")
+                .accessibilityIdentifier("titleEditor.back")
+                Spacer()
+                Button(action: onClose) {
+                    Text("完了")
+                        .font(BookshelfStyle.sans(15, .medium))
+                        .foregroundStyle(BookshelfStyle.ink)
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+                .accessibilityIdentifier("titleEditor.done")
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 16)
+        }
+        .frame(height: 50)
+    }
+
+    /// 上の表紙の並び（今の本に下線）。タップでその本へ
+    private var thumbnails: some View {
+        GeometryReader { geometry in
+            thumbnailStrip(minWidth: geometry.size.width)
+        }
+        .frame(height: 46)
+    }
+
+    private func thumbnailStrip(minWidth: CGFloat) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(Array(model.items.enumerated()), id: \.element.id) { offset, item in
+                        Button {
+                            currentID = item.id
+                        } label: {
+                            VStack(spacing: 4) {
+                                Group {
+                                    if let image = item.thumbnailImage {
+                                        Image(uiImage: image).resizable().scaledToFit()
+                                    } else {
+                                        BookshelfStyle.fill
+                                    }
+                                }
+                                .frame(width: 27, height: 38)
+                                .clipShape(RoundedRectangle(cornerRadius: 2))
+                                Rectangle()
+                                    .fill(item.id == currentID ? BookshelfStyle.ink : Color.clear)
+                                    .frame(width: 27, height: 2)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .id(item.id)
+                        .accessibilityLabel("\(offset + 1)冊目")
+                        .accessibilityAddTraits(item.id == currentID ? .isSelected : [])
+                    }
+                }
+                .padding(.horizontal, 20)
+                // 冊数が少ないときは中央にそろえる（C-3）
+                .frame(minWidth: minWidth)
+            }
+            .onChange(of: currentID) { _, id in
+                withAnimation { proxy.scrollTo(id, anchor: .center) }
+            }
+        }
+    }
+
+    private func page(_ item: PendingBook) -> some View {
+        VStack(spacing: 0) {
+            Group {
+                if let image = UIImage(data: item.thumbnail) {
+                    Image(uiImage: image).resizable().scaledToFit()
+                } else {
+                    BookshelfStyle.fill
+                }
+            }
+            .frame(maxWidth: 160, maxHeight: 150)
+            .clipShape(RoundedRectangle(cornerRadius: 2))
+            .padding(.top, 14)
+            .accessibilityHidden(true)
+            Text("\(item.owned ? "購入済み" : "買いたい本")・登録先 \(item.shelf.name)")
+                .font(BookshelfStyle.sans(12))
+                .foregroundStyle(BookshelfStyle.sub)
+                .padding(.top, 16)
+                .accessibilityIdentifier("titleEditor.status")
+            TitleEditField(
+                title: Binding(get: { item.title }, set: { item.title = $0 }),
+                candidates: item.candidates, isRecognizing: item.isRecognizing, label: "題名（必須）", note: nil,
+                focus: $titleFocused, idPrefix: "titleEditor", submitLabel: .next,
+                onSubmit: { step(1) },
+                onEdited: { item.titleEdited = true }
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
+            HStack {
+                Text(remainingText(for: item))
+                    .font(BookshelfStyle.sans(11))
+                    .foregroundStyle(BookshelfStyle.sub)
+                    .accessibilityIdentifier("titleEditor.remaining")
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+        }
+    }
+
+    private func remainingText(for item: PendingBook) -> String {
+        let untitled = model.untitledCount
+        if untitled == 0 { return "すべての本に題名が入りました" }
+        return item.hasTitle ? "未入力はあと\(untitled)冊" : "未入力はこの本を含めてあと\(untitled)冊"
+    }
+
+    /// 前後の本へ。最後の本で「次へ」を押したら、まだ未入力の本があればそこへ、無ければ一覧へ戻る
+    private func step(_ delta: Int) {
+        guard let index else { return }
+        let next = index + delta
+        if model.items.indices.contains(next) {
+            currentID = model.items[next].id
+        } else if delta > 0 {
+            if let untitled = model.items.first(where: { !$0.hasTitle }) {
+                currentID = untitled.id
+            } else {
+                onClose()
+            }
         }
     }
 }

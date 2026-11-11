@@ -261,3 +261,42 @@
   - 依存の追加なし。通信のコードなし（ライセンス画面にも URL を書いていない）。Swift 6・アプリのコンパイル警告なし。空の catch なし。DEBUG 専用の起動引数の追加なし（BookshelfApp.swift は無変更）。追跡ファイルに実在の題名・表紙なし（テストのジャンル名・題名は架空の語の組み合わせ）
   - スキル: figma:figma-swiftui を起動した。公式 Figma MCP は未認証のため get_design_context は使えず、DesignAgent の get_spec（51:26649: 追加のカード 362×48・角16・左右16、行 362×48・左右16、カード FILL #F2F2F2）と design-brief.md・design/screens の F 行の PNG で作った
   - git: コミット・プッシュはしていない（`.dev/state.md` の変更は作業開始前からのもの）
+
+## T9: 本の編集・購入した・写真ライブラリからの登録 — done（Figma との目視確認・実機の手触りはオーナー待ち） (2026-11-12)
+- changed:
+  - Bookshelf/Detail/BookEditView.swift（新規）: 本を編集（E-6・E-7）。全画面・「キャンセル｜本を編集｜完了」、表紙（最大 130×156）＋「表紙を撮り直す」（FILL の丸・高さ30）、題名欄（白地・INK の線・角12・高さ50）と文字認識の候補（今の表紙／撮り直した表紙から OCR、候補をタップで採用→そのまま修正）、カード（ジャンル ›＝一覧シート・所持状況「購入済み｜買いたい」の切り替え・購入日〔購入済み＝白い丸の日付→カレンダー、買いたい＝入力不可で「購入済みにすると今日の日付が入ります」〕）、「本の削除は、棚で長押し → 下スワイプ」。項目と並びは所持状況で変わらない。「購入済み」に切り替えると購入日は今日。完了は LibraryStore.updateBook、キャンセルは何も保存しない。共通部品: TitleEditField（E-6/E-7 と C-3 で共用）、OwnershipSwitch、GenrePickerSheet、PurchaseDateSheet（今日より先は選べない）、CoverReshootView（T5 の CaptureView・CornerAdjustView・CoverPipeline をそのまま使い1枚撮ったら戻る）
+  - Bookshelf/Detail/PurchaseAction.swift（新規）: `PurchaseRecord`、`LibraryStore.purchase`（買いたい→購入済み・購入日＝今日・ジャンルの棚の末尾）／`undoPurchase`（所持状況・購入日・ジャンル・並び順の値を戻す。本が削除済みなら bookNotFound、元の棚が無ければ shelfNotFound で何も変えない＝N-060 と同じ守り。同じ値の本がいればずらして空ける）、画面の状態 `PurchaseAction`（トースト5秒）、`PurchaseToastView`（E-8。D-3 と同じ形・同じ ID）
+  - Bookshelf/Capture/PhotoImportHandler.swift（新規）: 写真ライブラリからの登録。`ImportablePhoto`（PhotosPickerItem が準拠。テストは偽物）、`PhotoImportHandler.importPhotos`（選んだ時点で残り冊数まで予約→1枚ずつ読み込み→補正が終わってから次、読めない写真は予約を戻して「n枚の写真を読み込めませんでした」）、`downscaledJPEG`（上向き・長辺 2400・メタデータなしで書き出し）、PhotoLoader（CaptureView.swift から移動）
+  - BookshelfTests/PhotoImportTests.swift（新規）: 5件（acceptance のデータ追加日・購入日、残り冊数までの予約と読めない写真の予約戻し、1枚ずつの読み込み、N-034 の縮小 JPEG だけを持つ・それで補正できる、位置情報が残らない）
+  - BookshelfUITests/BookEditUITests.swift（新規）: acceptance ①〜④ の4件＋C-3 の1件
+  - **計画とのズレ（files 外。必要な変更）**:
+    - Bookshelf/Detail/BookDetailView.swift: 「編集」で BookEditView（fullScreenCover）、「購入した」で購入・トースト・取り消し。戻る先の名前を本が並ぶ棚に更新（E-8 は「‹ 哲学・思想」）。引数を `store` から `environment`（カメラ・ストア）＋ `onReveal` に変更。表紙の再読込に表紙の版を使う
+    - Bookshelf/Model/LibraryStore.swift: `BookEdit`・`updateBook`（題名 S6・よみ再生成、ジャンルを変えた本と買いたい→購入済みにした本はその棚の末尾、買いたいにすると購入日を消す、購入日は日付だけ。新しい表紙は仮の ID で先に書き出し → commit 成功後に replaceItemAt で入れ替え、失敗時は仮ファイルを消して古い表紙のまま。入れ替えだけ失敗したら `coverNotReplaced`）、`LibraryError.coverNotReplaced`、`calendar` と `nextSortOrder(in:excluding:)` を internal に（PurchaseAction から使う）
+    - Bookshelf/Capture/CaptureViewModel.swift: N-034 — `ManualAdjustment` は原寸データと展開済み画像をやめ、縮小 JPEG（`source`）と `UIImage(data:)`（表示するまで展開しない）だけを持つ。手動の四隅はこの縮小画像に当てる。`CoverPipeline.preview` → `adjustmentSource`。`handleCaptured` → `ingest`（internal）、`reserveImport`／`releaseImportReservation`、`importPhotos` は PhotoImportHandler に委譲。撮り直し用の `Purpose.reshoot`（上限1枚）
+    - Bookshelf/Capture/CaptureView.swift: 撮り直しでは登録先チップ・冊数・ライブラリ・完了・上限の案内を出さない（見出し「表紙を撮り直す」）。PhotoLoader を PhotoImportHandler.swift へ移動
+    - Bookshelf/Capture/CornerAdjustView.swift: 撮り直しでは登録先チップを出さない
+    - Bookshelf/Capture/PendingListView.swift: C-3（N-032 の一部）`PendingTitleEditor` を追加し、「順に入力する」で題名が未入力の最初の本から開く。「‹ 一覧｜n / m｜完了」、表紙の並び（今の本に下線・タップで移る）、表紙、「購入済み・登録先 ○○」、TitleEditField（題名（必須）・右に「文字認識の候補なし」等）、「未入力はこの本を含めてあとn冊」、キーボードの上に「‹ 前の本」「次の本へ ›」（safeAreaInset。最後の本で次へ→未入力の本、無ければ一覧へ）。リターンキーは「次へ」
+    - Bookshelf/Shelf/ShelfScreen.swift: 詳細に environment と `reveal`（購入・編集・取り消しのあと、戻ったときに本が並ぶ棚とその位置を見せる。移動のトーストは閉じる）を渡す。ShelfBookItem に表紙の版を入れる
+    - Bookshelf/Shelf/ShelfCell.swift: `ShelfBookItem.coverRevision`、`CoverImageCache` を @Observable にして `invalidate(_:)`／`revision(for:)`（撮り直した表紙を棚・グリッド・詳細で読み直す）
+    - BookshelfTests/LibraryStoreTests.swift: T9 のテスト5件を**追加のみ**（`git diff --numstat` 126 行追加・0 行削除。題名は架空）
+- verify:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → exit=0 `** TEST SUCCEEDED **`。ユニット `✔ Test run with 58 tests in 9 suites passed`（PhotoImportTests 5件・LibraryStoreTests の追加5件を含む）、UI `Executed 31 tests, with 0 failures`（BookEditUITests 5・CaptureFlowUITests 8・ReorderUITests 9・ShelfManagementUITests 2・ShelfUITests 7。既存テストは無変更）。warning は appintents のメタデータの1件だけ
+  - PhotoImportTests（acceptance）: 写真2枚を取り込み、1冊目は購入済み・2冊目は買いたいで `register(now: 2026-03-04 23:50)` → どちらも addedAt＝その日時、購入済みの purchaseDate＝2026-03-04 0:00、買いたいは nil、ジャンルは登録先、表紙ファイルあり
+  - BookEditUITests: ① 表紙を撮り直す（FakeCamera「PAPER COMETS」。撮影画面にライブラリ・完了が無い）→「撮り直した表紙」→ 候補（COMETS を含む）を採用 → 欄の値が候補と一致 →「 新版」を足す → ジャンルをエッセイ → 完了 → 詳細の題名・ジャンル・戻る先がエッセイ → 閲覧はエッセイ 1冊でその題名、小説は 1冊 ② 購入済みの編集: 購入日＝今日・「買いたい」で購入日の行が入力不可の案内に変わり日付ボタンが消える、題名・ジャンル・所持状況の行の位置は同じ、「購入済み」に戻すと今日／買いたいで保存すると詳細は買いたい・購入日なし・購入したボタン → 編集を開き直すと購入日は入力不可、購入済みにすると今日、キャンセルで買いたいのまま ③ 買いたい本の棚の本で「購入した」→ 購入済み・購入日＝今日・「購入済みにしました」・戻る先が小説 →「取り消す」で買いたい・購入日なし・戻る先は買いたい本、閲覧は買いたい本 1冊・小説 2冊 → もう一度購入して戻ると小説 3冊・「3 / 3」にその本・「今日 購入」 ④ 題名・ジャンル・所持状況を変え表紙も撮り直してからキャンセル → 詳細は元の値、開き直しても元の題名・小説・「表紙」、小説 1冊 ⑤（C-3）文字の無い表紙2冊 →「順に入力する」→「1 / 2」「文字認識の候補なし」「未入力はこの本を含めてあと2冊」→ 入力 →「次の本へ」→「2 / 2」…→ 完了で一覧の2行に題名・登録ボタンが有効
+  - LibraryStoreTests 追加5件: 編集（S6・よみ・移した先の末尾・購入日・空の題名は拒否）、所持状況（買いたい→購入済みで末尾・逆で購入日なし・買いたい本の棚は拒否）、表紙は保存成功後にだけ入れ替え・失敗時は古い表紙で仮ファイル無し、購入と取り消し（並び順の値まで戻る）、削除後の取り消しは bookNotFound で他の本は不変・元のジャンル削除後は shelfNotFound
+  - 生成された Info.plist（DerivedData の Debug-iphonesimulator/Bookshelf.app）を `plutil -p` → 用途説明は NSCameraUsageDescription と NSPhotoLibraryAddUsageDescription だけ。**NSPhotoLibraryUsageDescription は無い（S4）**。プロジェクト設定にも無い（変更していない）
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし exit=0 / `scripts/check-no-network.sh` → OK exit=0
+  - スクリーンショット（リポジトリ外・架空の題名）: /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/8588d00f-6385-4403-8697-77adfaefc869/scratchpad/t9/ の E-1_detail_owned・E-2_detail_wanted・E-6_edit_owned・E-6b_genre_picker・E-6c_date_picker・E-6d_reshoot_camera・E-7_edit_wanted・E-8_after_purchase・E-8b_back_on_genre_shelf・C-1_os_photos_picker・C-3_title_editor（撮影用の一時 UI テストで撮り、撮影後に削除した）
+- notes:
+  - **C-1 と要件の食い違い（N-029・裁定していない）**: 指示どおり OS の PhotosPicker のまま（自作のグリッドは作っていない）。読み取り権限は求めない。ピッカーの見た目は OS のもの（英語表示「Select up to 30 photos.」・Private Access to Photos の案内・「Location Is Included」）で、C-1 の「表紙の写真を選んでください。選んだ順に並びます」「4 / 30 を選択中」「4枚を追加」は出せない。位置情報は取り込み時に JPEG を書き直すので保存画像には残らない（S6。テストで確認）
+  - **N-034**: 対応。読み込みは1枚ずつ（テストで同時読み込み最大1を確認）、手動調整待ちは長辺2400の縮小 JPEG（1枚おおよそ 0.3〜1MB）だけを持ち、N 画面に出るまで展開しない（以前は原寸データ＋展開済み 1600px 約7.7MB/枚）。手動の四隅はこの縮小画像に当てるので、四隅を手で合わせた表紙は元の写真より解像度が下がる場合がある（保存の上限 1600 に対して、表紙が写真の 2/3 程度なら同等）。撮影の「検出失敗」も同じ扱い。30冊の予約（T5）はそのまま
+  - **C-3（N-032 の一部）**: TitleEditField を共用して作った。C-4・O-1 は未実装のまま。Figma との差: 表紙の並びの下線の太さ・表紙の大きさ（キーボードと題名欄が重ならないよう最大 150pt）、「次の本へ」バーの地は FILL（Figma は薄いグレー）、キーボードの「次へ」キーはシステムの表示（英字配列では「›」）
+  - **デザインに無いので自分で決めたもの（オーナー確認）**: ①編集画面の OCR 候補の出し方（題名欄の下に「候補」と最大3つのチップ。読み取り中は「表紙から題名の候補を読み取り中…」、無ければ「文字認識の候補なし」）。候補は今の表紙から毎回読み、保存しない（§10.1）②E-6 の切り替えの文言は Figma「ほしい」ではなく用語どおり「買いたい」（E-7・design-brief §1 と同じ）③ジャンルは「›」で一覧シート（D-2/G-3 と同じ行の形。買いたい本は出さない）④購入日はカレンダーのシート（今日より先は選べない）⑤撮り直しの撮影画面は見出し「表紙を撮り直す」でライブラリ・完了・冊数を出さない（カメラを許可していないときの「写真ライブラリから選ぶ」は残る）⑥編集画面で「買いたい」→「購入済み」にして保存したときは通知（取り消し）を出さない（編集にはキャンセルがあるため）⑦購入・編集のあと戻ると、本が並ぶ棚のその位置を見せる（購入はジャンルの末尾）⑧購入の通知は詳細画面に5秒。戻ると消える（取り消しは詳細でだけ）⑨キャンセルは確認なしで破棄 ⑩保存の失敗はアラート、表紙の入れ替えだけ失敗したときは「表紙を入れ替えられませんでした。ほかの変更は保存しました」
+  - **N-060 と同じ守り**: undoPurchase の先頭で本（ID で数え直す）と元の棚の存在を確かめ、無ければ何も変えずに投げる（ユニットで確認）。詳細画面からは本を削除できないので UI では起きないが、データ側で守っている
+  - **保存**: updateBook・purchase・undoPurchase はすべて commit()（失敗で rollback）。表紙は commit 成功後に入れ替え、キャンセル・失敗では古い表紙のまま
+  - **Figma との差（スクリーンショットと比べて）**: E-1・E-2 は T6 のまま一致（安全領域で全体が約8〜10pt 下は T8 と同じ）。E-6・E-7: 構成・文言・カード・切り替え・題名欄は一致。差は Figma に無い候補のチップの行（その分カードが約40pt 下）、表紙の大きさ（Figma 109×156。合成の表紙は縦横比で幅が変わる）、カメラのアイコンが SF Symbols。E-8: 文言・トースト・戻る先「‹ 哲学・思想」は一致、トーストの位置は Figma より少し下
+  - **オーナー確認が必要**: 上の「自分で決めたもの」①〜⑩、実機での撮り直し（実カメラ・四隅の検出）と日本語入力での C-3 の「次へ」、PhotosPicker で30枚選んだときのメモリと時間（N-034 の効果。Instruments の Allocations）、スクリーンショットと Figma の E 行・C-3 の目視比較、N-029 の裁定
+  - オーナー判断待ちの N-044〜N-048・N-056〜N-058・N-065・N-066・N-003 などは変えていない
+  - 依存の追加なし。通信のコードなし。Swift 6・アプリのコンパイル警告なし。空の catch なし。DEBUG 専用の起動引数の追加なし（既存の `-FakeCamera`・`-SeedBooks` を使った）。追跡ファイルに実在の題名・著者名・表紙なし（テストの題名は架空の語の組み合わせ、表紙は合成画像）
+  - スキル: figma:figma-swiftui を起動した。公式 Figma MCP は未認証のため get_design_context は使えず、DesignAgent の get_spec（49:23563: 表紙 109×156、撮り直し 137×30 角15 FILL、題名欄 362×50 角12 白地 INK の線、カード 362×156 角16 FILL）と design-brief.md・design/screens の E 行・C-1・C-3 の PNG で作った
+  - git: コミット・プッシュはしていない

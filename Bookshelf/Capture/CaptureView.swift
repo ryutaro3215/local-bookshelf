@@ -259,7 +259,14 @@ struct CaptureView: View {
 
     private var topBar: some View {
         ZStack {
-            DestinationMenu(shelves: model.selectableShelves(), destination: $model.destination, dark: true)
+            // 表紙の撮り直し（T9）では登録先を選ばない
+            if model.purpose == .registration {
+                DestinationMenu(shelves: model.selectableShelves(), destination: $model.destination, dark: true)
+            } else {
+                Text("表紙を撮り直す")
+                    .font(BookshelfStyle.sans(15, .medium))
+                    .foregroundStyle(.white)
+            }
             HStack {
                 Button(action: onClose) {
                     Image(systemName: "xmark")
@@ -289,9 +296,9 @@ struct CaptureView: View {
                 } else if !model.isAtLimit {
                     GuideFrame(size: size)
                 }
-                if model.isAtLimit {
+                if model.isAtLimit && model.purpose == .registration {
                     limitOverlay
-                } else {
+                } else if !model.isAtLimit {
                     VStack {
                         guideMessage
                             .padding(.top, 12)
@@ -368,11 +375,20 @@ struct CaptureView: View {
                 .padding(.horizontal, 20)
             Spacer(minLength: 8)
             HStack {
-                libraryButton
+                // 表紙の撮り直しは1枚撮れば終わるので、ライブラリと「完了」は出さない（場所だけ空ける）
+                if model.purpose == .registration {
+                    libraryButton
+                } else {
+                    Color.clear.frame(width: 48, height: 48)
+                }
                 Spacer()
                 shutterButton
                 Spacer()
-                doneButton
+                if model.purpose == .registration {
+                    doneButton
+                } else {
+                    Color.clear.frame(width: 84, height: 48)
+                }
             }
             .padding(.horizontal, 28)
             .padding(.bottom, 12)
@@ -405,11 +421,13 @@ struct CaptureView: View {
                 .frame(height: 52)
                 .clipShape(RoundedRectangle(cornerRadius: 2))
             }
-            Text("\(model.reservedCount) / \(CaptureViewModel.limit)冊 撮影済み")
-                .font(BookshelfStyle.sans(12))
-                .foregroundStyle(Color.white.opacity(0.75))
-                .padding(.leading, 6)
-                .accessibilityIdentifier("capture.count")
+            if model.purpose == .registration {
+                Text("\(model.reservedCount) / \(CaptureViewModel.limit)冊 撮影済み")
+                    .font(BookshelfStyle.sans(12))
+                    .foregroundStyle(Color.white.opacity(0.75))
+                    .padding(.leading, 6)
+                    .accessibilityIdentifier("capture.count")
+            }
             Spacer(minLength: 0)
         }
     }
@@ -525,23 +543,6 @@ struct CaptureView: View {
         photoItems = []
         model.screen = .pending
         await model.importPhotos(items)
-    }
-}
-
-/// 写真ピッカーで選んだ写真のデータを読む（選んだ順。読めない写真は飛ばしてログに残す）
-enum PhotoLoader {
-    private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "PhotoLoader")
-
-    static func load(_ item: PhotosPickerItem) async -> Data? {
-        do {
-            if let data = try await item.loadTransferable(type: Data.self) {
-                return data
-            }
-            logger.error("写真のデータが空")
-        } catch {
-            logger.error("写真を読めない: \(error.localizedDescription, privacy: .public)")
-        }
-        return nil
     }
 }
 
