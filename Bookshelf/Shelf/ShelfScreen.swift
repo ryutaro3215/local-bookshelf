@@ -10,6 +10,13 @@ struct BrowseShelf: Identifiable {
     /// 末尾の空き枠（F1-6 B）。買いたい本の棚には出さない
     var showsSlot: Bool { !isWishlist }
     var items: [ShelfBookItem] { books.map { ShelfBookItem(id: $0.id, title: $0.title) } }
+    /// 長押しで並べ替えられるか（買いたい本は登録した順に並ぶので並べ替えない）
+    var allowsReorder: Bool { !isWishlist }
+
+    /// 並べ替えの途中の並び（プレビュー）を当てた棚
+    func with(books: [Book]) -> BrowseShelf {
+        BrowseShelf(shelf: shelf, books: books)
+    }
 }
 
 /// 詳細画面へ移るときの行き先
@@ -40,6 +47,8 @@ struct ShelfScreen: View {
     @State private var methodRequest: MethodRequest?
     @State private var chosen: (start: RegistrationStart, destination: Shelf)?
     @State private var flow: CaptureViewModel?
+    // 並べ替え・棚間移動・削除・一括整列（T7）
+    @State private var editing = ShelfEditing()
 
     var body: some View {
         let all = browseShelves
@@ -57,11 +66,51 @@ struct ShelfScreen: View {
                     hint
                     bottomBar
                 }
+                if let toast = editing.toast {
+                    VStack {
+                        Spacer()
+                        UndoToast(toast: toast) { undo(toast) }
+                            .padding(.bottom, 113)
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .task(id: toast.id) {
+                        do {
+                            try await Task.sleep(for: .seconds(5))
+                        } catch {
+                            return
+                        }
+                        if editing.toast?.id == toast.id {
+                            editing.toast = nil
+                        }
+                    }
+                }
+                if let menu = editing.gridMenu, let current {
+                    gridMenu(menu, in: current)
+                }
+                if let book = editing.deleting {
+                    DeleteBookDialog(
+                        title: book.title,
+                        onCancel: { editing.deleting = nil },
+                        onDelete: { delete(book) })
+                }
                 if showsMenu {
                     DisplayMenu(
                         mode: mode,
+                        sortKey: current.flatMap {
+                            $0.isWishlist ? nil : editing.sortKey(for: $0.shelf, books: $0.books)
+                        },
                         onSelectMode: { newMode in
+                            editing.clearSelection()
                             mode = newMode
+                            showsMenu = false
+                        },
+                        onSelectSort: { key in
+                            if let current {
+                                editing.clearSelection()
+                                withAnimation(.easeOut(duration: 0.3)) {
+                                    editing.sort(current.shelf, by: key, books: current.books, store: environment.store)
+                                }
+                            }
                             showsMenu = false
                         },
                         onClose: { showsMenu = false }
@@ -81,6 +130,17 @@ struct ShelfScreen: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: showsMenu)
+        .animation(.easeOut(duration: 0.2), value: editing.toast?.id)
+        .animation(.easeOut(duration: 0.15), value: editing.gridMenu)
+        .animation(.easeOut(duration: 0.15), value: editing.deleting?.id)
+        .sheet(item: $editing.moving) { book in
+            MoveShelfSheet(
+                book: book,
+                shelves: shelves.filter { $0.kind != .wishlist },
+                counts: ownedCounts,
+                onMove: { shelf in move(book, to: shelf, in: all) },
+                onCancel: { editing.moving = nil })
+        }
         .sheet(isPresented: $showsPicker) {
             ShelfPickerSheet(
                 entries: all.map { ShelfPickerEntry(shelf: $0.shelf, count: $0.books.count) },
@@ -134,6 +194,17 @@ struct ShelfScreen: View {
         }
     }
 
+    /// 棚ごとの購入済みの本の冊数（移動先を選ぶリスト D-2）
+    private var ownedCounts: [PersistentIdentifier: Int] {
+        var counts: [PersistentIdentifier: Int] = [:]
+        for book in books where book.ownership == .owned {
+            if let shelf = book.shelf {
+                counts[shelf.persistentModelID, default: 0] += 1
+            }
+        }
+        return counts
+    }
+
     private func position(of shelf: BrowseShelf) -> Int {
         let last = max(shelf.books.count - (shelf.showsSlot ? 0 : 1), 0)
         return min(max(positions[shelf.id] ?? 0, 0), last)
@@ -144,6 +215,7 @@ struct ShelfScreen: View {
         guard let index = all.firstIndex(where: { $0.id == current.id }) else { return }
         let next = index + delta
         guard all.indices.contains(next) else { return }
+        editing.clearSelection()
         shelfEdge = delta > 0 ? .bottom : .top
         withAnimation(.easeOut(duration: 0.3)) {
             currentID = all[next].id
@@ -154,6 +226,7 @@ struct ShelfScreen: View {
     /// 棚一覧から選ぶ
     private func select(_ id: PersistentIdentifier, in all: [BrowseShelf]) {
         guard let target = all.first(where: { $0.id == id }) else { return }
+        editing.clearSelection()
         let from = all.firstIndex { $0.id == currentID } ?? 0
         let to = all.firstIndex { $0.id == id } ?? 0
         shelfEdge = to >= from ? .bottom : .top
@@ -271,8 +344,11 @@ struct ShelfScreen: View {
     /// 棚インジケーター（Figma 45:21007）の上端。書影の下・本の情報の横（y≈548）
     private var indicatorTop: CGFloat { 388 }
 
-    private func shelfView(_ current: BrowseShelf, all: [BrowseShelf]) -> some View {
-        let index = position(of: current)
+    private func shelfView(_ base: BrowseShelf, all: [BrowseShelf]) -> some View {
+        // 長押しで選んだ本を横にドラッグしている間は、行き先の位置に並べて見せる（H-1）
+        let current = base.with(books: editing.previewBooks(base.books, shelfID: base.id))
+        let selection = editing.selection.flatMap { $0.shelfID == base.id ? $0 : nil }
+        let index = selection?.to ?? position(of: current)
         return VStack(spacing: 0) {
             ZStack {
                 // D8: 棚板は置かない。中央の表紙の下に、床に落ちる柔らかい影だけを置く（Figma 00・B-1・M-1 の見え方）
@@ -292,14 +368,27 @@ struct ShelfScreen: View {
                     onCenterChange: { positions[current.id] = $0 },
                     onTapBook: { openDetail(current.books[$0], from: current) },
                     onTapSlot: { open(from: current.shelf) },
-                    onVerticalSwipe: { move(by: $0, from: current, in: all) })
+                    onVerticalSwipe: { move(by: $0, from: current, in: all) },
+                    selectedIndex: selection?.to,
+                    onReorderEvent: { handleReorder($0, in: base) },
+                    onTapWhileSelected: { editing.clearSelection() })
+                if let selection {
+                    SelectionArrows(
+                        selection: selection, allowsReorder: base.allowsReorder, count: base.books.count,
+                        onStep: { step($0, in: base) },
+                        onMove: { request(.move(bookID: selection.bookID), in: base) },
+                        onDelete: { request(.delete(bookID: selection.bookID), in: base) }
+                    )
+                    .offset(y: -PinLayout.liftHeight)
+                }
             }
             .frame(height: 324)
             .padding(.top, 64)
             .opacity(isScrubbing ? 0.35 : 1)
-            bookInfo(current, index: index)
+            .animation(.easeOut(duration: 0.15), value: selection)
+            bookInfo(current, index: index, selection: selection)
                 .opacity(isScrubbing ? 0 : 1)
-            if current.books.count >= Scrubber.threshold, index < current.books.count {
+            if selection == nil, current.books.count >= Scrubber.threshold, index < current.books.count {
                 Scrubber(
                     items: current.items,
                     index: index,
@@ -315,9 +404,20 @@ struct ShelfScreen: View {
 
     /// 本の情報（題名 → 購入日 → 位置。買いたい本はジャンルと「買いたい」のタグ。空き枠は追加の案内）
     @ViewBuilder
-    private func bookInfo(_ current: BrowseShelf, index: Int) -> some View {
+    private func bookInfo(_ current: BrowseShelf, index: Int, selection: ShelfEditing.Selection?) -> some View {
         VStack(spacing: 6) {
-            if index < current.books.count {
+            if let selection, index < current.books.count {
+                // 長押しで選んだ本（D-1）・横にドラッグしている途中（H-1）
+                Text(current.books[index].title)
+                    .font(BookshelfStyle.serif(20, relativeTo: .title3))
+                    .tracking(0.5)
+                    .foregroundStyle(BookshelfStyle.ink)
+                    .lineLimit(1)
+                    .padding(.horizontal, 56)
+                    .accessibilityIdentifier("shelf.bookTitle")
+                SelectionInfo(selection: selection, allowsReorder: current.allowsReorder, count: current.books.count)
+                    .padding(.top, 6)
+            } else if index < current.books.count {
                 let book = current.books[index]
                 Text(book.title)
                     .font(BookshelfStyle.serif(20, relativeTo: .title3))
@@ -372,6 +472,12 @@ struct ShelfScreen: View {
             }
         }
         .frame(maxWidth: .infinity)
+        // 選択中は Figma D-1 のとおり、下の矢印の分だけ題名を下げる
+        .padding(.top, selection == nil ? 0 : 17)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if selection != nil { editing.clearSelection() }
+        }
     }
 
     private func grid(_ current: BrowseShelf, all: [BrowseShelf]) -> some View {
@@ -379,9 +485,20 @@ struct ShelfScreen: View {
             items: current.items,
             store: environment.store.images,
             onTapBook: { openDetail(current.books[$0], from: current) },
-            onHorizontalSwipe: { move(by: $0, from: current, in: all) }
+            onHorizontalSwipe: { move(by: $0, from: current, in: all) },
+            allowsReorder: current.allowsReorder,
+            onLongPress: { index, frame in
+                guard current.books.indices.contains(index) else { return }
+                editing.gridMenu = ShelfEditing.GridMenu(bookID: current.books[index].id, index: index, frame: frame)
+            },
+            onDragStart: { editing.gridMenu = nil },
+            onMove: { from, to in
+                guard current.books.indices.contains(from) else { return }
+                editing.commitReorder(current.books[from], to: to, store: environment.store)
+            }
         )
-        .padding(.top, 18)
+        // Figma I-1: 1行目の表紙の上端 y=176（冊数のすぐ下）
+        .padding(.top, 12)
     }
 
     /// 買いたい本が0冊のとき（M-2）
@@ -410,10 +527,14 @@ struct ShelfScreen: View {
         .contentShape(Rectangle())
         .gesture(
             DragGesture(minimumDistance: 30).onEnded { value in
-                guard abs(value.translation.height) > abs(value.translation.width) else { return }
                 let all = browseShelves
                 guard let current = all.first(where: { $0.id == currentID }) ?? all.first else { return }
-                move(by: value.translation.height < 0 ? 1 : -1, from: current, in: all)
+                if abs(value.translation.height) > abs(value.translation.width) {
+                    move(by: value.translation.height < 0 ? 1 : -1, from: current, in: all)
+                } else if mode == .grid {
+                    // グリッド表示では左右スワイプで棚をかえる（N-052。ヒント「←→ 棚をかえる」のとおり）
+                    move(by: value.translation.width < 0 ? 1 : -1, from: current, in: all)
+                }
             }
         )
         .accessibilityElement(children: .contain)
@@ -506,6 +627,110 @@ struct ShelfScreen: View {
         }
         .padding(.horizontal, 24)
         .padding(.bottom, 2)
+    }
+
+    // MARK: - 並べ替え・棚間移動・削除（T7。F5・F6-4）
+
+    /// 棚表示の長押し・ドラッグの知らせを受ける
+    private func handleReorder(_ event: ShelfReorderHandler.Event, in shelf: BrowseShelf) {
+        // 位置は保存済みの並び（プレビュー前）で数える
+        let command = withAnimation(.easeOut(duration: 0.2)) {
+            editing.handle(event, books: shelf.books, shelfID: shelf.id, allowsReorder: shelf.allowsReorder)
+        }
+        if let command {
+            request(command, in: shelf)
+        }
+    }
+
+    /// 長押しの操作の結果（並べ替えの確定・移動先のシート・削除の確認）
+    private func request(_ command: ShelfEditing.Command, in shelf: BrowseShelf) {
+        switch command {
+        case .reorder(let bookID, let to):
+            guard let book = shelf.books.first(where: { $0.id == bookID }) else { return }
+            editing.commitReorder(book, to: to, store: environment.store)
+            positions[shelf.id] = to
+        case .move(let bookID):
+            editing.moving = shelf.books.first { $0.id == bookID }
+        case .delete(let bookID):
+            editing.deleting = shelf.books.first { $0.id == bookID }
+        }
+    }
+
+    /// 矢印のボタン（VoiceOver を含む）で1冊ずつ並べ替える
+    private func step(_ delta: Int, in shelf: BrowseShelf) {
+        guard var selection = editing.selection else { return }
+        let to = min(max(selection.from + delta, 0), shelf.books.count - 1)
+        guard to != selection.from, let book = shelf.books.first(where: { $0.id == selection.bookID }) else { return }
+        selection.from = to
+        selection.to = to
+        editing.selection = selection
+        editing.commitReorder(book, to: to, store: environment.store)
+        positions[shelf.id] = to
+    }
+
+    /// 別の棚へ移す（D-2 →D-3）。移動先の棚の末尾を見せ、取り消しのトーストを出す
+    private func move(_ book: Book, to shelf: Shelf, in all: [BrowseShelf]) {
+        let origin = all.first { $0.books.contains { $0.id == book.id } }
+        let fromIndex = origin?.books.firstIndex { $0.id == book.id }
+        editing.moving = nil
+        editing.clearSelection()
+        editing.gridMenu = nil
+        guard editing.commitMove(book, to: shelf, fromIndex: fromIndex, store: environment.store) else { return }
+        // 「買いたい」の本は買いたい本の棚に出たまま（ジャンルだけが変わる）
+        guard book.ownership == .owned else { return }
+        let id = shelf.persistentModelID
+        positions[id] = max(environment.store.books(in: shelf).firstIndex { $0.id == book.id } ?? 0, 0)
+        shelfEdge = .bottom
+        withAnimation(.easeOut(duration: 0.3)) {
+            currentID = id
+        }
+        environment.recent.record(shelf)
+    }
+
+    /// 移動を取り消す（元の棚・元の位置へ戻す）
+    private func undo(_ toast: ShelfEditing.Toast) {
+        guard let shelf = editing.undo(toast, store: environment.store), toast.undo?.book.ownership == .owned else {
+            return
+        }
+        let id = shelf.persistentModelID
+        if let index = toast.fromIndex {
+            positions[id] = index
+        }
+        shelfEdge = .top
+        withAnimation(.easeOut(duration: 0.3)) {
+            currentID = id
+        }
+    }
+
+    /// 削除する（確認ダイアログの「削除」）
+    private func delete(_ book: Book) {
+        editing.deleting = nil
+        editing.clearSelection()
+        editing.gridMenu = nil
+        withAnimation(.easeOut(duration: 0.25)) {
+            editing.commitDelete(book, store: environment.store)
+        }
+    }
+
+    /// グリッドの長押しメニュー（I-2）
+    private func gridMenu(_ menu: ShelfEditing.GridMenu, in current: BrowseShelf) -> some View {
+        let book = current.books.first { $0.id == menu.bookID }
+        return GridBookMenu(
+            menu: menu,
+            allowsReorder: current.allowsReorder,
+            onDetail: {
+                editing.gridMenu = nil
+                if let book { openDetail(book, from: current) }
+            },
+            onMove: {
+                editing.gridMenu = nil
+                editing.moving = book
+            },
+            onDelete: {
+                editing.gridMenu = nil
+                editing.deleting = book
+            },
+            onClose: { editing.gridMenu = nil })
     }
 
     // MARK: - 詳細・登録の入口

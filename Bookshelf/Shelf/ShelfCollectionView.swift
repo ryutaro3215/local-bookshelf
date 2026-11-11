@@ -17,6 +17,13 @@ final class PinLayout: UICollectionViewLayout {
     static let lifts: [CGFloat] = [0, 5.5, 10, 12.5, 14.5]
     /// 中央から何冊目まで見せるか
     static let visibleRange: CGFloat = 4.5
+    /// 長押しで選んだ本を浮かせる量（design-brief §6: 上へ 12pt 前後）
+    static let liftHeight: CGFloat = 12
+
+    /// 長押しで選んでいる本（浮かせて影を濃くする）
+    var liftedIndex: Int?
+    /// 浮かせた本の重なりの順（セルはこの値で浮かせた本と分かる）
+    static let liftedZIndex = 2000
 
     private var count: Int {
         collectionView?.numberOfItems(inSection: 0) ?? 0
@@ -47,6 +54,7 @@ final class PinLayout: UICollectionViewLayout {
     override func layoutAttributesForItem(at indexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
         guard let collectionView else { return nil }
         let attributes = UICollectionViewLayoutAttributes(forCellWith: indexPath)
+        let lifted = indexPath.item == liftedIndex
         let distance = CGFloat(indexPath.item) - position
         let far = abs(distance)
         let side: CGFloat = distance < 0 ? -1 : 1
@@ -54,11 +62,11 @@ final class PinLayout: UICollectionViewLayout {
         attributes.size = Self.bookSize
         attributes.center = CGPoint(
             x: bounds.minX + bounds.width / 2 + side * Self.interpolate(Self.offsets, far, extra: 20),
-            y: bounds.height / 2 - Self.interpolate(Self.lifts, far, extra: 2))
+            y: bounds.height / 2 - Self.interpolate(Self.lifts, far, extra: 2) - (lifted ? Self.liftHeight : 0))
         let scale = Self.interpolate(Self.scales, far, extra: -0.08)
         attributes.transform = CGAffineTransform(scaleX: scale, y: scale)
         // 手前の本ほど前に重なる
-        attributes.zIndex = 1000 - Int(far * 100)
+        attributes.zIndex = lifted ? Self.liftedZIndex : 1000 - Int(far * 100)
         attributes.alpha = far <= 4 ? 1 : max(0, 1 - (far - 4) / (Self.visibleRange - 4))
         return attributes
     }
@@ -99,6 +107,12 @@ struct ShelfCollectionView: UIViewRepresentable {
     let onTapSlot: () -> Void
     /// 縦スワイプ（+1 = 次の棚・上へ、-1 = 前の棚・下へ）
     let onVerticalSwipe: (Int) -> Void
+    /// 長押しで選んでいる本（nil = 選んでいない）。選択中はスクロール・縦スワイプを止める（T7）
+    var selectedIndex: Int?
+    /// 長押し・選択中のドラッグ（F5-1b）
+    var onReorderEvent: (ShelfReorderHandler.Event) -> Void = { _ in }
+    /// 選択中にタップした（選択を解除する）
+    var onTapWhileSelected: () -> Void = {}
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -117,13 +131,16 @@ struct ShelfCollectionView: UIViewRepresentable {
         view.delegate = context.coordinator
         view.prefetchDataSource = context.coordinator
         view.accessibilityIdentifier = "shelf.carousel"
+        var swipes: [UIGestureRecognizer] = []
         for direction in [UISwipeGestureRecognizer.Direction.up, .down] {
             let swipe = UISwipeGestureRecognizer(
                 target: context.coordinator, action: #selector(Coordinator.handleSwipe(_:)))
             swipe.direction = direction
             swipe.delegate = context.coordinator
             view.addGestureRecognizer(swipe)
+            swipes.append(swipe)
         }
+        context.coordinator.reorder.attach(to: view, swipes: swipes)
         context.coordinator.apply(self, to: view, force: true)
         return view
     }
@@ -137,18 +154,42 @@ struct ShelfCollectionView: UIViewRepresentable {
     {
         var parent: ShelfCollectionView
         private var reported = 0
+        /// 長押しで選んで並べ替え・移動・削除する（T7）
+        let reorder = ShelfReorderHandler()
         /// プログラムからのスクロール中は、途中の位置を知らせない
         private var isProgrammaticScroll = false
 
         init(_ parent: ShelfCollectionView) {
             self.parent = parent
+            super.init()
+            reorder.onEvent = { [weak self] event in self?.parent.onReorderEvent(event) }
+            reorder.canSelect = { [weak self] index in
+                guard let self, index < self.parent.items.count else { return false }
+                return index == self.reported
+            }
         }
 
         private var itemCount: Int { parent.items.count + (parent.showsSlot ? 1 : 0) }
 
         func apply(_ next: ShelfCollectionView, to view: ShelfCarouselView, force: Bool) {
-            let changed = force || next.items != parent.items || next.showsSlot != parent.showsSlot
+            let previous = parent.items
+            let previousShowsSlot = parent.showsSlot
+            var changed = force || next.items != parent.items || next.showsSlot != parent.showsSlot
             parent = next
+            reorder.isSelecting = next.selectedIndex != nil
+            if let layout = view.collectionViewLayout as? PinLayout, layout.liftedIndex != next.selectedIndex {
+                layout.liftedIndex = next.selectedIndex
+                if !changed {
+                    UIView.animate(withDuration: 0.2) { layout.invalidateLayout() }
+                }
+            }
+            // 同じ本の並びが入れ替わっただけ（並べ替えの途中）のときは、本を動かすアニメーションで見せる
+            if changed, !force, next.showsSlot == previousShowsSlot, isPermutation(previous, next.items),
+                view.window != nil
+            {
+                changed = false
+                movePermutation(from: previous, to: next.items, in: view)
+            }
             if changed {
                 isProgrammaticScroll = true
                 view.reloadData()
@@ -159,6 +200,26 @@ struct ShelfCollectionView: UIViewRepresentable {
             if changed || (target != reported && !view.isTracking && !view.isDecelerating) {
                 reported = target
                 scroll(view, to: target, animated: !changed && view.window != nil)
+            }
+        }
+
+        private func isPermutation(_ old: [ShelfBookItem], _ new: [ShelfBookItem]) -> Bool {
+            old.count == new.count && old != new && Set(old.map(\.id)) == Set(new.map(\.id))
+        }
+
+        /// 並びの入れ替えを、セルを動かすアニメーションで反映する
+        private func movePermutation(from old: [ShelfBookItem], to new: [ShelfBookItem], in view: ShelfCarouselView) {
+            let oldIndex = Dictionary(uniqueKeysWithValues: old.enumerated().map { ($1.id, $0) })
+            view.performBatchUpdates {
+                for (index, item) in new.enumerated() {
+                    if let from = oldIndex[item.id], from != index {
+                        view.moveItem(at: IndexPath(item: from, section: 0), to: IndexPath(item: index, section: 0))
+                    }
+                }
+            } completion: { _ in
+                // 番号・識別子（shelf.book.n）を新しい並びに合わせる
+                let visible = view.indexPathsForVisibleItems.filter { $0.item < self.parent.items.count }
+                view.reconfigureItems(at: visible)
             }
         }
 
@@ -182,9 +243,17 @@ struct ShelfCollectionView: UIViewRepresentable {
             }
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ShelfCell.reuseID, for: indexPath)
             if let cell = cell as? ShelfCell {
-                cell.configure(
-                    parent.items[indexPath.item], index: indexPath.item, count: parent.items.count,
-                    store: parent.store)
+                let index = indexPath.item
+                cell.configure(parent.items[index], index: index, count: parent.items.count, store: parent.store)
+                // VoiceOver では長押しの代わりに「選択」の操作で選ぶ（N5）
+                cell.accessibilityCustomActions = [
+                    UIAccessibilityCustomAction(name: "選択して並べ替え・移動・削除") { [weak self] _ in
+                        guard let self, index == self.reported else { return false }
+                        self.parent.onReorderEvent(.began(index))
+                        self.parent.onReorderEvent(.ended(.zero))
+                        return true
+                    }
+                ]
             }
             return cell
         }
@@ -199,6 +268,10 @@ struct ShelfCollectionView: UIViewRepresentable {
 
         func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
             collectionView.deselectItem(at: indexPath, animated: false)
+            if parent.selectedIndex != nil {
+                parent.onTapWhileSelected()
+                return
+            }
             let current = Int((collectionView.contentOffset.x / PinLayout.pageWidth).rounded())
             if indexPath.item != current {
                 // 横の本をタップしたら、その本を中央へ

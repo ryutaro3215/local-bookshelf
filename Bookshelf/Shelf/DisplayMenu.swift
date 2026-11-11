@@ -7,10 +7,13 @@ enum DisplayMode: Equatable {
 }
 
 /// 下部バーの「表示」メニュー（G-2。F6-8）。見え方・まとめ方・この棚の並べ順・設定。
-/// T6 で動くのは「見え方」だけ。まとめ方（購入月別）は T13、並べ順は T7、設定は T8 で中身をつなぐ（今は押しても閉じるだけ）
+/// 見え方と「この棚の並べ順」（T7。F5-3）が動く。まとめ方（購入月別）は T13、設定は T8 で中身をつなぐ（今は押しても閉じるだけ）
 struct DisplayMenu: View {
     let mode: DisplayMode
+    /// 今の棚の並べ順（nil = 並べ順を出さない。買いたい本の棚は登録した順に並ぶため）
+    var sortKey: ShelfSortKey?
     let onSelectMode: (DisplayMode) -> Void
+    var onSelectSort: (ShelfSortKey) -> Void = { _ in }
     let onClose: () -> Void
 
     var body: some View {
@@ -33,12 +36,15 @@ struct DisplayMenu: View {
                     item("ジャンル別", checked: true, id: "menu.group.genre", action: onClose)
                     item("購入月別", checked: false, id: "menu.group.month", action: onClose)
                 }
-                divider
-                section("この棚の並べ順") {
-                    // 並べ順の切り替えは T7
-                    item("手動（自分で並べた順）", checked: true, id: "menu.sort.manual", action: onClose)
-                    item("購入日が新しい順", checked: false, id: "menu.sort.purchased", action: onClose)
-                    item("題名順", checked: false, id: "menu.sort.title", action: onClose)
+                if let sortKey {
+                    divider
+                    section("この棚の並べ順") {
+                        ForEach(ShelfSortKey.allCases, id: \.self) { key in
+                            item(key.label, checked: key == sortKey, id: "menu.sort.\(key.rawValue)") {
+                                onSelectSort(key)
+                            }
+                        }
+                    }
                 }
                 divider
                 Button(action: onClose) {
@@ -67,6 +73,10 @@ struct DisplayMenu: View {
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("menu")
         }
+        // 開いている間は VoiceOver で後ろの画面に移れないようにし、「閉じる」ジェスチャ（escape）でも閉じる（N-054・N5）
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isModal)
+        .accessibilityAction(.escape, onClose)
     }
 
     private var divider: some View {

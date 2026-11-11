@@ -44,6 +44,11 @@ final class AppEnvironment {
     /// 起動引数 `-UITestReset` のときは、毎回まっさらなデータ（メモリ上）・一時フォルダの画像・専用の設定で起動する（UIテスト用）
     static func make(arguments: [String] = ProcessInfo.processInfo.arguments) throws -> AppEnvironment {
         let schema = Schema([Book.self, Shelf.self])
+        #if DEBUG
+            if arguments.contains("-UITestPersistentStore") {
+                return try makePersistentUITest(schema: schema, arguments: arguments)
+            }
+        #endif
         if arguments.contains("-UITestReset") {
             let suite = "com.ryutaro3215.bookshelf.uitest"
             UserDefaults().removePersistentDomain(forName: suite)
@@ -66,6 +71,36 @@ final class AppEnvironment {
         return try AppEnvironment(
             container: container, images: try ImageStore.standard(), defaults: .standard, arguments: arguments)
     }
+
+    #if DEBUG
+        /// 起動引数 `-UITestPersistentStore` のとき（UIテストの「アプリ再起動後も保持される」の確認用・デバッグビルドのみ）:
+        /// 一時フォルダの決まった場所のファイルにデータと画像を保存し、次の起動でも同じものを開く。
+        /// `-UITestReset` も付けると、その場所を消してまっさらにしてから `-SeedBooks` を入れる
+        private static func makePersistentUITest(schema: Schema, arguments: [String]) throws -> AppEnvironment {
+            let folder = FileManager.default.temporaryDirectory.appendingPathComponent(
+                "UITestPersistentStore", isDirectory: true)
+            let suite = "com.ryutaro3215.bookshelf.uitest.persistent"
+            let reset = arguments.contains("-UITestReset")
+            if reset {
+                if FileManager.default.fileExists(atPath: folder.path) {
+                    try FileManager.default.removeItem(at: folder)
+                }
+                UserDefaults().removePersistentDomain(forName: suite)
+            }
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let container = try ModelContainer(
+                for: schema,
+                configurations: ModelConfiguration(schema: schema, url: folder.appendingPathComponent("library.store")))
+            let images = ImageStore(directory: folder.appendingPathComponent("Covers", isDirectory: true))
+            let environment = try AppEnvironment(
+                container: container, images: images, defaults: UserDefaults(suiteName: suite) ?? .standard,
+                arguments: arguments)
+            if reset, let index = arguments.firstIndex(of: "-SeedBooks"), index + 1 < arguments.count {
+                try DebugSeed.apply(arguments[index + 1], to: environment.store)
+            }
+            return environment
+        }
+    #endif
 
     /// 撮影に使うカメラ。シミュレータと起動引数 `-FakeCamera <シナリオ>` のときは合成画像のカメラ（デバッグビルドのみ）
     func makeCamera() -> any CameraSource {
@@ -105,7 +140,8 @@ final class AppEnvironment {
                     try store.images.save(original: cover.original, thumbnail: cover.thumbnail, for: id)
                     try store.addBook(
                         title: title, shelf: shelf, ownership: i < owned ? .owned : .wanted,
-                        now: Date(timeIntervalSinceNow: Double(serial - 10_000)), id: id)
+                        // データ追加日は番号の順に少しずつずらす（約100秒前から 0.01 秒刻み。深夜0時すぎでも購入日が今日になるように）
+                        now: Date(timeIntervalSinceNow: Double(serial - 10_000) / 100), id: id)
                     serial += 1
                 }
             }

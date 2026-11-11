@@ -19,8 +19,20 @@ final class CoverImageCache {
     private var loading: [UUID: Task<UIImage?, Never>] = [:]
     private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "Shelf")
 
+    /// 展開後のサムネイルを置いておく量の上限（バイト。N-051: 長辺 400px で1枚約 0.4〜0.5MB → 約 160〜200 冊分）
+    static let byteLimit = 80 * 1024 * 1024
+
     init() {
         thumbnails.countLimit = 600
+        thumbnails.totalCostLimit = Self.byteLimit
+    }
+
+    /// 展開後の画像のバイト数（キャッシュの cost に使う）
+    nonisolated static func decodedCost(of image: UIImage) -> Int {
+        if let cgImage = image.cgImage {
+            return cgImage.bytesPerRow * cgImage.height
+        }
+        return Int(image.size.width * image.scale * image.size.height * image.scale * 4)
     }
 
     /// すでにメモリにあるサムネイル（無ければ nil。読み込みはしない）
@@ -38,7 +50,7 @@ final class CoverImageCache {
         let image = await task.value
         loading[id] = nil
         if let image {
-            thumbnails.setObject(image, forKey: id as NSUUID)
+            thumbnails.setObject(image, forKey: id as NSUUID, cost: Self.decodedCost(of: image))
         } else {
             Self.logger.error("表紙のサムネイルを読めない: \(id.uuidString, privacy: .public)")
         }
@@ -127,7 +139,11 @@ final class ShelfCell: UICollectionViewCell {
         // 外側（小さい）ほど暗く、中央の1冊だけ柔らかい影を付ける
         let scale = layoutAttributes.transform.a
         shadeView.alpha = max(0, 1 - scale) * 0.3
-        layer.shadowOpacity = Float(max(0, (scale - 0.8) / 0.2) * 0.25)
+        // 長押しで選んだ本は影を濃く・大きくする（design-brief §6）
+        let lifted = layoutAttributes.zIndex >= PinLayout.liftedZIndex
+        layer.shadowOpacity = lifted ? 0.4 : Float(max(0, (scale - 0.8) / 0.2) * 0.25)
+        layer.shadowRadius = lifted ? 20 : 14
+        layer.shadowOffset = CGSize(width: 0, height: lifted ? 18 : 10)
     }
 
     /// 枠の高さに合わせ、表紙の縦横比のまま幅を決めて、枠の中央に置く
@@ -215,15 +231,23 @@ struct EmptyCoverBox: View {
 
 // MARK: - グリッド表示のセル（I-1）
 
-/// グリッド表示の1冊（表紙＋題名1行）。VoiceOver は題名で読み上げる（N5）
+/// グリッド表示の1冊（表紙＋題名1行）。VoiceOver は題名で読み上げる（N5）。
+/// 寸法は Figma I-1（51:29175）: 表紙の枠の高さ 146、表紙と題名の間 8、題名 Serif 13・高さ 18・中央ぞろえ
 struct GridCellContent: View {
+    static let coverHeight: CGFloat = 146
+    static let titleHeight: CGFloat = 18
+    static let spacing: CGFloat = 8
+    static var height: CGFloat { coverHeight + spacing + titleHeight }
+
     let item: ShelfBookItem
     let index: Int
     let store: ImageStore
+    /// VoiceOver の「メニュー」の操作（長押しの代わり。I-2）
+    var onMenu: (() -> Void)?
     @State private var image: UIImage?
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: Self.spacing) {
             ZStack(alignment: .bottom) {
                 Color.clear
                 if let image {
@@ -237,13 +261,15 @@ struct GridCellContent: View {
                         .aspectRatio(0.7, contentMode: .fit)
                 }
             }
-            .frame(height: 146)
+            .frame(height: Self.coverHeight)
             Text(item.title)
-                .font(BookshelfStyle.serif(15))
+                .font(BookshelfStyle.serif(13))
                 .tracking(0.5)
                 .foregroundStyle(BookshelfStyle.ink)
                 .lineLimit(1)
                 .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .frame(height: Self.titleHeight)
         }
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
@@ -251,6 +277,7 @@ struct GridCellContent: View {
         .accessibilityLabel(item.title)
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("grid.book.\(index)")
+        .accessibilityAction(named: "メニュー") { onMenu?() }
         .task(id: item.id) {
             image = CoverImageCache.shared.cachedThumbnail(for: item.id)
             if image == nil {
