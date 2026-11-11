@@ -45,3 +45,27 @@
   - Bookshelf/Model/Book.swift: `id` に `@Attribute(.unique)` を付けた
   - Bookshelf.xcodeproj/project.xcproj: SWIFT_VERSION を 5.0 → 6.0（アプリ・テストとも。オーナー判断）。バンドル ID をアプリ `com.ryutaro3215.bookshelf`・テスト `com.ryutaro3215.bookshelf.tests` にした（オーナー判断）
   - verify: Swift 6 で `xcodebuild test`（iPhone 17 Pro / iOS 26.5）→ `✔ Test run with 13 tests in 2 suites passed`、`** TEST SUCCEEDED **`、並行処理のエラー・警告なし / `scripts/check-no-network.sh` → exit=0 / `swift format lint -r Bookshelf BookshelfTests` → exit=0 / 生成された Info.plist の CFBundleIdentifier = com.ryutaro3215.bookshelf
+
+## T3: 画像パイプライン — done (2026-11-11)
+- changed:
+  - Bookshelf/Imaging/CoverDetector.swift: `CoverQuad`（四隅。Vision の正規化座標・原点左下）と `CoverDetector`（VNDetectRectanglesRequest。短辺/長辺 0.4〜1.0、最小サイズ 0.4、直角からのずれ 30°、信頼度 0.6。候補のうち面積最大を採用）。`nonisolated`（既定の MainActor 隔離から外し、バックグラウンドで呼べるようにした）
+  - Bookshelf/Imaging/CoverProcessor.swift: `CoverProcessor.process(_:corners:)` — ImageIO で向き（EXIF Orientation）を反映した上向き画像を作り（作業サイズは長辺3200pxまで）→ 四隅検出 → CIPerspectiveCorrection で台形補正 → Lanczos で長辺1600px以下に縮小 → サムネイル（長辺400px）→ CGImageDestination で JPEG（品質0.85）を新規に書き出す（元画像のプロパティはコピーしない）。結果は `ProcessedCover`（image・thumbnail の JPEG Data、`corners`＝nil なら検出失敗、`isDetected`）。検出失敗時は元画像全体を同じ手順で縮小・再エンコードして返す。`corners` 引数は F1-2 の手動調整（T5）用。読めない画像は `CoverProcessorError.unreadableImage` を投げる
+  - BookshelfTests/CoverProcessorTests.swift: acceptance ①〜⑤（引数付きテストで計5テスト・17ケース）
+  - BookshelfTests/Fixtures/: 架空の表紙の合成画像 1536x2048 JPEG — cover-tilt-left / cover-tilt-right / cover-rotated / cover-top-down-gps（GPS・EXIF・TIFF〔Make/Model/DateTime〕入り）/ no-cover（ノイズ＋グラデーション、GPS・EXIF入り）
+  - scripts/generate-cover-fixtures.py: 上のフィクスチャの生成スクリプト（一度だけ実行。pillow・opencv・numpy。乱数シード固定で再現可能）
+- verify:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"`（iPhone 17 Pro / iOS 26.5）→ `✔ Test run with 18 tests in 3 suites passed`、`** TEST SUCCEEDED **`（CoverProcessorTests 5件〔①4ケース・②5・③5・④2・⑤1〕、既存の LibraryStoreTests 9件・YomiTests 4件も通過）
+    - ① 4枚とも四隅を検出し、検出位置が合成時の四隅と画像サイズの2%以内で一致、出力の縦横比が表紙の 1:1.45 ±0.15
+    - ② 出力の長辺 ≤ 1600（no-cover 含む5枚）③ サムネイルの長辺 = 400、本体と同じ縦横比
+    - ④ 入力に GPS・EXIF があることを確認したうえで、出力（本体・サムネイル）に GPS・TIFF・IPTC の辞書がなく、EXIF 辞書はエンコーダが書く ColorSpace・PixelXDimension・PixelYDimension だけ（CGImageSourceCopyPropertiesAtIndex で確認）
+    - ⑤ no-cover は `isDetected == false`・`corners == nil`、出力は元画像（1536x2048）全体を 1200x1600 に縮小したもの
+  - Swift 6 で再ビルド（`touch` 後に build-for-testing）→ 警告・並行処理エラーなし
+  - `scripts/check-no-network.sh` → exit=0
+  - `swift format lint -r Bookshelf BookshelfTests` → 出力なし、exit=0
+  - 参考（テスト外・リポジトリに入れていない）: design/sample-covers/raw の実写25枚（書店で手持ち撮影・768x1024）を macOS 上で同じコードに通した → 検出 7/25。目視で 6枚は表紙を正しく切り抜き、1枚（嫉妬論）は表紙の内側の枠を切り抜いた。最小サイズ 0.25 では検出 13/25 だが、うち5枚が内側の四角形（帯・図形・文字の枠）の誤った切り抜きだったため 0.4 にした
+- notes:
+  - **計画とのズレ（files）**: scripts/generate-cover-fixtures.py を追加した（オーナー判断: 実在の表紙は著作物なのでフィクスチャは合成する。生成手順を残すため）。実行には pillow・opencv・numpy が要る（アプリの依存ではない）
+  - ImageIO の JPEG エンコーダは、メタデータを渡さなくても EXIF 辞書に ColorSpace・PixelXDimension・PixelYDimension を必ず書く（空の CGImageMetadata・kCFNull 指定でも消えない）。いずれも出力画像自身の情報で、撮影日時・機種・位置情報は残らないため、④はこの3項目以外が無いことを確認する形にした
+  - フォルダ同期のため、Fixtures の画像はテストバンドルの直下に平らにコピーされる（`Fixtures/` のサブフォルダは保たれない）。T4 の Fixtures/ocr/ でファイル名が重なるとぶつかるので、名前を分けるか、フォルダ参照にする必要がある
+  - 実写での検出率（7/25）は低め。書店の棚の前で手に持った写真が多く、手・背景の本・帯が四角形の検出を邪魔している。失敗時は F1-2 の手動調整に回る前提。T5 で実機の撮影ガイド（枠の表示）と合わせて、閾値の再調整や VNDetectDocumentSegmentationRequest の併用を検討したい（今回は未対応）
+  - 検出・補正は重い処理（時間は未計測）なので、T5 では MainActor から外して（Task.detached 等で）呼ぶ想定。`CoverProcessor` は `nonisolated` だが CIContext を持つため Sendable にはしていない（呼ぶ側で作る）

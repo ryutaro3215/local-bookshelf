@@ -25,3 +25,16 @@
   - [nit] Bookshelf/Storage/ImageStore.swift:16 表紙画像を Application Support に置いている。iCloud バックアップの対象にするかどうか（端末の容量・プライバシー）は要件に記載がない。リリース前に dev-security / dev-architect で確認を推奨
 - 要件との整合: §10.3（買いたい本は入れ物ではない・ジャンルは所持状況にかかわらず持つ）、§10.6（初期ジャンル28個と ja/en、区分「システム」の表示名「その他」）、S6（200文字・制御文字の除去）、F7-1（よみ）に合っていることをコードで確認した。計画の files 外の project.xcproj の変更（テストのターゲットの追加）は、acceptance の実行に必要なもので妥当
 - 追加確認（2026-11-11）: should 4件のうち、`deleteBook` の順番・`id` の一意化・Swift 6・バンドル ID の4件が対応済み。Swift 6 で `xcodebuild test` を再実行し 13件成功・並行処理の警告なしを確認。PASS のまま
+
+## T3: PASS (2026-11-11)
+- acceptance再実行:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"`（iPhone 17 Pro / iOS 26.5）→ `✔ Test run with 18 tests in 3 suites passed`、`** TEST SUCCEEDED **`。CoverProcessorTests（①〜⑤）・LibraryStoreTests・YomiTests のすべてのスイートが成功
+  - `scripts/check-no-network.sh` → exit=0
+  - `swift format lint -r Bookshelf BookshelfTests` → exit=0
+  - BookshelfTests/Fixtures/ の5枚はすべて合成画像（架空の表紙・架空の GPS）で、実在の書籍の表紙を含まないことを確認
+- 指摘:
+  - [should] Bookshelf/Imaging/CoverDetector.swift 実写25枚（design/sample-covers/raw）での自動検出は 7/25（うち1枚は内側の枠を誤検出）と builder が報告している。合成フィクスチャでは合格するが、書店で手に持って撮る実際の使い方では多くが手動調整（F1-2 の後半・N 画面）に回る見込み。成功指標「100冊を2時間以内」に効くので、T5 で ①撮影ガイド（表紙を枠いっぱいに・背景と分ける）②`VNDetectDocumentSegmentationRequest` の併用や閾値の再調整 ③手動調整の操作を軽くすること、を acceptance に含めるよう dev-architect に推奨
+  - [should] BookshelfTests/Fixtures/ フォルダ同期でテストバンドル直下に平らにコピーされるため、T4 の OCR 用フィクスチャとファイル名が重なると衝突する。T4 ではファイル名に接頭辞（例: `ocr-…`）を付けるか、フォルダ参照にすること
+  - [should] Bookshelf/Imaging/CoverProcessor.swift:34 `CIContext` を `CoverProcessor` ごとに作っている。T5 の連続撮影で1枚ごとに作り直すと遅くなるので、呼ぶ側で1つを使い回す設計にすること（builder の申し送りと同じ）
+  - [nit] scripts/generate-cover-fixtures.py は plan.md の files 外だが、フィクスチャを作り直せるようにするためのもので妥当。plan.md の files への追記を dev-architect に推奨
+  - [nit] ④ ImageIO の JPEG 出力には EXIF 辞書の ColorSpace・PixelXDimension・PixelYDimension の3項目が必ず残る。撮影日時・機種・位置情報は残らないので S6 の趣旨は満たしている
