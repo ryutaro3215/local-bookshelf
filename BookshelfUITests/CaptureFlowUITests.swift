@@ -2,7 +2,8 @@ import XCTest
 
 /// 撮影登録フローの UI テスト（plan T5 の acceptance ①〜⑧）。
 /// カメラはシミュレータに無いため、起動引数 `-FakeCamera` で架空の表紙の合成画像を「撮影」する。
-/// 起動引数 `-UITestReset` で毎回まっさらなデータから始める。入口は仮の画面（ContentView。T6 で閲覧画面に置き換え）
+/// 起動引数 `-UITestReset` で毎回まっさらなデータから始める。入口は閲覧画面（T6）の下部バーの＋と棚の末尾の空き枠。
+/// 棚の末尾の空き枠は本が入っている棚にしか出ないため、必要なテストは `-SeedBooks` で架空の本を入れてから始める
 @MainActor
 final class CaptureFlowUITests: XCTestCase {
     private let covers = "cover:PAPER COMETS,cover:THE QUIET ORCHARD,cover:NORTHERN LANTERNS"
@@ -13,22 +14,56 @@ final class CaptureFlowUITests: XCTestCase {
 
     // MARK: - 手順
 
-    private func launch(scenario: String) -> XCUIApplication {
+    private func launch(scenario: String, seed: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-UITestReset", "-FakeCamera", scenario]
+        if let seed {
+            app.launchArguments += ["-SeedBooks", seed]
+        }
         app.launch()
         return app
     }
 
-    /// 仮の画面の要素を、見えるまでスクロールしてから押す
-    private func tapScrolling(_ element: XCUIElement, in app: XCUIApplication) {
-        var attempts = 0
-        while !(element.exists && element.isHittable) && attempts < 12 {
-            app.swipeUp()
-            attempts += 1
+    private func element(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    /// 棚の名前 → 棚を選ぶリストから棚を選ぶ（閲覧で開いた棚は「直前に使った棚」になる。N-031）
+    private func selectShelf(_ app: XCUIApplication, _ name: String) {
+        app.buttons["shelf.title"].tap()
+        let row = app.buttons["picker.row.\(name)"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "棚を選ぶリストに \(name) が無い")
+        row.tap()
+        wait(app.buttons["shelf.title"], "label == '\(name)'")
+    }
+
+    /// 閲覧画面の棚の冊数（棚の名前の下）
+    private func assertShelf(_ app: XCUIApplication, _ name: String, count: Int) {
+        let title = app.buttons["shelf.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        wait(title, "label == '\(name)'")
+        wait(title, "value == '\(count)冊'")
+    }
+
+    /// 中央の本を開いて、詳細の ジャンル・所持状況・購入日 を返し、閲覧に戻る
+    private func openCenterBook(_ app: XCUIApplication, index: Int) -> (genre: String, ownership: String, date: String?)
+    {
+        let book = element(app, "shelf.book.\(index)")
+        XCTAssertTrue(book.waitForExistence(timeout: 5))
+        if !app.staticTexts["shelf.position"].label.hasPrefix("\(index + 1) / ") {
+            book.tap()  // 横の本は1回目のタップで中央に来る
+            wait(app.staticTexts["shelf.position"], "label BEGINSWITH '\(index + 1) / '")
         }
-        XCTAssertTrue(element.isHittable, "\(element) が見つからない")
-        element.tap()
+        book.tap()
+        let genre = element(app, "detail.genre")
+        XCTAssertTrue(genre.waitForExistence(timeout: 5))
+        let ownership = element(app, "detail.ownership").label
+        let dateElement = element(app, "detail.purchaseDate")
+        let date = dateElement.exists ? dateElement.label : nil
+        let result = (genre.label, ownership, date)
+        app.buttons["detail.back"].tap()
+        XCTAssertTrue(app.buttons["shelf.title"].waitForExistence(timeout: 5))
+        return result
     }
 
     private func wait(_ element: XCUIElement, _ predicate: String, timeout: TimeInterval = 20) {
@@ -36,12 +71,21 @@ final class CaptureFlowUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter().wait(for: [expectation], timeout: timeout), .completed, "\(element): \(predicate)")
     }
 
-    /// 入口（＋ または棚の末尾の空き枠）→ 登録方法のシート
+    /// 入口（下部バーの＋ または棚の末尾の空き枠）→ 登録方法のシート
     private func openMethodSheet(_ app: XCUIApplication, slot: String? = nil) {
         if let slot {
-            tapScrolling(app.buttons["host.slot.\(slot)"], in: app)
+            selectShelf(app, slot)
+            // 横スワイプで棚の末尾（空き枠）まで送る
+            let position = app.staticTexts["shelf.position"]
+            var attempts = 0
+            while position.label != "棚の末尾" && attempts < 10 {
+                app.collectionViews["shelf.carousel"].swipeLeft()
+                attempts += 1
+            }
+            XCTAssertEqual(position.label, "棚の末尾")
+            element(app, "shelf.slot").tap()
         } else {
-            app.buttons["host.add"].tap()
+            app.buttons["browse.add"].tap()
         }
         XCTAssertTrue(app.buttons["register.camera"].waitForExistence(timeout: 5))
     }
@@ -80,7 +124,7 @@ final class CaptureFlowUITests: XCTestCase {
     private func today() -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.dateFormat = "yyyy.MM.dd"
         return formatter.string(from: Date())
     }
 
@@ -139,29 +183,32 @@ final class CaptureFlowUITests: XCTestCase {
         wait(register, "isEnabled == true")
         register.tap()
 
-        // 外した1冊は買いたい本に、残りは選んだジャンルに購入日＝今日で並ぶ
-        XCTAssertTrue(app.buttons["host.add"].waitForExistence(timeout: 10))
-        wait(app.staticTexts["host.count.哲学・思想"], "label == '2冊'")
-        let books = app.staticTexts.matching(identifier: "host.book")
-        XCTAssertEqual(books.count, 3)
+        // 外した1冊は買いたい本に、残りは選んだジャンルに購入日＝今日で並ぶ（閲覧画面は登録先の棚を出す）
+        XCTAssertTrue(app.buttons["browse.add"].waitForExistence(timeout: 10))
+        assertShelf(app, "哲学・思想", count: 2)
+        var details: [(genre: String, ownership: String, date: String?)] = []
+        for index in [1, 0] {
+            details.append(openCenterBook(app, index: index))
+        }
+        selectShelf(app, "買いたい本")
+        assertShelf(app, "買いたい本", count: 1)
+        details.append(openCenterBook(app, index: 0))
+        XCTAssertEqual(details.count, 3)
         var wanted = 0
         var owned = 0
-        for i in 0..<books.count {
-            let label = books.element(boundBy: i).label
-            XCTAssertTrue(label.contains("｜哲学・思想｜"), label)
-            if label.contains("｜買いたい｜") {
+        for detail in details {
+            XCTAssertTrue(detail.genre.contains("哲学・思想"), detail.genre)
+            if detail.ownership.contains("買いたい") {
                 wanted += 1
-                XCTAssertTrue(label.hasSuffix("購入日なし"), label)
+                XCTAssertNil(detail.date, "買いたい本に購入日が出ている")
             } else {
                 owned += 1
-                XCTAssertTrue(label.contains("｜購入済み｜"), label)
-                XCTAssertTrue(label.hasSuffix(today()), label)
+                XCTAssertTrue(detail.ownership.contains("購入済み"), detail.ownership)
+                XCTAssertTrue(detail.date?.contains(today()) ?? false, detail.date ?? "購入日なし")
             }
         }
         XCTAssertEqual(wanted, 1)
         XCTAssertEqual(owned, 2)
-        tapScrolling(app.staticTexts["host.count.買いたい本"], in: app)
-        XCTAssertEqual(app.staticTexts["host.count.買いたい本"].label, "1冊")
     }
 
     // MARK: - ③
@@ -190,7 +237,8 @@ final class CaptureFlowUITests: XCTestCase {
     // MARK: - ④
 
     func testEmptySlotSetsDestination() {
-        let app = launch(scenario: covers)
+        // 空き枠は本が入っている棚にだけ出るので、エッセイに架空の本を1冊入れておく
+        let app = launch(scenario: covers, seed: "エッセイ:1")
         openMethodSheet(app, slot: "エッセイ")
         XCTAssertEqual(app.buttons["register.destination"].value as? String, "エッセイ")
         openCamera(app)
@@ -202,23 +250,24 @@ final class CaptureFlowUITests: XCTestCase {
         let register = app.buttons["pending.register"]
         wait(register, "isEnabled == true")
         register.tap()
-        XCTAssertTrue(app.buttons["host.add"].waitForExistence(timeout: 10))
-        wait(app.staticTexts["host.count.エッセイ"], "label == '1冊'")
+        XCTAssertTrue(app.buttons["browse.add"].waitForExistence(timeout: 10))
+        assertShelf(app, "エッセイ", count: 2)
     }
 
     // MARK: - ⑤
 
     func testLastUsedShelfSkipsWishlist() {
-        let app = launch(scenario: covers)
+        // 小説を閲覧画面に出すため、架空の本を1冊入れておく（起動時に出ている棚は「使った」に数えない）
+        let app = launch(scenario: covers, seed: "小説:1")
         // 使った棚の記録がなければ未分類
         openMethodSheet(app)
         XCTAssertEqual(app.buttons["register.destination"].value as? String, "未分類")
         app.buttons["register.cancel"].tap()
-        XCTAssertTrue(app.buttons["host.add"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["browse.add"].waitForExistence(timeout: 5))
 
-        // 小説 → 買いたい本 の順に使う。直前は買いたい本なので、それ以外で直前の小説が初期値になる
-        tapScrolling(app.buttons["host.visit.小説"], in: app)
-        tapScrolling(app.buttons["host.visit.買いたい本"], in: app)
+        // 小説 → 買いたい本 の順に閲覧で開く。直前は買いたい本なので、それ以外で直前の小説が初期値になる
+        selectShelf(app, "小説")
+        selectShelf(app, "買いたい本")
         openMethodSheet(app)
         XCTAssertEqual(app.buttons["register.destination"].value as? String, "小説")
     }

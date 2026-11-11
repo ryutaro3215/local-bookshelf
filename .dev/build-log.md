@@ -161,3 +161,39 @@
       - acceptance の「15/25 以上」は Mac では 16 で満たすが、アプリが動く iOS（シミュレータ）では書類の輪郭検出が壊れているため 5/25。**実機での値は未測定**で、オーナーの実機確認（CoverDetectionAccuracyTests を実機で実行、または同等の確認）が必要。実機でもシミュレータと同じなら到達は約 5/25 で、誤りは T3 並み（2枚）に収まる
     - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → exit=0 / `scripts/check-no-network.sh` → exit=0
   - notes: 依頼の範囲外として残したもの（ライブラリ30枚のメモリ、OFL の文、O-3 の UI テスト、協調スレッド上の Vision、nit）は未対応。行のスワイプ削除はデザインに無い操作なので、オーナーの確認が要る
+
+## T6: 閲覧画面（棚表示・グリッド表示・詳細） — done（Figma との目視確認・実機の操作感はオーナー待ち） (2026-11-11)
+- changed:
+  - Bookshelf/Shelf/ShelfScreen.swift: アプリの最初の画面（閲覧）。上＝棚の名前▾・冊数（タップで棚一覧）・右上の共有マーク（買いたい本では出さない）、中＝棚表示／グリッド表示／買いたい本0冊（M-2）／本が1冊もないとき、右＝棚インジケーター（5つの点）、本の情報（題名・購入日「yyyy.MM.dd 購入」・位置。買いたい本はジャンル＋「買いたい」タグ。空き枠は「この棚に本を追加」）、下＝操作ヒント・下部バー（表示・検索欄・＋）。閲覧に出す棚の規則（§10.6）、縦スワイプ／棚一覧／グリッドの左右スワイプで棚をかえると「直前に使った棚」に記録（N-031）、入口 A（＋）・入口 B（空き枠）から T5 の A-2 シート → 撮影登録フローへ、登録後は登録先の棚の末尾を見せる、詳細へ push。スクラバー（F6-9。100冊以上、なぞると上にカード・指を離すとその本へ。VoiceOver は調整操作で約5%ずつ）もここに置いた。T5 の仮の入口にあった MethodRequest・MethodSheetHost・CaptureViewModel: Identifiable をここへ移した
+  - Bookshelf/Shelf/ShelfCollectionView.swift: 棚表示の UICollectionView。自作レイアウト PinLayout（中央 184×264、左右4冊ずつ 0.80／0.66／0.55／0.46 倍・横のずれ 67.5／107.5／138.5／161・持ち上げ 5.5〜14.5pt を距離で補間、手前ほど前、92pt で1冊めくれ、指を離すと1冊単位で止まる）、縦スワイプ（UISwipeGestureRecognizer を横スクロールと同時に認識）、横の本のタップで中央へ・中央のタップで詳細、プリフェッチ
+  - Bookshelf/Shelf/ShelfCell.swift: 書影セル（表紙は切り抜かず縦横比のまま。外側ほど暗く、中央だけ柔らかい影）、空き枠セル（B-1）、破線の枠 EmptyCoverBox、グリッドのセル、サムネイルの読込とメモリキャッシュ CoverImageCache（棚・グリッドは **サムネイルだけ** を読む。デコードは主スレッド外 `@concurrent`）
+  - Bookshelf/Shelf/ShelfGridView.swift: グリッド表示（I-1。UICollectionView・3列・UIHostingConfiguration のセル）。縦スクロール、左右スワイプで棚をかえる
+  - Bookshelf/Shelf/ShelfPickerSheet.swift: 「棚を選ぶ」シート（G-3）。区分の見出し・冊数・選択中の行（FILL・チェック）、閲覧に出ている棚だけ
+  - Bookshelf/Shelf/DisplayMenu.swift: 「表示」メニュー（G-2）。動くのは「見え方（棚／グリッド）」だけ
+  - Bookshelf/Detail/BookDetailView.swift: 詳細（E-1・E-2）。表紙（原寸）・題名・カード（ジャンル・所持状況・購入日は購入済みだけ）。データ追加日は出さない。文字を大きくするとカードは縦並び（Q-3）
+  - BookshelfUITests/ShelfUITests.swift: acceptance ①〜⑤＋スクラバーの7テスト
+  - **計画とのズレ（files 外。必要な変更）**:
+    - Bookshelf/BookshelfApp.swift: 最初の画面を ShelfScreen に。DEBUG かつ `-UITestReset` のときだけ、起動引数 `-SeedBooks "小説:3,エッセイ:0+2"`（購入済み[+買いたい]）で架空の本（語を組み合わせた題名・色の地に題名を描いた合成の表紙）を入れる DebugSeed を追加
+    - Bookshelf/ContentView.swift: **削除**（T5 の仮の入口）。中の補助の型は ShelfScreen.swift へ移した
+    - BookshelfUITests/CaptureFlowUITests.swift: 入口と確認の手段だけを閲覧画面に合わせた（アサーションは弱めていない）。＋は `browse.add`、空き枠は棚一覧で棚を選び末尾まで横スワイプして `shelf.slot`。②は仮の画面の本の一覧の代わりに、閲覧画面の冊数と各本の詳細（ジャンル・所持状況・購入日＝今日）を3冊とも確認。④は空き枠が本の入った棚にしか出ないため `-SeedBooks "エッセイ:1"` で始め、登録後 2冊を確認。⑤は小説を閲覧に出すため `"小説:1"` を入れ、「見る」ボタンの代わりに棚一覧で小説 → 買いたい本を開く。日付の書式は詳細に合わせ yyyy.MM.dd
+- verify:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → `** TEST SUCCEEDED **`（ユニット `✔ Test run with 29 tests in 6 suites passed`、UI 15件 `Executed 15 tests, with 0 failures`＝CaptureFlowUITests 8件＋ShelfUITests 7件）。最終のコードで2回実行し2回とも成功
+    - ShelfUITests: ① testVerticalSwipeShowsOnlyShelvesWithBooks（小説 → 哲学・思想 → 買いたい本 で止まり、買いたいだけのエッセイ・0冊の未分類は出ない、下スワイプで戻る）／testEmptyWishlistIsShownWithGuidance（買いたい本 0冊でも出て「買いたい本はまだありません」と案内、共有マークなし）② testShelfPickerListsShelvesWithCategoriesAndCounts（見出し 文芸・人文・自然科学・その他、冊数、本の無い棚は出ない、選ぶとその棚の 1 / 3）③ testDisplayMenuSwitchesToGridAndGridSwipeChangesShelf（表示 → グリッド、左右スワイプで棚がかわる、棚に戻せる）④ testDetailShowsDataAndPurchaseDateOnlyForOwnedBooks（表紙・題名・ジャンル・購入済み・購入日＝今日、買いたい本は購入日なし、「追加」を含む文字なし）⑤ testVoiceOverLabelIsTheTitle（中央・横の書影とグリッドのセルのラベル＝題名）／testScrubberAppearsOnShelvesWithAHundredBooks（100冊で出て、右端までなぞると 100 / 100、99冊では出ない）
+    - CaptureFlowUITests ①〜⑧（＋外す操作）すべて passed
+    - テストのログに「UIKitToolbar」の警告は 0 件（仮の入口を消したため）
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし exit=0 / `scripts/check-no-network.sh` → OK exit=0
+  - スクリーンショット（リポジトリ外・架空の本）: /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/8588d00f-6385-4403-8697-77adfaefc869/scratchpad/t6/ の 01_browse_shelf・02_browse_slot_B-1・03_shelf_picker_G-3・04_display_menu_G-2・05_grid_I-1・06_detail_owned_E-1・07_wishlist_M-1・08_detail_wanted_E-2・09_scrubber_P-1・10_scrubber_after_P・11_wishlist_empty_M-2・12_empty_library（撮影用の一時 UI テストで撮り、撮影後に削除した）
+- notes:
+  - **D8（棚板・N-003）の選択**: 棚板は置かない。中央の表紙の下に、床に落ちる柔らかい楕円の影（黒 7%→0 の放射グラデーション、300×26）だけを置いた。Figma 00・B-1・M-1 に棚板が無く、床の影だけが見えるため。オーナー確認が必要
+  - **N-031**: 閲覧で開いた棚を記録するのは、ユーザーが棚をかえたとき（縦スワイプ・棚一覧・グリッドの左右スワイプ）だけ。起動時に最初に出ている棚は記録しない（記録すると「記録なし→未分類」が起動しただけで崩れるため）。起動時は閲覧に出る最初の棚を出す（直前の棚を復元しない）
+  - **デザインと要件の食い違い（裁定していない・デザインに合わせた）**: ①棚インジケーター（右の5つの点）: requirements F6-8 は「置かない」、design-brief §3・Figma 41:20902 は置く → Figma に合わせて置いた ②操作ヒント: F6-8 は「棚の名前をタップで一覧」まで、Figma は「←→ 本をめくる ↑↓ 棚をかえる」だけ → Figma ③買いたい本 0冊の文: §10.6 と Figma（「登録するときに「購入済み」のチェックを外すと、ここに並びます。」）が違う → Figma。どちらを正とするか決めて片方を直してほしい
+  - **形だけ置いたもの（後のタスク）**: 共有マーク（T11）、検索欄（T10。押しても何もしない）、表示メニューの「まとめ方」「この棚の並べ順」「設定」（T13・T7・T8。押すと閉じるだけ）、詳細の「編集」「購入した」（T9。何もしない）、グリッドの長押しメニュー（T7。ヒントの「長押しでメニュー」は Figma どおり出している）、チュートリアル（T14）
+  - **自分で決めたもの（Figma に無い）**: 本が1冊も無いときの空の画面（破線の枠の「本を追加」・「まだ本がありません」「表紙を撮ると、ここに並びます。」。通常は T14 のチュートリアルで出ない）、登録後に登録先の棚の末尾を見せる、横の本をタップすると中央へ、速く払うと何冊か先まで送る（勢いに応じて止まる）
+  - **Figma との差（スクリーンショットと比べて）**: 書影の並び・上部・下部バー・棚一覧・表示メニュー・詳細・M-1・M-2 はほぼ同じ位置（中央の表紙の上端 y≈265、題名 y≈566）。差: グリッドは1行目の表紙の上端が Figma より約 14pt 下で、3行目の題名が操作ヒントの上で切れる（スクロールで見える）／棚一覧は大きいシートで、Figma より上の余白が大きい／詳細の戻るの「‹」が Figma より少し大きい／棚インジケーターは前後の棚が無いところの点を出さない（1つ目の棚では3つ）／スクラバーをなぞっている途中（P-2）は XCUITest で撮れないため未撮影（実機で確認してほしい）／表示メニューの影と角丸は目分量
+  - **画質**: 棚の中央の表紙（264pt×3倍＝約 790px）にサムネイル（長辺 400px。T3 の CoverProcessor）を使うため、実機では中央の表紙が少しぼやける可能性がある。サムネイルを長辺 800px 程度にする（T3 の値の変更）か、中央の1冊だけ原寸を読むかの判断が要る（提案・未対応）
+  - 日付は Figma どおり yyyy.MM.dd 固定（英語ほか端末ロケールの書式は T15）。表示の文言は String Catalog 化していない（T15）
+  - 横向き（N-002）は変更していない。横にするとデザインに無い横長の画面になる
+  - 性能: 棚・グリッドは UICollectionView・サムネイルのみ・主スレッド外のデコード・プリフェッチ。500冊・iPhone 13 相当での hitch 計測は T12
+  - git の状態: 作業開始時点で T5 の変更はコミット済みに見えた（`git status` は T6 の変更だけ）。コミット・プッシュはしていない
+  - 依存の追加なし。ネットワークのコードなし。Swift 6・コンパイル警告なし。DEBUG 専用の起動引数（`-SeedBooks`）は `#if DEBUG` の中。追跡ファイルに実在の題名・表紙なし（テストの題名は語の組み合わせ・FakeCamera の英字の架空題名）
+  - スキル: figma:figma-swiftui と designagent:design-to-code を起動した。公式 Figma MCP は未認証のため get_design_context は使えず、DesignAgent の get_spec（41:20902。部品の大きさ: 表示ボタン 48・検索欄 234×48・＋48・共有 40・棚インジケーター 12×64）と design-brief.md・design/screens の PNG で作った。DESIGN.md はエクスポートされていない

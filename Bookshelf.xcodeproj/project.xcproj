@@ -38,6 +38,7 @@
       "build-settings": {
         "CODE_SIGN_STYLE": "Automatic",
         "CURRENT_PROJECT_VERSION": "1",
+        "DEVELOPMENT_TEAM": "P45Y47YJDM",
         "ENABLE_APP_SANDBOX": "YES",
         "ENABLE_PREVIEWS": "YES",
         "ENABLE_USER_SELECTED_FILES": "readonly",
@@ -70,8 +71,7 @@
         "SWIFT_VERSION": "6.0",
         "TARGETED_DEVICE_FAMILY": "1",
       },
-    },
-    {
+    }, {
       "name": "BookshelfTests",
       "id": "000000000000000200000000",
       "product": "Products/BookshelfTests.xctest",
@@ -101,8 +101,7 @@
         "TARGETED_DEVICE_FAMILY": "1",
         "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/Bookshelf.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Bookshelf",
       },
-    },
-    {
+    }, {
       "name": "BookshelfUITests",
       "id": "000000000000000300000000",
       "product": "Products/BookshelfUITests.xctest",
@@ -117,8 +116,10 @@
         "resources",
       ],
       "build-settings": {
+        "CODE_SIGN_IDENTITY[sdk=macosx*]": "-",
         "CODE_SIGN_STYLE": "Automatic",
         "CURRENT_PROJECT_VERSION": "1",
+        "DEVELOPMENT_TEAM": "P45Y47YJDM",
         "GENERATE_INFOPLIST_FILE": "YES",
         "MARKETING_VERSION": "1.0",
         "PRODUCT_BUNDLE_IDENTIFIER": "com.ryutaro3215.bookshelf.uitests",
