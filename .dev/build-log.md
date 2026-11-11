@@ -227,3 +227,37 @@
   - 依存の追加なし。通信のコードなし。Swift 6・アプリのコンパイル警告なし。空の catch なし（保存の失敗は Logger に記録しトーストで知らせる）。DEBUG 専用の起動引数は `#if DEBUG` の中。削除は LibraryStore.deleteBook（保存できてから画像を消す）を使う。追跡ファイルに実在の題名・表紙なし（テストの題名は DebugSeed の語の組み合わせと同じ系統の架空のもの）
   - スキル: figma:figma-swiftui を起動した。公式 Figma MCP は未認証のため get_design_context は使えず、DesignAgent の get_spec（51:29227・52:30656: メニュー 262×182・行 46・区切り #E8E8E8・下の帯 8 #F4F4F4・案内 34・角16、浮かせた表紙 124×178、グリッドの表紙 146・題名の枠 18）と design-brief.md・design/screens の PNG で作った
   - git: コミット・プッシュはしていない（`.dev/state.md` の変更は作業開始前からのもの）
+
+## T8: ジャンルの管理 — done（Figma との目視確認・実機の手触りはオーナー待ち） (2026-11-12)
+- changed:
+  - Bookshelf/Settings/SettingsView.swift（新規）: 設定（F-1）。「‹ 本棚」・大見出し「設定」・本棚（ジャンル管理＋件数＝システム棚を除くジャンルの数・説明）・プライバシー（通信なし・データは端末内のみ）・このアプリについて（バージョン＝CFBundleShortVersionString・ライセンス）。ライセンス画面（LicenseView。Figma に無いので最小限: Noto Sans JP／Noto Serif JP・SIL OFL 1.1 の一覧）。設定・ジャンル管理で共通の部品（NavigationHeader＝戻る・右のボタン・スクロール時の中央の見出しと区切り線、LargeTitle、SectionLabel、Footnote、CardSeparator）
+  - Bookshelf/Shelf/ShelfListView.swift（新規）: ジャンル管理（F-2a・F-2b・F-4）。区分ごと（InitialGenres.categories の順、空の区分は出さない、システムは「その他」）のカード。行 48pt・Serif 16・冊数（ジャンル・未分類は購入済みの数、買いたい本は「買いたい」の数）。購入済み0冊は薄い文字＋「本棚に非表示」のタグ。買いたい本・未分類は鍵。スクロールすると上に「ジャンル管理」と区切り線（F-2b）。末尾の説明文（F-2b）。「編集」で編集モード（F-4）: 戻るを消し「完了」、説明を「✎ 名前をタップして変更 ≡ をドラッグして並び替え」に、「ジャンルを追加」を薄く押せなく、各ジャンルに黒の − ・名前＋✎（タップで名前の変更）・≡（ドラッグで区分の中の並び替え。持ち上げた行は白地＋影、間の行が1行分ずつ譲る。VoiceOver は ≡ に「上へ移動」「下へ移動」）。システム棚には編集の操作を出さない。保存の失敗は Logger＋アラート
+  - Bookshelf/Shelf/ShelfEditView.swift（新規）: ジャンルの追加（F-3。全画面。キャンセル／ジャンルを追加／追加、名前の欄＋「n/20」、置き場所（区分）7つ・初期値マイジャンル・チェック、補足文）、名前の変更（F-4b）、削除の確認（F-5。「中のn冊は未分類に移動します。本は削除されません。」、削除は赤太字）、共通のダイアログ GenreDialog（白・角18・幅290・ボタン48）。入力欄 LimitedTextField（UITextField。かな漢字変換の確定後に20文字へ切り詰め、制御文字を除く）
+  - BookshelfUITests/ShelfManagementUITests.swift（新規）: 2件（acceptance の一連の流れ／設定の件数・システム棚の保護・追加のキャンセルと20文字の上限）
+  - **計画とのズレ（files 外。必要な変更）**:
+    - Bookshelf/Model/LibraryStore.swift: N-061 `commit()`（保存に失敗したら `context.rollback()` して投げる）を追加し、addBook・deleteBook・setOwnership・ジャンルの操作・T7 の並び替え／移動（ShelfOrdering.swift）をすべてこれに通した。`addGenre` を「選んだ区分の末尾」（F-3 の文言）に変更（区分にジャンルが無ければ区分の順で前の区分の後ろ。システム区分・知らない区分は `invalidCategory`）し、棚の並び順を 0 から詰め直す。`moveGenre(_:toIndex:)`（同じ区分の中だけで、区分内の既存の値を入れ替える。システム棚は拒否）を追加。`deleteShelf` のあと棚の並び順を詰める。LibraryError に `bookNotFound`・`shelfNotFound`・`invalidCategory` を追加
+    - Bookshelf/Model/ShelfOrdering.swift: N-060 `ShelfMoveRecord` に `bookID` を控え、`undoMove` の先頭で本（ID で取り直す）と元の棚がまだあるか確かめ、無ければ何も変えずに投げる。`containsBook(id:)` を追加
+    - Bookshelf/Shelf/ShelfReorderHandler.swift: N-060 `commitDelete` で、削除する本がトーストの取り消し対象なら削除の成功後にトーストを消す（削除前に ID で比べ、削除後の本のデータは読まない）
+    - Bookshelf/Shelf/DisplayMenu.swift: 「設定」で `onOpenSettings` を呼ぶ
+    - Bookshelf/Shelf/ShelfScreen.swift: 設定を NavigationStack に push（`navigationDestination(isPresented:)`）。開くときに選択・グリッドのメニュー・取り消しのトーストを閉じる（設定で棚が消えると取り消しの戻り先が無くなるため）。表示中の棚が削除されたら、本が移った未分類を見せる（未分類が閲覧画面に出ないときは先頭の棚）
+    - BookshelfUITests/ReorderUITests.swift: N-063 のテストを2件**追加**（既存のテストは変更なし。`git diff` で削除行なし）
+    - BookshelfTests/GenreManagementTests.swift（新規）: ジャンル操作のデータ整合と N-060 のユニットテスト 7件
+- verify:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → exit=0 `** TEST SUCCEEDED **`。ユニット `✔ Test run with 48 tests in 8 suites passed`（GenreManagementTests 7件を含む）、UI `Executed 26 tests, with 0 failures`（CaptureFlowUITests 8・ReorderUITests 9（既存7＋N-063 の2）・ShelfManagementUITests 2・ShelfUITests 7）。`warning:` は appintents のメタデータの1件だけ。ShelfManagementUITests は `-test-iterations 3` でも 6/6 passed
+    - ShelfManagementUITests testCreateRenameReorderDeleteGenre: 表示 → 設定 → ジャンル管理 →「ジャンルを追加」で区分の初期値はマイジャンル・名前が空なら追加できない・「灯台守の書架」で 6/20 → 区分「人文」を選んで追加 → 言語・語学と政治・法律の間に「0冊、本棚に非表示」で出る → 編集モードで買いたい本・未分類に − ・名前の変更・≡ が無い（小説にはある）・戻るが消え追加が押せない → 名前の変更で「夜更けの書架」 → ≡ を心理の位置へドラッグして 歴史 と 心理 の間へ（言語・語学など他の区分の並びは保たれる）→ 閲覧画面で小説の本を長押し＋上スワイプで「夜更けの書架」（0冊で出る）へ移す → ジャンル管理で 1冊 → 削除の確認「「夜更けの書架」を削除しますか？」「中の1冊は未分類に移動します。\n本は削除されません。」→ 削除で行が消え、未分類が 1冊 → 閲覧画面は「未分類」1冊でその本が出る・棚を選ぶにも未分類 1冊、夜更けの書架は無い
+    - ShelfManagementUITests testSettingsAndSystemShelvesAreProtected: 設定の件数「28件」、区分の見出し（文芸・その他。ジャンルの無いマイジャンルは出ない）、冊数・「本棚に非表示」、編集モードでなくても買いたい本・未分類に操作が無い、25文字入れても 20/20・欄の中身も20文字、キャンセルで件数が変わらない
+    - ReorderUITests testWishlistShelfDoesNotReorderAndKeepsMovedBook（N-063）: `-SeedBooks "小説:1+3"` で買いたい本の棚へ → 長押し＋横スワイプで並びも位置も変わらない → 表示メニューに並べ順が出ない → 上スワイプで歴史へ移すと「歴史 に移しました」、買いたい本の棚に3冊のまま同じ並びでジャンルが歴史 → 棚を選ぶに歴史は出ない
+    - ReorderUITests testMoveThenDeleteDismissesUndo（N-060・N-063）: 歴史へ移した直後（トースト表示中）にその本を下スワイプ→削除 → トーストが消え「取り消す」が無い → 空になった歴史は消え、哲学・思想は残り2冊の元の並び
+    - GenreManagementTests: 選んだ区分の末尾に追加（人文の末尾、マイジャンルはシステム棚の前）・ジャンルの無い区分への追加・システム／知らない区分は拒否・名前は S6 で整える・並び替えは区分の中だけ（範囲外は端・システム棚は拒否）・削除で購入済み／買いたいの本が未分類の末尾へ・棚の並び順は 0..n-1 で欠番なし・移した本を削除したあとの取り消しは `bookNotFound` で元の棚の値は変わらない・元の棚が削除されていたら `shelfNotFound`
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし exit=0 / `scripts/check-no-network.sh` → OK exit=0
+  - スクリーンショット（リポジトリ外・架空の本とジャンル名）: /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/8588d00f-6385-4403-8697-77adfaefc869/scratchpad/t8/ の 00_menu_G-2・01_settings_F-1・02_list_top_F-2a・02b_list_bottom_F-2b・03_add_F-3・04_edit_F-4・04c_edit_after_drag・05_rename_F-4b・06_delete_F-5・07_license（撮影用の一時 UI テストで撮り、撮影後に削除した）
+- notes:
+  - **デザインと要件の食い違い（要件を損なわない側で実装・裁定していない）**: ①名前の上限 — Figma F-3 は「4/20」（20文字）、requirements S6 は「例: 200文字」。画面の入力は 20文字（S6 の範囲内）、保存時は従来どおり `LibraryStore.sanitize`（制御文字除去・前後の空白・200文字）を通す。20 で確定か決めてほしい ②F-1 のバージョンは Figma「1.0.0」、実装はビルド設定の MARKETING_VERSION（今は「1.0」）を出す
+  - **自分で決めたもの（Figma に無い）**: ①ライセンスの画面（書体名と SIL OFL 1.1 だけ。ライセンス文そのものの同梱は N-033 のまま）②0冊のジャンルの削除の確認文「このジャンルに本は入っていません。」③削除の確認の冊数は購入済み・買いたいの両方（どちらも未分類へ移る）。一覧の冊数は購入済み（閲覧画面に出る数。買いたい本だけ「買いたい」の数）なので、買いたいの本しか無いジャンルは一覧「0冊」・確認「中の1冊は…」になる ④並び替えは同じ区分の中だけ（区分をまたぐ移動はしない。区分の見出しで並べる画面のため）⑤名前の重複は拒否していない（要件に無い。必要なら決めてほしい）⑥非編集モードの行はタップしても何もしない ⑦保存の失敗はアラート「…できませんでした」⑧追加したジャンルは一覧でその行まで送る ⑨表示中の棚が削除されたら未分類を見せる
+  - **Figma との差（スクリーンショットと比べて）**: 文言・構成・トークン（FILL のカード・角16・行48・区分の見出し FAINT 11・Serif の名前・タグ・鍵・黒の − ・≡・白いダイアログ・赤太字の削除）は F-1〜F-5 と一致。差: シミュレータ（iPhone 17 Pro）は上の安全領域が 62pt で Figma（54pt）より全体が約 8〜10pt 下／F-2b の説明文は Figma より1行多く折り返す（最後の「ります。」が次の行）／編集モードの ✎ は SF Symbols の pencil（Figma の線のペンより細い）／F-4 の「持ち上げた行」は XCUITest で指を置いたまま撮れないため未撮影（実装は白地＋影。04c はドラッグ後の並び）／F-3・F-4b のキーボードは英字配列（シミュレータの設定）／F-1 のライセンス・バージョンの値（上記）
+  - **N-060**: 削除でトーストを消す＋取り消しの先頭で本・元の棚の存在を確かめる（UI・ユニット両方で確認）。**N-061**: `LibraryStore.commit()` に集約（seedIfNeeded を含む全ての保存）。保存の失敗を人工的に起こす手段が無いため、rollback そのものの自動テストは無い（コードの読みで確認）。**N-063**: UI テスト2件を追加
+  - ジャンル削除の整合: 本（購入済み・買いたい）は未分類の末尾へ、棚の並び順は詰め直し、直前に使った棚（RecentShelves）に消えた棚があっても既存の処理で飛ばして次の棚→未分類になる（`initialShelf` は存在しない ID を読み飛ばす）。表示中の棚の削除は閲覧画面が未分類（または先頭）へ移る（UI テストで確認）。設定を開くと取り消しのトーストを閉じるので、消えた棚への取り消しは起きない（起きても `shelfNotFound`）
+  - オーナー判断待ちの N-044〜N-048・N-056〜N-058・N-003 などは変えていない
+  - 依存の追加なし。通信のコードなし（ライセンス画面にも URL を書いていない）。Swift 6・アプリのコンパイル警告なし。空の catch なし。DEBUG 専用の起動引数の追加なし（BookshelfApp.swift は無変更）。追跡ファイルに実在の題名・表紙なし（テストのジャンル名・題名は架空の語の組み合わせ）
+  - スキル: figma:figma-swiftui を起動した。公式 Figma MCP は未認証のため get_design_context は使えず、DesignAgent の get_spec（51:26649: 追加のカード 362×48・角16・左右16、行 362×48・左右16、カード FILL #F2F2F2）と design-brief.md・design/screens の F 行の PNG で作った
+  - git: コミット・プッシュはしていない（`.dev/state.md` の変更は作業開始前からのもの）

@@ -1,6 +1,6 @@
 # State
 phase: build
-updated: 2026-11-12 01:50
+updated: 2026-11-12 03:10
 
 | task | status | reviews |
 |---|---|---|
@@ -11,7 +11,7 @@ updated: 2026-11-12 01:50
 | T5 | done | FAIL×1 → PASS |
 | T6 | done | PASS |
 | T7 | done | PASS |
-| T8 | todo | - |
+| T8 | done | PASS |
 | T9 | todo | - |
 | T10 | todo | - |
 | T11 | todo | - |

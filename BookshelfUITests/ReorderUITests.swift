@@ -226,4 +226,76 @@ final class ReorderUITests: XCTestCase {
         element(app, "wishlist.empty").swipeRight()
         wait(app.buttons["shelf.title"], "label == '小説'")
     }
+
+    // MARK: - 買いたい本の棚（N-063）
+
+    /// 買いたい本の棚では横の並べ替えをせず、並べ順のメニューも出ない。
+    /// 「買いたい」の本を別の棚へ移しても、買いたい本の棚に残る（ジャンルだけが変わる。§10.3）
+    func testWishlistShelfDoesNotReorderAndKeepsMovedBook() {
+        let app = launch(seed: "小説:1+3")
+        app.buttons["shelf.title"].tap()
+        app.buttons["picker.row.買いたい本"].tap()
+        wait(app.buttons["shelf.title"], "label == '買いたい本'")
+        wait(element(app, "shelf.book.2"), "exists == true")
+        let before = shelfTitles(app, count: 3)
+        XCTAssertEqual(element(app, "shelf.position").label, "1 / 3")
+
+        // 長押し＋横スワイプでは位置が変わらない
+        pressAndDrag(app, dx: 150, dy: 0)
+        wait(element(app, "select.state"), "exists == true")
+        element(app, "shelf.bookTitle").tap()
+        wait(element(app, "select.state"), "exists == false")
+        XCTAssertEqual(element(app, "shelf.position").label, "1 / 3")
+        XCTAssertEqual(shelfTitles(app, count: 3), before)
+
+        // 並べ順のメニューを出さない
+        app.buttons["browse.display"].tap()
+        XCTAssertTrue(element(app, "menu.mode.shelf").waitForExistence(timeout: 5))
+        XCTAssertFalse(element(app, "menu.sort.manual").exists)
+        XCTAssertFalse(element(app, "menu.sort.title").exists)
+        element(app, "menu.mode.shelf").tap()
+        wait(element(app, "menu"), "exists == false")
+
+        // 別の棚（歴史）へ移しても、買いたい本の棚に残り、ジャンルが歴史になる
+        pressAndDrag(app, dx: 0, dy: -150)
+        XCTAssertTrue(element(app, "move.row.歴史").waitForExistence(timeout: 5))
+        element(app, "move.row.歴史").tap()
+        element(app, "move.confirm").tap()
+        wait(element(app, "toast.message"), "label == '歴史 に移しました'")
+        XCTAssertEqual(app.buttons["shelf.title"].label, "買いたい本")
+        XCTAssertEqual(app.buttons["shelf.title"].value as? String, "3冊")
+        XCTAssertEqual(shelfTitles(app, count: 3), before)
+        XCTAssertEqual(element(app, "shelf.bookTitle").label, before[0])
+        XCTAssertTrue(element(app, "shelf.bookMeta").label.contains("歴史"))
+        // 「買いたい」の本しか無い歴史は閲覧画面に出ない
+        app.buttons["shelf.title"].tap()
+        XCTAssertFalse(app.buttons["picker.row.歴史"].exists)
+    }
+
+    /// 移した直後にその本を削除すると取り消しのトーストが消え、元の棚の並びは変わらない（N-060・N-063）
+    func testMoveThenDeleteDismissesUndo() {
+        let app = launch(seed: "哲学・思想:3")
+        wait(element(app, "shelf.book.2"), "exists == true")
+        let before = shelfTitles(app, count: 3)
+
+        pressAndDrag(app, dx: 0, dy: -150)
+        XCTAssertTrue(element(app, "move.row.歴史").waitForExistence(timeout: 5))
+        element(app, "move.row.歴史").tap()
+        element(app, "move.confirm").tap()
+        wait(app.buttons["shelf.title"], "label == '歴史'")
+        XCTAssertTrue(element(app, "toast.undo").exists)
+
+        // トーストが出ている間に、移した本を削除する
+        pressAndDrag(app, dx: 0, dy: 150)
+        XCTAssertTrue(element(app, "delete.dialog").waitForExistence(timeout: 5))
+        XCTAssertEqual(element(app, "delete.title").label, "「\(before[0])」を\n削除しますか？")
+        element(app, "delete.confirm").tap()
+        wait(element(app, "toast"), "exists == false", timeout: 3)
+        XCTAssertFalse(element(app, "toast.undo").exists)
+
+        // 歴史は空になって消え、元の棚は残りの2冊のまま
+        wait(app.buttons["shelf.title"], "label == '哲学・思想'")
+        XCTAssertEqual(app.buttons["shelf.title"].value as? String, "2冊")
+        XCTAssertEqual(shelfTitles(app, count: 2), [before[1], before[2]])
+    }
 }

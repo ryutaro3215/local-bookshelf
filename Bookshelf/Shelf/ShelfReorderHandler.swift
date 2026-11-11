@@ -274,9 +274,15 @@ final class ShelfEditing {
     }
 
     /// 本を削除する（データを保存できてから表紙の画像を消す。LibraryStore.deleteBook）
+    /// 移したばかりの本を消したときは、その本の取り消しのトーストも消す（N-060）
     func commitDelete(_ book: Book, store: LibraryStore) {
+        // 削除したあとの本のデータは読まない（削除の前に、同じ本のトーストかを確かめておく）
+        let clearsToast = toast?.undo?.bookID == book.id
         do {
             try store.deleteBook(book)
+            if clearsToast {
+                toast = nil
+            }
         } catch {
             Self.logger.error("本を削除できない: \(error.localizedDescription, privacy: .public)")
             toast = Toast(message: "削除できませんでした", undo: nil, fromIndex: nil)

@@ -41,6 +41,8 @@ struct ShelfScreen: View {
     @State private var shelfEdge: Edge = .bottom
     @State private var showsPicker = false
     @State private var showsMenu = false
+    /// 設定（F-1。「表示」メニューの一番下から）
+    @State private var showsSettings = false
     @State private var isScrubbing = false
     @State private var path: [DetailRoute] = []
     // 登録の入口（F1-6）
@@ -113,12 +115,16 @@ struct ShelfScreen: View {
                             }
                             showsMenu = false
                         },
+                        onOpenSettings: openSettings,
                         onClose: { showsMenu = false }
                     )
                     .transition(.opacity)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $showsSettings) {
+                SettingsView(store: environment.store)
+            }
             .navigationDestination(for: DetailRoute.self) { route in
                 if let book = books.first(where: { $0.id == route.bookID }) {
                     BookDetailView(book: book, backTitle: route.backTitle, store: environment.store.images)
@@ -130,6 +136,12 @@ struct ShelfScreen: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: showsMenu)
+        // ジャンル管理で今の棚が削除されたら、中の本が移った未分類を見せる（無ければ先頭の棚）
+        .onChange(of: shelves.map(\.persistentModelID)) { _, ids in
+            guard let currentID, !ids.contains(currentID) else { return }
+            let unsorted = shelves.first { $0.kind == .unsorted }?.persistentModelID
+            self.currentID = browseShelves.contains { $0.id == unsorted } ? unsorted : nil
+        }
         .animation(.easeOut(duration: 0.2), value: editing.toast?.id)
         .animation(.easeOut(duration: 0.15), value: editing.gridMenu)
         .animation(.easeOut(duration: 0.15), value: editing.deleting?.id)
@@ -710,6 +722,15 @@ struct ShelfScreen: View {
         withAnimation(.easeOut(duration: 0.25)) {
             editing.commitDelete(book, store: environment.store)
         }
+    }
+
+    /// 設定を開く（F4-0）。選択中・取り消しのトーストは閉じる（設定で棚が消えると、取り消しの戻り先が無くなるため）
+    private func openSettings() {
+        showsMenu = false
+        editing.clearSelection()
+        editing.gridMenu = nil
+        editing.toast = nil
+        showsSettings = true
     }
 
     /// グリッドの長押しメニュー（I-2）

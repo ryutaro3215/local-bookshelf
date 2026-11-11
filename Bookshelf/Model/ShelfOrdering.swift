@@ -93,6 +93,8 @@ enum ShelfOrdering {
 /// 棚間移動を取り消すための記録（D-3 の「取り消す」で元の棚・元の位置へ戻す）
 struct ShelfMoveRecord {
     let book: Book
+    /// 本の ID（移したときに控える。本が削除されたあとでも、本のデータを読まずに比べられる）
+    let bookID: UUID
     let fromShelf: Shelf
     let fromSortOrder: Int
     let toShelf: Shelf
@@ -106,7 +108,7 @@ extension LibraryStore {
         for (book, value) in zip(books, values) where book.sortOrder != value {
             book.sortOrder = value
         }
-        try context.save()
+        try commit()
     }
 
     /// 1冊を、その棚の一覧（購入済みの本）の `index` 番目へ動かす（長押し＋横スワイプ。F5-1）
@@ -138,20 +140,28 @@ extension LibraryStore {
     func moveBook(_ book: Book, to shelf: Shelf) throws -> ShelfMoveRecord {
         guard shelf.kind != .wishlist else { throw LibraryError.invalidShelfForBook }
         let from = try book.shelf ?? unsortedShelf()
-        let record = ShelfMoveRecord(book: book, fromShelf: from, fromSortOrder: book.sortOrder, toShelf: shelf)
+        let record = ShelfMoveRecord(
+            book: book, bookID: book.id, fromShelf: from, fromSortOrder: book.sortOrder, toShelf: shelf)
         guard from.persistentModelID != shelf.persistentModelID else { return record }
         let next = (shelf.books.map(\.sortOrder).max() ?? -1) + 1
         book.shelf = shelf
         book.sortOrder = next
-        try context.save()
+        try commit()
         return record
     }
 
     /// 棚間移動を取り消す。元の棚の、元の位置（並び順の値）へ戻す。
     /// その間に同じ値の本が入っていたら、その本から後ろを1つずつずらして元の位置を空ける
+    /// 本・元の棚が削除されていたら何も変えずに投げる（N-060。移した本をトーストが出ている間に削除したとき）
     func undoMove(_ record: ShelfMoveRecord) throws {
         let book = record.book
         let shelf = record.fromShelf
+        guard try containsBook(id: record.bookID), !book.isDeleted, book.modelContext != nil else {
+            throw LibraryError.bookNotFound
+        }
+        guard try shelves().contains(where: { $0.persistentModelID == shelf.persistentModelID }) else {
+            throw LibraryError.shelfNotFound
+        }
         let others = shelf.books.filter { $0.id != book.id }
         if others.contains(where: { $0.sortOrder == record.fromSortOrder }) {
             for other in others where other.sortOrder >= record.fromSortOrder {
@@ -160,6 +170,11 @@ extension LibraryStore {
         }
         book.shelf = shelf
         book.sortOrder = record.fromSortOrder
-        try context.save()
+        try commit()
+    }
+
+    /// この ID の本がまだ保存されているか（削除済みなら false）
+    func containsBook(id: UUID) throws -> Bool {
+        return try context.fetchCount(FetchDescriptor<Book>(predicate: #Predicate { $0.id == id })) > 0
     }
 }

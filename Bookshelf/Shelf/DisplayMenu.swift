@@ -7,13 +7,15 @@ enum DisplayMode: Equatable {
 }
 
 /// 下部バーの「表示」メニュー（G-2。F6-8）。見え方・まとめ方・この棚の並べ順・設定。
-/// 見え方と「この棚の並べ順」（T7。F5-3）が動く。まとめ方（購入月別）は T13、設定は T8 で中身をつなぐ（今は押しても閉じるだけ）
+/// 見え方と「この棚の並べ順」（T7。F5-3）・設定（T8。F4-0）が動く。まとめ方（購入月別）は T13
 struct DisplayMenu: View {
     let mode: DisplayMode
     /// 今の棚の並べ順（nil = 並べ順を出さない。買いたい本の棚は登録した順に並ぶため）
     var sortKey: ShelfSortKey?
     let onSelectMode: (DisplayMode) -> Void
     var onSelectSort: (ShelfSortKey) -> Void = { _ in }
+    /// 「設定」（F-1 へ）
+    var onOpenSettings: () -> Void = {}
     let onClose: () -> Void
 
     var body: some View {
@@ -47,7 +49,7 @@ struct DisplayMenu: View {
                     }
                 }
                 divider
-                Button(action: onClose) {
+                Button(action: onOpenSettings) {
                     HStack(spacing: 12) {
                         Image(systemName: "gearshape")
                             .font(.system(size: 17, weight: .regular))

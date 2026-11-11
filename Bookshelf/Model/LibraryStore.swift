@@ -10,6 +10,12 @@ enum LibraryError: Error, Equatable {
     case emptyName
     /// 未分類の棚が見つからない（初期化前）
     case missingUnsortedShelf
+    /// 本がすでに削除されている（取り消しの対象が無い。N-060）
+    case bookNotFound
+    /// 棚がすでに削除されている（取り消しの戻り先が無い）
+    case shelfNotFound
+    /// 区分が無い・ジャンルを置けない区分（システム）を指定した
+    case invalidCategory
 }
 
 /// 本とジャンルの操作をまとめる（requirements §10・F4）。
@@ -29,6 +35,19 @@ final class LibraryStore {
         self.context = container.mainContext
         self.images = images
         self.calendar = calendar
+    }
+
+    // MARK: - 保存（N-061）
+
+    /// 変更を保存する。保存に失敗したら、メモリ上の変更を取り消してから投げる
+    /// （失敗を伝えた変更が、次の別の保存で一緒に保存されないようにする）
+    func commit() throws {
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            throw error
+        }
     }
 
     // MARK: - 入力の整え方（S6）
@@ -61,7 +80,7 @@ final class LibraryStore {
             Shelf(
                 name: InitialGenres.unsorted.name, nameEn: InitialGenres.unsorted.nameEn,
                 categoryID: InitialGenres.system.id, sortOrder: order, kind: .unsorted))
-        try context.save()
+        try commit()
     }
 
     // MARK: - 棚の取得
@@ -119,7 +138,7 @@ final class LibraryStore {
             sortOrder: nextSortOrder(in: target),
             shelf: target)
         context.insert(book)
-        try context.save()
+        try commit()
         return book
     }
 
@@ -128,7 +147,7 @@ final class LibraryStore {
     func deleteBook(_ book: Book) throws {
         let id = book.id
         context.delete(book)
-        try context.save()
+        try commit()
         try images.delete(for: id)
     }
 
@@ -139,25 +158,48 @@ final class LibraryStore {
         guard book.ownership != ownership else { return }
         book.ownership = ownership
         book.purchaseDate = ownership == .owned ? calendar.startOfDay(for: now) : nil
-        try context.save()
+        try commit()
     }
 
     // MARK: - ジャンルの管理（F4）
 
-    /// ジャンルを追加する（既定は区分「マイジャンル」）。システム棚の前に入れる
+    /// ジャンルを追加する（既定は区分「マイジャンル」）。選んだ区分の末尾に置く（F-3「選んだ区分の末尾に追加」）。
+    /// その区分にまだジャンルが無いときは、区分の順（InitialGenres.categories）で前にある区分の後ろに置く
     @discardableResult
     func addGenre(name: String, categoryID: String = InitialGenres.myGenres.id) throws -> Shelf {
         let cleanName = Self.sanitize(name)
         guard !cleanName.isEmpty else { throw LibraryError.emptyName }
-        let all = try shelves()
-        let firstSystemOrder = all.first(where: { $0.isSystem })?.sortOrder ?? (all.last?.sortOrder ?? -1) + 1
-        for shelf in all where shelf.sortOrder >= firstSystemOrder {
-            shelf.sortOrder += 1
+        guard let rank = Self.categoryRank(categoryID), categoryID != InitialGenres.system.id else {
+            throw LibraryError.invalidCategory
         }
-        let shelf = Shelf(name: cleanName, categoryID: categoryID, sortOrder: firstSystemOrder)
+        let all = try shelves()
+        // 自分の区分まで（区分の順で前のもの）の最後の棚の、すぐ後ろ。システム棚より前
+        let index =
+            all.lastIndex(where: { !$0.isSystem && (Self.categoryRank($0.categoryID) ?? Int.max) <= rank })
+            .map { $0 + 1 } ?? 0
+        var ordered = all
+        let shelf = Shelf(name: cleanName, categoryID: categoryID, sortOrder: 0)
         context.insert(shelf)
-        try context.save()
+        ordered.insert(shelf, at: index)
+        renumber(ordered)
+        try commit()
         return shelf
+    }
+
+    /// ジャンルの並びを変える（F4-2）。同じ区分のジャンルの中で `index` 番目へ動かす（範囲外は端に丸める）。
+    /// 区分の中の今の並び順の値を入れ替えるので、ほかの区分の並びは変わらない
+    func moveGenre(_ shelf: Shelf, toIndex index: Int) throws {
+        guard !shelf.isSystem else { throw LibraryError.systemShelfIsProtected }
+        let siblings = try shelves().filter { !$0.isSystem && $0.categoryID == shelf.categoryID }
+        guard let from = siblings.firstIndex(where: { $0.persistentModelID == shelf.persistentModelID }) else {
+            return
+        }
+        let moved = ShelfOrdering.moved(siblings, from: from, to: index)
+        let values = siblings.map(\.sortOrder).sorted()
+        for (item, value) in zip(moved, values) where item.sortOrder != value {
+            item.sortOrder = value
+        }
+        try commit()
     }
 
     func renameShelf(_ shelf: Shelf, to name: String) throws {
@@ -166,7 +208,7 @@ final class LibraryStore {
         guard !cleanName.isEmpty else { throw LibraryError.emptyName }
         shelf.name = cleanName
         shelf.nameEn = nil
-        try context.save()
+        try commit()
     }
 
     /// ジャンルを消す。中の本は未分類の末尾へ移す（所持状況は変えない）
@@ -179,11 +221,26 @@ final class LibraryStore {
             book.sortOrder = order
             order += 1
         }
+        let remaining = try shelves().filter { $0.persistentModelID != shelf.persistentModelID }
         context.delete(shelf)
-        try context.save()
+        // 棚どうしの並び順を詰める（欠番を残さない）
+        renumber(remaining)
+        try commit()
     }
 
     // MARK: - 内部
+
+    /// 区分の順番（InitialGenres.categories の位置）。知らない区分は nil
+    static func categoryRank(_ id: String) -> Int? {
+        InitialGenres.categories.firstIndex { $0.id == id }
+    }
+
+    /// 棚の並び順をこの並びのとおり 0 から振り直す
+    private func renumber(_ ordered: [Shelf]) {
+        for (value, shelf) in ordered.enumerated() where shelf.sortOrder != value {
+            shelf.sortOrder = value
+        }
+    }
 
     private func nextSortOrder(in shelf: Shelf) -> Int {
         (shelf.books.map(\.sortOrder).max() ?? -1) + 1
