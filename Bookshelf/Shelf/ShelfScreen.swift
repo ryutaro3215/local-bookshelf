@@ -55,6 +55,8 @@ struct ShelfScreen: View {
     @State private var flow: CaptureViewModel?
     // 並べ替え・棚間移動・削除・一括整列（T7）
     @State private var editing = ShelfEditing()
+    /// 検索（E-4・E-5。F7）。下部バーの検索欄で開く
+    @State private var showsSearch = false
 
     var body: some View {
         let all = browseShelves
@@ -72,6 +74,8 @@ struct ShelfScreen: View {
                     hint
                     bottomBar
                 }
+                // 検索のキーボードで高さが縮んでも、閲覧画面の高さで全体が押し広げられて検索欄が上にずれないようにする
+                .frame(minHeight: 0, maxHeight: .infinity, alignment: .top)
                 if let toast = editing.toast {
                     VStack {
                         Spacer()
@@ -124,6 +128,17 @@ struct ShelfScreen: View {
                     )
                     .transition(.opacity)
                 }
+                if showsSearch {
+                    SearchView(
+                        images: environment.store.images,
+                        onOpen: { book in
+                            // 戻ると検索の結果に戻る（戻る先の名前は「検索」）
+                            path.append(DetailRoute(bookID: book.id, backTitle: "検索"))
+                        },
+                        onCancel: { showsSearch = false }
+                    )
+                    .transition(.opacity)
+                }
             }
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $showsSettings) {
@@ -142,6 +157,7 @@ struct ShelfScreen: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: showsMenu)
+        .animation(.easeOut(duration: 0.2), value: showsSearch)
         // ジャンル管理で今の棚が削除されたら、中の本が移った未分類を見せる（無ければ先頭の棚）
         .onChange(of: shelves.map(\.persistentModelID)) { _, ids in
             guard let currentID, !ids.contains(currentID) else { return }
@@ -632,22 +648,27 @@ struct ShelfScreen: View {
             .buttonStyle(.plain)
             .accessibilityLabel("表示")
             .accessibilityIdentifier("browse.display")
-            // 検索（F7）は T10。今は形だけ
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(BookshelfStyle.sub)
-                Text("題名・よみで検索")
-                    .font(BookshelfStyle.sans(15))
-                    .tracking(0.5)
-                    .foregroundStyle(BookshelfStyle.sub)
-                Spacer(minLength: 0)
+            // 検索（F7・T10）: 押すと検索画面を開き、検索欄は画面の上に移る
+            Button(action: openSearch) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundStyle(BookshelfStyle.sub)
+                    Text("題名・よみで検索")
+                        .font(BookshelfStyle.sans(15))
+                        .tracking(0.5)
+                        .foregroundStyle(BookshelfStyle.sub)
+                    Spacer(minLength: 0)
+                }
+                .padding(.leading, 16)
+                .frame(height: 48)
+                .frame(maxWidth: .infinity)
+                .background(Capsule().fill(BookshelfStyle.fill))
+                .contentShape(Capsule())
             }
-            .padding(.leading, 16)
-            .frame(height: 48)
-            .frame(maxWidth: .infinity)
-            .background(Capsule().fill(BookshelfStyle.fill))
+            .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
             .accessibilityIdentifier("browse.search")
             Button {
                 // 入口 A: 下部バーの＋（F1-6 A。初期の棚は F1-5）
@@ -780,7 +801,15 @@ struct ShelfScreen: View {
             onClose: { editing.gridMenu = nil })
     }
 
-    // MARK: - 詳細・登録の入口
+    // MARK: - 検索・詳細・登録の入口
+
+    /// 検索を開く（F7）。選択中・メニューは閉じる
+    private func openSearch() {
+        showsMenu = false
+        editing.clearSelection()
+        editing.gridMenu = nil
+        showsSearch = true
+    }
 
     private func openDetail(_ book: Book, from shelf: BrowseShelf) {
         path.append(DetailRoute(bookID: book.id, backTitle: shelf.shelf.name))

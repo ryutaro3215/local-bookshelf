@@ -17,8 +17,8 @@ struct BookEditView: View {
     @State private var shelf: Shelf?
     @State private var ownership: Ownership
     @State private var purchaseDate: Date
-    @State private var candidates: [String] = []
-    @State private var isRecognizing = true
+    /// 題名の候補の読み取り（表紙を撮り直したら前の読み取りを取り消す。N-071）
+    @State private var recognition = TitleCandidateLoader()
     @State private var cover: UIImage?
     /// 撮り直した表紙（保存するまでファイルには書かない）
     @State private var newCover: ProcessedCover?
@@ -31,7 +31,6 @@ struct BookEditView: View {
     @FocusState private var titleFocused: Bool
 
     private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "BookEdit")
-    private let recognizer = TitleRecognizer()
 
     init(
         book: Book, environment: AppEnvironment, onSaved: @escaping (_ coverReplaced: Bool) -> Void,
@@ -60,7 +59,8 @@ struct BookEditView: View {
                     reshootButton
                         .padding(.top, 14)
                     TitleEditField(
-                        title: $title, candidates: candidates, isRecognizing: isRecognizing, label: "題名",
+                        title: $title, candidates: recognition.candidates, isRecognizing: recognition.isRecognizing,
+                        label: "題名",
                         note: "必須", focus: $titleFocused, idPrefix: "edit"
                     )
                     .padding(.horizontal, 20)
@@ -80,8 +80,13 @@ struct BookEditView: View {
         .background(Color.white.ignoresSafeArea())
         .preferredColorScheme(.light)
         .task(id: book.id) {
-            cover = await CoverImageCache.shared.original(for: book.id, in: store.images)
-            await recognize(store.images.loadOriginal(for: book.id))
+            // 撮り直しの画面から戻ったときにもう一度読まない（表紙をもう出している）
+            guard cover == nil else { return }
+            let original = await CoverImageCache.shared.original(for: book.id, in: store.images)
+            // 読み込みの間に撮り直していたら、新しい表紙のほうを残す（N-071）
+            guard newCover == nil else { return }
+            cover = original
+            recognition.start(store.images.loadOriginal(for: book.id))
         }
         .sheet(isPresented: $showsGenrePicker) {
             GenrePickerSheet(shelves: selectableShelves, selected: shelf?.persistentModelID) { picked in
@@ -99,7 +104,7 @@ struct BookEditView: View {
                     reshoot = nil
                     newCover = processed
                     cover = UIImage(data: processed.image)
-                    Task { await recognize(processed.image) }
+                    recognition.start(processed.image)
                 },
                 onCancel: { reshoot = nil })
         }
@@ -303,16 +308,6 @@ struct BookEditView: View {
         if value == .owned {
             purchaseDate = Calendar.current.startOfDay(for: .now)
         }
-    }
-
-    private func recognize(_ data: Data?) async {
-        isRecognizing = true
-        defer { isRecognizing = false }
-        guard let data else {
-            candidates = []
-            return
-        }
-        candidates = await recognizer.candidates(in: data)
     }
 
     private func startReshoot() {
@@ -630,5 +625,47 @@ struct CoverReshootView: View {
         } message: {
             Text(model.errorMessage ?? "")
         }
+    }
+}
+
+/// 編集画面の題名の候補を表紙から読み取る（N-071）。
+/// 読み取りは1つだけ持ち、新しい表紙で始めたら前の読み取りを取り消す。前の読み取りが後から終わっても結果は捨て、
+/// 「読み取り中」は最新の読み取りが終わったときにだけ解除する
+@MainActor
+@Observable
+final class TitleCandidateLoader {
+    private(set) var candidates: [String] = []
+    private(set) var isRecognizing = true
+    @ObservationIgnored private let recognize: @Sendable (Data) async -> [String]
+    @ObservationIgnored private var task: Task<Void, Never>?
+    /// 始めた読み取りの通し番号（最新でない読み取りの結果を捨てるため）
+    @ObservationIgnored private var generation = 0
+
+    init(recognize: @escaping @Sendable (Data) async -> [String] = { await TitleRecognizer().candidates(in: $0) }) {
+        self.recognize = recognize
+    }
+
+    /// 表紙 `data` から読み取りを始める（前の読み取りは取り消す）。data が無ければ候補なし
+    @discardableResult
+    func start(_ data: Data?) -> Task<Void, Never> {
+        task?.cancel()
+        generation += 1
+        let current = generation
+        candidates = []
+        isRecognizing = true
+        let recognize = self.recognize
+        let task = Task { [weak self] in
+            let result: [String]
+            if let data {
+                result = await recognize(data)
+            } else {
+                result = []
+            }
+            guard let self, !Task.isCancelled, current == self.generation else { return }
+            self.candidates = result
+            self.isRecognizing = false
+        }
+        self.task = task
+        return task
     }
 }

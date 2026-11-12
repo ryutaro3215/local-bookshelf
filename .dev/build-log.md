@@ -300,3 +300,27 @@
   - 依存の追加なし。通信のコードなし。Swift 6・アプリのコンパイル警告なし。空の catch なし。DEBUG 専用の起動引数の追加なし（既存の `-FakeCamera`・`-SeedBooks` を使った）。追跡ファイルに実在の題名・著者名・表紙なし（テストの題名は架空の語の組み合わせ、表紙は合成画像）
   - スキル: figma:figma-swiftui を起動した。公式 Figma MCP は未認証のため get_design_context は使えず、DesignAgent の get_spec（49:23563: 表紙 109×156、撮り直し 137×30 角15 FILL、題名欄 362×50 角12 白地 INK の線、カード 362×156 角16 FILL）と design-brief.md・design/screens の E 行・C-1・C-3 の PNG で作った
   - git: コミット・プッシュはしていない
+
+## T10: 検索（題名・よみ）＋ N-071 — done（Figma との目視確認・実機の手触りはオーナー待ち） (2026-11-12)
+- changed:
+  - Bookshelf/Model/LibraryStore.swift: `searchOwnedBooks(matching:)`／`static search(_:matching:)`（全ジャンルの購入済みだけ。「買いたい」は除く。空の検索語は結果なし。購入日の新しい順）、`SearchText`（NFKC → 小文字 → カタカナをひらがな、の順にそろえて題名・よみを部分一致。濁点は区別する。`matchRanges(of:in:)` はそろえる前の題名の範囲を返す＝強調表示用）
+  - Bookshelf/Search/SearchView.swift（新規）: 上に検索欄＋「キャンセル」、入力のたびに検索。E-4 は「N件（題名・よみの一部に一致）」と行（表紙・題名・ジャンルと購入日・›、題名の一致部分に #E3E3E3 の地）＝ `SearchResultRow`。E-5 は円の虫眼鏡・「「◯◯」に一致する本はありません」・「題名やよみの一部だけでも検索できます」
+  - BookshelfTests/SearchTests.swift（新規）: acceptance ①〜④、並び順、強調の範囲、500冊で5回の検索が0.5秒以内（N1）の7件
+  - BookshelfUITests/SearchUITests.swift（新規）: よみの一致→詳細→「‹ 検索」で結果に戻る、全ジャンルで題名が一致しカナを区別しない、0件の案内、の3件
+  - **計画とのズレ（files 外。必要な変更）**:
+    - Bookshelf/Shelf/ShelfScreen.swift: 下部バーの検索欄をボタンにし、押すと検索画面を重ねて開く。結果から詳細へ（戻る先の名前は「検索」）。キーボードで画面全体が上にずれて検索欄が画面外に出る不具合を、中身の VStack に `.frame(minHeight: 0, maxHeight: .infinity, alignment: .top)` を付けて修正
+    - Bookshelf/Detail/BookEditView.swift: **N-071** — 題名候補の読み取りを `TitleCandidateLoader`（@MainActor）に移した。撮り直すと前の読み取りを取り消し、古い結果が後から返っても捨てる。「読み取り中」は最新の読み取りが終わったときだけ解除。最初の表紙の読み込み中に撮り直したら新しい表紙を残す
+    - BookshelfTests/TitleRecognizerTests.swift: 末尾に `TitleCandidateLoaderTests`（N-071 の3件）を**追加のみ**
+- verify:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → `** TEST SUCCEEDED **`。ユニット `✔ Test run with 68 tests in 11 suites passed`（SearchTests 7件・TitleCandidateLoaderTests 3件を含む）、UI `Executed 34 tests, with 0 failures`（BookEditUITests 5・CaptureFlowUITests 8・ReorderUITests 9・SearchUITests 3・ShelfManagementUITests 2・ShelfUITests 7）。warning は appintents のメタデータの1件だけ
+  - `swift format lint` → エラーなし / `scripts/check-no-network.sh` → OK
+  - スクリーンショット（リポジトリ外・架空の題名）: /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/8588d00f-6385-4403-8697-77adfaefc869/scratchpad/t10/ の E-4_results.png・E-5_zero.png
+- notes:
+  - plan の acceptance ② の例「存在と時間」は実在の書名なので、テストは架空の「灰色の時間割」に置き換えた（N-024 に追記済み）
+  - **N-071**: 対応（上記）。docs/notices.md の N-071 の「結果」はまだ更新していない
+  - デバッグ用のコードと撮影用の一時ファイル（TmpSearchShots.swift）は削除済み
+  - スキル: figma:figma-swiftui。Figma の参照は 49:24501（E-5）・54:32119（実装エージェントの報告にあったノード。design-brief の E-4 は 54:32099）
+  - **オーナー確認が必要**: スクリーンショットと Figma の E-4・E-5 の目視比較、実機の日本語入力（変換中の文字）での検索の手触り
+  - build-log の記録と state.md の更新は実装エージェントの停止後にオーケストレーターが書いた（実装エージェントの報告とテストのログから）
+  - 依存の追加なし。通信のコードなし
+  - git: コミット・プッシュはしていない

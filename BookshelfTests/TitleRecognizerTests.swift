@@ -118,3 +118,81 @@ nonisolated struct TitleRecognizerTests {
         #expect(!TitleMatch.matches("月の", "月の地図"))
     }
 }
+
+/// 編集画面で表紙を撮り直したときの題名の読み取り（N-071）。読み取りは偽物（門を開けるまで終わらない）
+@MainActor
+struct TitleCandidateLoaderTests {
+    /// 開けるまで待たせる門
+    actor Gate {
+        private var opened = false
+        private var waiters: [CheckedContinuation<Void, Never>] = []
+
+        func wait() async {
+            if opened { return }
+            await withCheckedContinuation { waiters.append($0) }
+        }
+
+        func open() {
+            opened = true
+            for waiter in waiters { waiter.resume() }
+            waiters = []
+        }
+    }
+
+    nonisolated static let oldCover = Data([1])
+    nonisolated static let newCover = Data([2])
+
+    @Test("撮り直す前の読み取りが後から終わっても、新しい表紙の候補を上書きしない")
+    func staleResultIsDiscarded() async {
+        let oldGate = Gate()
+        let loader = TitleCandidateLoader { data in
+            if data == Self.oldCover {
+                await oldGate.wait()
+                return ["古い表紙の題名"]
+            }
+            return ["新しい表紙の題名"]
+        }
+        let first = loader.start(Self.oldCover)
+        #expect(loader.isRecognizing)
+        let second = loader.start(Self.newCover)
+        await second.value
+        #expect(loader.candidates == ["新しい表紙の題名"])
+        #expect(!loader.isRecognizing)
+        await oldGate.open()
+        await first.value
+        #expect(loader.candidates == ["新しい表紙の題名"])
+        #expect(!loader.isRecognizing)
+    }
+
+    @Test("古い読み取りが先に終わっても「読み取り中」を解除せず、最新の読み取りが終わってから解除する")
+    func recognizingUntilLatestFinishes() async {
+        let oldGate = Gate()
+        let newGate = Gate()
+        let loader = TitleCandidateLoader { data in
+            if data == Self.oldCover {
+                await oldGate.wait()
+                return ["古い表紙の題名"]
+            }
+            await newGate.wait()
+            return ["新しい表紙の題名"]
+        }
+        let first = loader.start(Self.oldCover)
+        let second = loader.start(Self.newCover)
+        await oldGate.open()
+        await first.value
+        #expect(loader.isRecognizing)
+        #expect(loader.candidates.isEmpty)
+        await newGate.open()
+        await second.value
+        #expect(!loader.isRecognizing)
+        #expect(loader.candidates == ["新しい表紙の題名"])
+    }
+
+    @Test("表紙が無いときは候補なしで読み取りを終える")
+    func noCover() async {
+        let loader = TitleCandidateLoader { _ in ["使われない"] }
+        await loader.start(nil).value
+        #expect(!loader.isRecognizing)
+        #expect(loader.candidates.isEmpty)
+    }
+}

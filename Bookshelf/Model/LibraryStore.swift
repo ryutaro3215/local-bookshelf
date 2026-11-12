@@ -130,6 +130,31 @@ final class LibraryStore {
         return try context.fetch(descriptor)
     }
 
+    // MARK: - 検索（F7。T10）
+
+    /// 購入済みの本を、全ジャンルから題名とよみの部分一致で探す（F7-1・F7-4。「買いたい」の本は含めない）。
+    /// 空の検索語は結果なし。並びは購入日の新しい順（同じ日はデータ追加日の新しい順）
+    func searchOwnedBooks(matching query: String) throws -> [Book] {
+        let owned = Ownership.owned.rawValue
+        let books = try context.fetch(FetchDescriptor<Book>(predicate: #Predicate { $0.ownershipRaw == owned }))
+        return Self.search(books, matching: query)
+    }
+
+    /// 本の一覧から検索する（画面は @Query の一覧をそのまま渡す。「買いたい」の本はここでも除く）
+    static func search(_ books: [Book], matching query: String) -> [Book] {
+        let key = SearchText.normalize(query.trimmingCharacters(in: .whitespacesAndNewlines))
+        guard !key.isEmpty else { return [] }
+        return books.filter { book in
+            book.ownership == .owned
+                && (SearchText.normalize(book.title).contains(key) || SearchText.normalize(book.yomi).contains(key))
+        }
+        .sorted { lhs, rhs in
+            let left = lhs.purchaseDate ?? .distantPast
+            let right = rhs.purchaseDate ?? .distantPast
+            return left != right ? left > right : lhs.addedAt > rhs.addedAt
+        }
+    }
+
     // MARK: - 本の追加・削除
 
     /// 本を追加する。ジャンルの末尾に並ぶ。購入済みなら購入日はデータ追加日の日付
@@ -332,5 +357,61 @@ final class LibraryStore {
     func nextSortOrder(in shelf: Shelf, excluding book: Book? = nil) -> Int {
         let others = shelf.books.filter { $0.persistentModelID != book?.persistentModelID }
         return (others.map(\.sortOrder).max() ?? -1) + 1
+    }
+}
+
+/// 検索の文字の比べ方（F7-1）。
+/// NFKC（全角英数→半角、半角カナ→全角など）→ 小文字 → カタカナをひらがなに、の順にそろえてから部分一致で比べる。
+/// 濁点・半濁点は区別する（「はし」で「ばし」は出さない）
+nonisolated enum SearchText {
+    static func normalize(_ text: String) -> String {
+        hiragana(text.precomposedStringWithCompatibilityMapping.lowercased())
+    }
+
+    /// カタカナ（ァ〜ヶ）をひらがな（ぁ〜ゖ）にずらす。長音「ー」などはそのまま
+    static func hiragana(_ text: String) -> String {
+        var scalars = String.UnicodeScalarView()
+        for scalar in text.unicodeScalars {
+            if (0x30A1...0x30F6).contains(scalar.value), let shifted = Unicode.Scalar(scalar.value - 0x60) {
+                scalars.append(shifted)
+            } else {
+                scalars.append(scalar)
+            }
+        }
+        return String(scalars)
+    }
+
+    /// `text` の中で `query` に一致する部分（元の文字列の範囲。強調表示用）。よみだけで一致したときは空
+    static func matchRanges(of query: String, in text: String) -> [Range<String.Index>] {
+        let key = Array(normalize(query.trimmingCharacters(in: .whitespacesAndNewlines)))
+        guard !key.isEmpty else { return [] }
+        // 1文字ずつそろえ、そろえた後の文字がどの元の文字から来たかを覚えておく
+        var folded: [Character] = []
+        var sources: [Range<String.Index>] = []
+        var index = text.startIndex
+        while index < text.endIndex {
+            let next = text.index(after: index)
+            for character in normalize(String(text[index..<next])) {
+                folded.append(character)
+                sources.append(index..<next)
+            }
+            index = next
+        }
+        var ranges: [Range<String.Index>] = []
+        var position = 0
+        while position + key.count <= folded.count {
+            if Array(folded[position..<(position + key.count)]) == key {
+                let range = sources[position].lowerBound..<sources[position + key.count - 1].upperBound
+                if let last = ranges.last, last.upperBound >= range.lowerBound {
+                    ranges[ranges.count - 1] = last.lowerBound..<max(last.upperBound, range.upperBound)
+                } else {
+                    ranges.append(range)
+                }
+                position += key.count
+            } else {
+                position += 1
+            }
+        }
+        return ranges
     }
 }

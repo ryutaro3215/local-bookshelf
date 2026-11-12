@@ -1,6 +1,6 @@
 # State
 phase: build
-updated: 2026-11-12 07:10
+updated: 2026-11-12 09:29
 
 | task | status | reviews |
 |---|---|---|
@@ -13,7 +13,7 @@ updated: 2026-11-12 07:10
 | T7 | done | PASS |
 | T8 | done | PASS |
 | T9 | done | PASS |
-| T10 | todo | - |
+| T10 | building | - |
 | T11 | todo | - |
 | T13 | todo | - |
 | T14 | todo | - |
@@ -23,3 +23,4 @@ updated: 2026-11-12 07:10
 - メモ: 2026-11-11 オーナー判断: Swift 6（SWIFT_VERSION 6.0）、バンドル ID com.ryutaro3215.bookshelf。plan.md の stack への記載は dev-architect の更新待ち
 - メモ: T1 の Xcode プロジェクト作成はオーナー作業（plan.md T1）。シミュレータは iPhone 17 Pro を使う
 - メモ: 2026-11-11 「知っておいてほしいこと」は docs/notices.md にタスク形式で集約。新しく見つかったものは同ファイルの追記ルールに従って追記する
+- メモ: 2026-11-12 T10 は実装・テスト済み（build-log 記録済み）。オーナー指示で一旦停止中。再開時はコミット → dev-reviewer のレビューから
