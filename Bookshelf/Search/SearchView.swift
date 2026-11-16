@@ -227,9 +227,9 @@ struct SearchResultRow: View {
 
     /// 「哲学・思想・購入日 2026.10.20」
     private var detailLine: String {
-        let shelf = book.shelf?.name ?? "未分類"
+        let shelf = book.shelf?.displayName ?? InitialGenres.unsortedDisplayName
         guard let date = book.purchaseDate else { return shelf }
-        return "\(shelf)・購入日 \(BookDates.format(date))"
+        return String(localized: "\(shelf)・購入日 \(BookDates.format(date))")
     }
 
     /// 題名の一致した部分に強調の地を付ける

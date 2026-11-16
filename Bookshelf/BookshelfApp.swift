@@ -15,7 +15,8 @@ struct BookshelfApp: App {
         WindowGroup {
             switch environment {
             case .success(let environment):
-                ShelfScreen(environment: environment)
+                // 初回はチュートリアル（F1-7。T14）、終えていれば閲覧画面
+                AppRootView(environment: environment)
                     .modelContainer(environment.container)
             case .failure(let error):
                 Text("データを開けませんでした（\(error.localizedDescription)）")
@@ -130,7 +131,10 @@ final class AppEnvironment {
             for part in spec.split(separator: ",") {
                 let pieces = part.split(separator: ":", maxSplits: 1).map(String.init)
                 guard pieces.count == 2, let shelf = shelves.first(where: { $0.name == pieces[0] }) else { continue }
-                let counts = pieces[1].split(separator: "+").map { Int($0) ?? 0 }
+                // 「@YYYY-MM-DD」を付けると、購入済みの本の購入日をその日から1日ずつずらす（購入月別の確認用。T13）
+                let dated = pieces[1].split(separator: "@", maxSplits: 1).map(String.init)
+                let start = dated.count == 2 ? Self.date(dated[1]) : nil
+                let counts = dated[0].split(separator: "+").map { Int($0) ?? 0 }
                 let owned = counts.first ?? 0
                 let wanted = counts.count > 1 ? counts[1] : 0
                 for i in 0..<(owned + wanted) {
@@ -141,18 +145,37 @@ final class AppEnvironment {
                     try store.addBook(
                         title: title, shelf: shelf, ownership: i < owned ? .owned : .wanted,
                         // データ追加日は番号の順に少しずつずらす（約100秒前から 0.01 秒刻み。深夜0時すぎでも購入日が今日になるように）
-                        now: Date(timeIntervalSinceNow: Double(serial - 10_000) / 100), id: id)
+                        now: start.flatMap { Calendar.current.date(byAdding: .day, value: i, to: $0) }
+                            ?? Date(timeIntervalSinceNow: Double(serial - 10_000) / 100),
+                        id: id)
                     serial += 1
                 }
             }
+        }
+
+        /// 「2026-10-05」を、その日の正午の日時にする
+        private static func date(_ text: String) -> Date? {
+            let parts = text.split(separator: "-").compactMap { Int($0) }
+            guard parts.count == 3 else { return nil }
+            return Calendar.current.date(
+                from: DateComponents(year: parts[0], month: parts[1], day: parts[2], hour: 12))
         }
 
         private static let heads = ["灰色の", "遠い", "静かな", "四角い", "夜更けの", "小さな", "白い", "長い", "眠る", "青い", "古い", "冬の"]
         private static let bodies = ["標本箱", "観測所", "図書係", "灯台", "時計", "鯨", "温室", "地図", "回廊", "郵便局", "書架", "植物園", "惑星"]
         private static let tails = ["の記録", "について", "と午後", "の手帖", "の問題", "", "の作り方", "をめぐって"]
 
-        /// 架空の題名（番号ごとに決まる）
+        private static let headsEn = ["Gray", "Distant", "Quiet", "Square", "Midnight", "Small", "White", "Long"]
+        private static let bodiesEn = [
+            "Specimen Box", "Observatory", "Lighthouse", "Clock", "Whale", "Greenhouse", "Atlas",
+        ]
+
+        /// 架空の題名（番号ごとに決まる）。英語表示のとき（T15 の UI テスト・スクリーンショット）は英語の語で作る
         static func title(_ serial: Int) -> String {
+            if InitialGenres.displaysInEnglish {
+                let head = headsEn[serial % headsEn.count]
+                return "The \(head) \(bodiesEn[(serial / headsEn.count + serial) % bodiesEn.count])"
+            }
             let head = heads[serial % heads.count]
             let body = bodies[(serial / heads.count + serial) % bodies.count]
             let tail = tails[(serial * 7 / 3) % tails.count]

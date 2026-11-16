@@ -1,8 +1,11 @@
 import SwiftUI
 
-/// 日付の表示（Figma の「2026.10.20」。英語表記は T15 で端末ロケールに合わせる）
+/// 日付の表示。日本語表示では Figma の「2026.10.20」、それ以外（英語表示）は端末のロケールの書式（en_US なら「Oct 20, 2026」。Q-1・Q-2）
 enum BookDates {
     static func format(_ date: Date) -> String {
+        guard !InitialGenres.displaysInEnglish else {
+            return date.formatted(date: .abbreviated, time: .omitted)
+        }
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "ja_JP")
@@ -103,9 +106,9 @@ struct BookDetailView: View {
     /// 本の並ぶ棚の名前（購入済みはジャンル、「買いたい」は買いたい本）
     private var currentShelfName: String {
         if book.ownership == .wanted {
-            return (try? environment.store.wishlistShelf())?.name ?? InitialGenres.wishlist.name
+            return (try? environment.store.wishlistShelf())?.displayName ?? InitialGenres.wishlistDisplayName
         }
-        return book.shelf?.name ?? InitialGenres.unsorted.name
+        return book.shelf?.displayName ?? InitialGenres.unsortedDisplayName
     }
 
     /// 購入・編集・取り消しで本の並ぶ棚が変わった
@@ -186,10 +189,12 @@ struct BookDetailView: View {
 
     private var infoCard: some View {
         VStack(spacing: 0) {
-            infoRow("ジャンル", book.shelf?.name ?? "未分類", serif: true, id: "detail.genre")
+            infoRow(
+                "ジャンル", book.shelf?.displayName ?? InitialGenres.unsortedDisplayName, serif: true, id: "detail.genre")
             separator
             infoRow(
-                "所持状況", book.ownership == .owned ? "購入済み" : "買いたい", serif: false, id: "detail.ownership")
+                "所持状況", book.ownership == .owned ? String(localized: "購入済み") : String(localized: "買いたい"),
+                serif: false, id: "detail.ownership")
             // 購入日は購入済みの本だけ（F6-3）。データ追加日は出さない
             if book.ownership == .owned, let date = book.purchaseDate {
                 separator
@@ -207,7 +212,7 @@ struct BookDetailView: View {
     }
 
     @ViewBuilder
-    private func infoRow(_ label: String, _ value: String, serif: Bool, id: String) -> some View {
+    private func infoRow(_ label: LocalizedStringKey, _ value: String, serif: Bool, id: String) -> some View {
         let valueText = Text(value)
             .font(serif ? BookshelfStyle.serif(15) : BookshelfStyle.sans(15))
             .tracking(0.3)
@@ -254,7 +259,7 @@ struct BookDetailView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("detail.purchase")
-            Text("購入済みになり \(book.shelf?.name ?? "未分類") の棚に並びます（購入日は今日）")
+            Text("購入済みになり \(book.shelf?.displayName ?? InitialGenres.unsortedDisplayName) の棚に並びます（購入日は今日）")
                 .font(BookshelfStyle.sans(12))
                 .foregroundStyle(BookshelfStyle.sub)
                 .multilineTextAlignment(.center)

@@ -222,3 +222,112 @@
   - [nit] Bookshelf/Capture/PendingListView.swift:623-636 C-3 で未入力が今の本だけのとき、最後の本で「次の本へ」を押しても同じ本のままで何も起きない（未入力の本へ移る＝自分自身）。軽い揺れや案内があると分かりやすい
   - [nit] Bookshelf/Detail/BookDetailView.swift:68-83 購入のトーストは5秒で消える（D-3 と同じ）。VoiceOver で「取り消す」まで移動する間に消えることがある。VoiceOver が有効なときは長くする・または消えるまでの時間を延ばすことを検討
 - オーナー判断が必要（裁定していない）: ①N-029 — C-1 は OS の写真ピッカーのため英語の OS 表示になり、C-1 の文言（選んだ順・n / 30・n枚を追加）は出せない。要件（F1-4・S4）を正として Figma を直すか ②E-6 の切り替えの文言 — Figma「ほしい」／実装「買いたい」（用語は要件で「買いたい本」に承認済みなので実装が正しいと考えるが、Figma 側の修正が要る）③E-6・E-7 に Figma に無い OCR 候補の行（goal の「OCR候補の採用」に必要。デザインに足すか）④builder が決めた①〜⑩（N-069）⑤実機での撮り直し・C-3 の日本語入力・30枚選んだときのメモリ（N-070）
+
+## T10: PASS (2026-11-16)
+- acceptance再実行:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → `** TEST SUCCEEDED **`、exit=0。ユニット `✔ Test run with 68 tests in 11 suites passed`（`Suite SearchTests passed`・`Suite TitleCandidateLoaderTests passed`）。UI `Executed 34 tests, with 0 failures`（SearchUITests 3件を含む）
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし、exit=0 / `scripts/check-no-network.sh` → `OK（Bookshelf に通信の記述なし）`
+  - 既存テストの弱体化: `git diff --numstat c6b1d0e a1ede74 -- BookshelfTests BookshelfUITests` は SearchTests.swift 137・TitleRecognizerTests.swift 78・SearchUITests.swift 88 の追加のみ、削除 0
+  - acceptance の内容: SearchTests ①題名の部分一致（全ジャンル・空白だけは0件）②よみの部分一致（「じかん」で「灰色の時間割」。実在書名の例は架空に置換＝N-024）③がらす／ガラス／半角ｶﾞﾗｽ、paper／Comets／全角ＣＯＭＥＴ、濁点は区別（からす→0件）④買いたい本は store 経由でも `static search` 経由でも除外。0件の案内は SearchUITests.testZeroResultsShowsGuidance で「題名やよみの一部だけでも検索できます」を確認。満たす
+  - 見た目: builder のスクリーンショット（8588d00f…/scratchpad/t10/E-4_results.png・E-5_zero.png）を design/screens の E-4・E-5 と並べて目視。検索欄（FILL の丸・虫眼鏡・キャンセル）、件数行「N件（題名・よみの一部に一致）」、行（表紙・明朝の題名に #E3E3E3 の強調・「ジャンル・購入日 yyyy.MM.dd」・›・区切り線）、0件の丸い虫眼鏡・文言2行まで一致。差は下の nit のみ。Figma 本体（DesignAgent ブリッジ未接続）での確認はしていない
+- 計画外の変更の判断:
+  - ShelfScreen: 下部バーの検索欄をボタンにして SearchView を重ねる（F7-3・design-brief「検索欄は画面の上に移る」に必要）。開くときに選択・メニューを閉じる。詳細は NavigationStack の path に積むので、戻ると検索の結果がそのまま残る（UI テストで確認）。VStack の `.frame(minHeight: 0, …)` はキーボードで検索欄が画面外に出る不具合の修正。妥当
+  - BookEditView の TitleCandidateLoader（N-071）: T9 の [should]（OCR の競合）への対応。通し番号＋cancel で古い結果を捨て、isRecognizing は最新の完了でだけ下ろす。開いたときの表紙の読み込み中に撮り直した場合も新しい表紙を残す（`guard newCover == nil`）。読み取り本体は `@concurrent` の TitleRecognizer なのでメインスレッドを塞がない。表紙ファイルが無い場合も start(nil) で「読み取り中」が解除される。T9 の指摘は解消
+- 要件の確認: F7-1（題名＋よみ、ひらがな・カタカナ区別なし）、F7-2（0件の案内）、F7-3（下部バー中央から・入力のたびに絞り込み・一致部分の強調）、F7-4（買いたい本を出さない・絞り込みの切り替えなし）、N1（500冊×5回 < 0.5秒のテスト）、すべて満たす。通信なし・依存の追加なし
+- エッジケース: 空・空白のみ → 結果なし（E-5 も出さない）。よみだけの一致 → 強調なしで表示。全角英字の題名に半角で検索 → 元の題名の範囲を強調（テストあり）。購入日なし → distantPast で末尾。空の catch・秘密情報なし
+- 指摘:
+  - [nit] Bookshelf/Search/SearchView.swift:238-247 強調は AttributedString の backgroundColor のため角が四角い。design-brief §3「検索結果の強調」は角 3（E-4 でも角丸）。気になるなら Text の背景に角丸の矩形を重ねる方法に変える
+  - [nit] Bookshelf/Search/SearchView.swift:60-74 検索欄の「×」（検索語を消す）は Figma の E-4・E-5 には無い追加。便利なので残してよいが、Figma 側に足すかはオーナー判断（N-073 に含めてよい）
+  - [nit] Bookshelf/Model/LibraryStore.swift:390-398 `matchRanges` は1文字ずつ NFKC をかけるため、半角カナ＋半角濁点（「ｶﾞ」＝2文字）を含む題名では、検索には一致しても強調が付かないことがある（題名は全角で入るのが普通なので実害は小さい）
+  - [nit] Bookshelf/Search/SearchView.swift:14 `#Predicate { $0.ownershipRaw == "owned" }` は文字列の直書き。LibraryStore.swift:138 と同じく `Ownership.owned.rawValue` を使うとそろう
+- オーナー確認が必要（裁定していない）: ①N-073 builder が決めた動き（並び・空欄・濁点の区別・入力のたびに検索・戻る先「検索」）②N-074 Figma 本体との見比べ（上記のとおり design/screens の書き出しとは一致）と、実機での日本語変換中の検索・キーボード表示時の検索欄の位置 ③上の「×」ボタンの扱い
+
+## T14: PASS (2026-11-16)
+- acceptance再実行（worktree agent-a028508d500a72f89、ベース a1ede74）:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=E5FB60EA-EA92-4AA1-A318-4E7364C41327"` → `** TEST SUCCEEDED **`、exit=0。ユニット `✔ Test run with 68 tests in 11 suites passed`。UI `Executed 37 tests, with 0 failures`（OnboardingUITests 3件すべて passed）
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし、exit=0 / `scripts/check-no-network.sh` → `OK（Bookshelf に通信の記述なし）`
+  - 既存テストの弱体化: `git diff --stat a1ede74 -- BookshelfTests BookshelfUITests` は差分なし（追跡ファイルの変更0）。追加は未追跡の OnboardingUITests.swift のみ。既存の UI テストは無変更で通る
+  - acceptance の内容: ①初回は L-1 で閲覧画面（`browse.add`・`shelf.title`）が無い。撮影画面の×・一覧の「登録せずに閉じる」で L-2 に戻る。登録前に終了すると次の起動も L-1 ②1冊登録で L-4 → 閲覧画面に「哲学・思想 1冊」③再起動で出ず1冊が残る。いずれも UI テストで確認。満たす
+  - 見た目: builder のスクリーンショット（b17b97f2…/scratchpad/t14/ の L-1・L-2・L-3・L-4・O-1）を design/screens の L-1〜L-4・O-1 と並べて目視。L-2・O-1・L-4 は文言・配置・点・ボタンまで一致。L-3 は吹き出し「ここを押して撮影」・ライブラリ／完了を隠す点が一致（案内文が2行なのは既存の撮影ガイド）。L-1 は書影が架空のグレーの見本で遠近なし（Figma は実写の表紙＋奥行き）＝ N-076 のとおり、目で見て差がはっきりある。Figma 本体（DesignAgent ブリッジ未接続）での確認はしていない。O-2・O-3 は合成カメラが常に許可済みのため画面写真なし
+- 特に確認した点:
+  - 抜け道: OnboardingView は `onFinished` を `RegistrationFlowView` の `registered > 0` でだけ呼ぶ（OnboardingView.swift:108-116）。×・登録せずに閉じる・写真ピッカーのキャンセルはいずれも `onClose(0)` → L-2。完了の記録は `complete()` の UserDefaults のみで、途中終了では残らない。登録失敗時は PendingListView がアラートを出して一覧に留まる（閉じれば L-2）。閲覧画面へ出る経路は見当たらない
+  - DEBUG 限定: チュートリアルを飛ばす処理（OnboardingState.swift:42-47）と `-UITestCameraPermission`（OnboardingView.swift:151-154）は `#if DEBUG` の中。リリースビルドでは `-UITestReset` を付けてもチュートリアルは出る。なお `-UITestReset` 自体（BookshelfApp.swift:53）が DEBUG 外なのは T5 からの既存事項（notices に記録済み）で T14 の範囲外
+  - 既存の本: 起動時に `fetchCount(Book)` > 0 なら終了扱い（買いたい本だけでも終了扱い）。以前の版から更新した利用者には出ない。データ移行（SwiftData のスキーマ変更）は今回なし。完了フラグは RecentShelves と同じ UserDefaults
+  - CaptureView の変更: `showsShutterHint` の初期値は false で、セットするのは OnboardingView.swift:169 だけ。通常の登録（AppRootView の「続けて登録する」・ShelfScreen の＋）と表紙の撮り直しは従来の見た目のまま（「続けて登録する」で案内が出ず完了ボタンが出ることを UI テストで確認）。撮り直しは `purpose != .registration` の分岐が従来どおり
+  - カメラ拒否: O-1 の「許可する」で拒否 → 撮影画面が O-3（CaptureView.swift:522-）になり「写真ライブラリから選ぶ」で登録まで進める。×で L-2 に戻り、再度選ぶと（notDetermined ではないので）O-1 を飛ばして O-3。O-1 の「写真ライブラリから選ぶ」でも進める。詰まらない（実機での確認は N-076）
+- 計画外の変更の判断: BookshelfApp.swift（最初の画面を AppRootView に）・CaptureViewModel.swift（`showsShutterHint` 1つ）・CaptureView.swift（L-3 の吹き出しと操作を隠す分岐）は F1-7・L-3 に必要な最小限。ShelfScreen を触らず AppRootView 側で L-4 シートと撮影を重ねたのも T13 との並行を考えると妥当
+- 指摘:
+  - [should] Bookshelf/Capture/CaptureViewModel.swift:333 / Bookshelf/Capture/PendingListView.swift:246-252 複数冊の登録が途中で失敗すると、登録済みの本は保存されたまま一覧から外れ、ユーザーが残りを閉じると `onClose(0)` になる。チュートリアル中は1冊以上保存済みなのに L-2 に戻り、もう1冊登録するまで閲覧画面に進めない（次の起動では hasBooks で解消するので詰まりはしない）。チュートリアル側で閉じたときに `store` の本の数を見て完了にするか、register の失敗時に登録済みの冊数を返す形にすると確実
+  - [should] Bookshelf/Onboarding/OnboardingState.swift:34-40 本の数を数えられないときは「本が無い」扱いでチュートリアルを出す。既に本がある利用者がまれに1冊の登録を強いられる。失敗時は終了扱い（出さない）に倒す方が安全（要件の「スキップしない」は初回のみが対象）
+  - [nit] Bookshelf/Onboarding/OnboardingView.swift:97-101 「カメラを許可する」を素早く2回押すと Task が2つ走り、`startFlow` で CaptureViewModel を2回作る（後のものが残るだけで実害はほぼない）
+  - [nit] Bookshelf/Onboarding/OnboardingView.swift:135-145 `featuredShelves` は計算プロパティで、body の再評価のたびに `store.shelves()` を取得する。L-2 表示時に一度だけ `@State` に入れてもよい
+  - [nit] Bookshelf/Onboarding/OnboardingView.swift:490 一覧で購入済みのチェックを外して登録すると本は買いたい本に入るが、L-4 は「最初の1冊が棚に並びました」と出て閲覧画面は直前の棚を開く。文言の扱いはオーナー判断（N-075 に含めてよい）
+- オーナー確認が必要（裁定していない）: ①N-075 builder が決めた動き（L-2 の9つと初期値の未分類、O-1 を出す条件、1冊撮ったら一覧へ自動で進む、閉じたら L-2、「続けて登録する」はシートなしでカメラ、既存の本があれば出さない）②N-076 L-1 の書影が Figma（実写の表紙・遠近）と見た目で大きく違う点の採否、L-4 のシートの形、実機での O-2 → 許可／拒否の流れ ③上の [nit] 買いたい本で登録したときの L-4 の文言
+
+## T13: PASS (2026-11-16)
+- acceptance再実行（T13 の worktree `.claude/worktrees/agent-ac8e29cfc626d435a`、ベース a1ede74）:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → `** TEST SUCCEEDED **`、exit=0。ユニット `✔ Test run with 74 tests in 12 suites passed`（`Suite MonthGroupingTests passed`、6件）。UI `Executed 39 tests, with 0 failures`（MonthModeUITests 5件 testSwitchToMonthModeWithoutChevronAndSortOrder・testVerticalSwipeMovesBetweenMonths・testLongPressAllowsMoveAndDeleteButNotReorder・testPinchSwitchesBetweenMonthAndYear・testGridPinchSwitchesBetweenMonthAndYear を含め全件 passed）。Swift のコンパイル警告なし
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし、exit=0 / `scripts/check-no-network.sh` → `OK（Bookshelf に通信の記述なし）`、exit=0
+  - 既存テストの弱体化: `git diff --numstat HEAD -- BookshelfTests BookshelfUITests` は追跡ファイルの変更なし。新規は MonthGroupingTests.swift（135行）・MonthModeUITests.swift（213行）のみ
+  - acceptance の内容: ①月（2026年11月／10月／2025年12月）・年（2026年／2025年）にまとまり、中は購入日の古い順（10/1→10/15→10/31、1/9→10/20→11/2）、同じ日は登録順。月末（10/31・12/31）と年の境目（2025年12月→2026年）もテストに入っている ②本のない月・年は出ない・0冊なら空 ③買いたい本は月・年どちらにも出ず、買いたいだけの月も出ない。購入済みにするとその月に入る。購入日なし（purchaseDate nil）・所持状況が買いたいの本は `MonthGrouping.swift:42-43` で除外（購入日だけで判定しない）。UI は「表示」→「購入月別」で上部が `month.title`（ボタンでない・▾なし・押しても棚一覧が開かない）、メニューに `menu.sort.*` が出ずジャンル別に戻すと出る、ピンチインで年（同じ本 2/5・月の並び）、ピンチアウトで月（1/3）。満たす
+  - タイムゾーン: 購入日は登録時の端末のタイムゾーンでその日の 0:00（LibraryStore の startOfDay。T2 からの作り）。まとめ方も表示（BookDates.format）も今の端末のタイムゾーンで読むので、両者は常に一致する。タイムゾーンをまたいで移動すると月初・月末の本の日付と月が一緒にずれる（データ形式の問題で T13 の範囲外。下の nit）。テストは Calendar.current の正午の日時で作るので、実行環境のタイムゾーン・夏時間に左右されない
+  - 見た目: builder のスクリーンショット（scratchpad/t13/J-1_month.png・J-2_year.png・J-3_grid_month.png）を design/screens の J-1・J-2・J-3 と並べて目視。J-1・J-2 は名前（▾なし）と冊数・共有マーク・ピン型・本の情報3行「ジャンル・yyyy.MM.dd 購入」・位置・右の点・年の「8月｜9月｜10月｜11月」（今の月を濃く）・ヒントの文言まで一致。J-3 は固定見出し「2026年11月 5冊」・共有マーク・3列（表紙＋題名）・ヒント一致。差は builder の申告どおり（右の点の数・年のグリッドの表紙の大きさ・ヒントがグリッドの最後の行に重なる）。Figma 本体（ブリッジ未接続）での確認はしていない
+- 計画外の変更の判断:
+  - DisplayMenu: `grouping`・`onSelectGrouping` は既定値つきで、ジャンル別の呼び出しの動きは変わらない（既定は .genre）。並べ順は `sortKey: nil` の既存の経路で消している。妥当
+  - ShelfScreen: 購入月別は `grouping == .month` の分岐とグリッドのメニューの分岐を足しただけで、ジャンル別の header／content／gridMenu／move／delete は無変更。`onSelectMode` に `editing.gridMenu = nil` を足したのは、見え方の切り替えで古いメニューが残らないための修正で、ジャンル別にも無害。ヒントは switch に置き換えたが、ジャンル別の2つの文言は元と同じ。既存の UI テスト34件はそのまま通る。妥当
+  - ShelfReorderHandler の GridBookMenu `note`: 既定 nil で従来の文言。妥当
+  - BookshelfApp: 変更は `DebugSeed` の中だけで、`DebugSeed` は `#if DEBUG`（BookshelfApp.swift:122-205）の中。`-SeedBooks` を読むのも `#if DEBUG` の中だけ。「@」の無い既存の書き方は従来どおり。リリースビルドに入らない
+- 要件の確認: F6-7（まとめ方の切り替え・横に並べて縦スワイプで月・古い順・ピンチイン＝年／ピンチアウト＝月・空の月を飛ばす・▾なしで押せない・並べ替えなし・「並べ順」なし・詳細／別のジャンルへの移動／削除はできる）、F6-8（購入月別のグリッド＝月の見出しの固定つき縦スクロール、年は1行5冊）、§10.3（買いたい本は出ない）、F5-3（購入月別で並べ順を出さない）を満たす。購入月別の並びは購入日（＋登録日時）だけで決まり、ジャンル別の sortOrder を見ないので、ジャンル別で並べ替えても崩れない。長押しは `allowsReorder: false` で左右の矢印が出ない（UI テストで確認）。移動後は本が同じ月にいるので同じ本を見せ続け、ジャンル名だけが変わる。削除後は同じまとまりの近い位置（MonthGroupingTests.focusFollowsTheBook）。非スコープ（統計・集計の表示）への逸脱なし（冊数はジャンル別と同じ見出しの冊数だけ）。通信なし・依存の追加なし。空の catch・秘密情報なし
+- 指摘:
+  - [should] Bookshelf/Model/MonthGrouping.swift:34,59,66（呼び出し Bookshelf/Shelf/ShelfScreen.swift:655 は既定の `Calendar.current`）`Calendar.current` は端末の「暦法」設定に従うため、和暦にしている端末では見出しが「8年11月」「8年」になり、同じ画面の本の情報「2026.11.02 購入」（BookDates.format はグレゴリオ暦固定）と食い違う。改元の年は1年が2つのまとまりに割れ、年番号だけのキーが別の元号と重なりうる。`var calendar = Calendar(identifier: .gregorian); calendar.timeZone = .current` を既定にして BookDates とそろえ、和暦の Calendar を渡しても「2026年…」になるテストを足すこと（日本の利用者が対象なので起こりうる。acceptance は満たすので should）
+  - [nit] Bookshelf/Model/MonthGrouping.swift:80 月の最後の1冊を削除してその月が消えると、`groupID` が見つからず最新のまとまり（index 0）へ飛び、位置も前の index を詰めた値になる。隣のまとまり（同じ位置の次の月）を見せる方が自然。N-077 に含めてオーナーに確認してよい
+  - [nit] Bookshelf/Month/MonthGridView.swift:102 年のグリッド（J-4）には長押しメニューが無く、移動・削除は詳細や棚表示から行うことになる。F6-7 の「移動・削除はできる」は購入月別全体としては満たしているが、年のグリッドでもできるようにするかはオーナー判断
+  - [nit] Bookshelf/Shelf/ShelfScreen.swift:313 と登録完了の処理（:317 以降）購入月別で本を登録しても、見ている月は変わらない（builder 申告どおり。今日買った本は最新の月の末尾に入る）。最新の月の末尾を見せるかはオーナー判断（N-077 に追記してよい）
+  - [nit] MonthModeUITests は削除・移動を確認ダイアログの「キャンセル」までしか通していない。移動（ジャンル名が変わり同じ本のまま）・削除（冊数が減り近い位置）を実際に行う UI テストがあると、移動・削除後の表示の整合を守れる
+  - [nit] 購入日は日付でなく「登録時のタイムゾーンの 0:00 の日時」で保存されている（T2 からの作り）。海外へ移動すると月初の本が前の月に（表示の日付と一緒に）ずれる。気になるなら将来、年月日の DateComponents で持つことを検討（T13 の範囲外）
+  - [nit] Bookshelf/Month/MonthBrowseView.swift:48-52 ピンチで月⇔年を切り替えると、まとまりの id が変わるので最後の縦スワイプの向きの移動のトランジションが出る（ピンチなのに上下に滑る）。見た目だけ。拡大縮小・フェードにする方が写真アプリに近い
+- オーナー判断が必要（裁定していない）: ①N-077 の builder が決めた動き①〜⑩（新しい順で上スワイプが古い月・切り替えで同じ本・空き枠なし・スクラバーなし・空のときの文言など）②上の nit の、月が消えたときの行き先・年のグリッドの長押し・登録後に見せる月 ③N-078 Figma 本体との見比べ（書き出し画像とは一致）と、実機でのピンチ（15%）と横めくり・縦スワイプの誤動作の確認
+
+## T15: FAIL (2026-11-16)
+- acceptance再実行（main の作業ツリー。T13＋T14＋T15 を取り込んだ状態、ベース a1ede74。T15 単体の変更は worktree agent-abd29ca90700bba36 の `git diff a1ede74`、取り込み後の追加分は build-log の「追加作業（N-084）」で把握）:
+  - `xcodebuild -exportLocalizations -project Bookshelf.xcodeproj -localizationPath scratchpad/t15r/export -exportLanguage en -sdk iphonesimulator` → exit=0。en.xliff を自分で数えた: trans-unit 274件 = Localizable 270件 translated ＋ InfoPlist 3件 translated ＋ translate="no" 1件（TextField の空の見出し）。target 無し・new・needs-review は0件、en の target に日本語は0件。contents.json の developmentRegion は ja。**数字の上では未翻訳0件**。ただし Localizable.xcstrings に extractionState=stale のキーが2件ある（「そのままドラッグで並べ替え」「買いたい本は登録した順に並びます」）。これはコードがもう訳を引いていない印で、下の must の1つめのとおり、画面には日本語が出る（export の0件では見つからない）
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=CBC22FAA-68E1-47CC-943E-B88C3A478F21"`（DerivedData はスクラッチパッド）→ `** TEST SUCCEEDED **`、exit=0。ユニット `✔ Test run with 74 tests in 12 suites passed`。UI `Executed 48 tests, with 0 failures`（LocalizationUITests 7件を含む全件 passed）
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし、exit=0 / `scripts/check-no-network.sh` → `OK（Bookshelf に通信の記述なし）`、exit=0
+  - 既存テストの弱体化: `git diff HEAD` で見ると、既存 UI テスト6ファイル（BookEdit・CaptureFlow・Reorder・Search・ShelfManagement・Shelf）と T13/T14 の MonthMode・Onboarding は launchArguments の先頭に `UITestLanguage.japanese` を足しただけ。アサーションの変更なし。`UITestLanguage` の付いていない launchArguments の代入は残っていない。PhotoImportTests は期待値を `String(localized:)` に変えた。ユニットテストのホストのアプリはシミュレータの言語（en）で動くので、変更自体は妥当。ただし同じキーで比べているので、文言の中身は確かめなくなった（下の nit）
+  - スクリーンショット（builder の scratchpad/t15/shots/）: en_default_Q-1_browse を design/screens の Q-1 と並べて見た。Philosophy／9 books／Purchased 〈日付〉／1 / 9／←→ Flip books ↑↓ Change shelf／Search title or reading の文言と配置が一致。en_ax5_Q-1_browse・en_ax5_E-6_edit・ja_ax5_browse では、builder の申告どおり崩れていた（下の must の3つめ）。英語表示の購入月別・チュートリアルのスクリーンショットは無い。Figma 本体（ブリッジ未接続）では確認していない
+- 特に確認した点:
+  - ①翻訳されない形で残っている日本語: `Bookshelf/**/*.swift` の日本語リテラルを全部抜き出し、Localizable.xcstrings のキー（stale を除く）と突き合わせた。キーに無いものは、ログ・fatalError・データ上の名前（InitialGenres、L-2 の featuredNames）・DEBUG の架空の題名・日本語表示のときだけ通る経路（`PurchaseGroup.title` と `monthLabel` の ja 側）・書体の登録失敗のログ用の「不明」と、下の must の2件だった。String の変数や引数を通る文言（トースト・エラー・設定の部品・TitleEditField・OwnershipSwitch・DetailRoute.backTitle）は、どれも呼び出し側で `String(localized:)` になっている
+  - ②データの整合: `displayName` は表示にだけ使っていて、SwiftData に書く経路は名前の変更だけ（`ShelfListView.swift:71` で初期値に displayName を出し、`LibraryStore.renameShelf` が name に保存して nameEn を nil にする）。ユーザーが作った棚と名前を変えた棚は nameEn=nil なので翻訳されない。起動引数の棚の指定・DebugSeed・accessibilityIdentifier はデータ上の `name` のまま。ただし、英語表示で名前を変えずに「保存」すると日本語名が失われる（下の should）
+  - ③日付: 英語表示では `BookDates.format` が端末のロケールの `.abbreviated`、購入月別の見出しは `.dateTime.year().month(.wide)` で書かれていて、N7 の「端末ロケール」に合う。日本語表示は「2026.10.20」の固定の書式のまま（N-080）。Figma と Q-3 に合わせた判断で、要件との差は notices に記録済み。採るかどうかはオーナーが決める
+  - ④developmentRegion: ビルドした app の Info.plist は `CFBundleDevelopmentRegion = ja`。en.lproj には InfoPlist.strings（カメラ・写真追加の用途説明の英訳と CFBundleName）、Localizable.strings（248件）、.stringsdict がある。ja.lproj の Localizable.strings は1件だけだが、原文が ja なのでキーがそのまま表示され、問題ない。N7 の「開発言語は ja」には合っている。副作用として、英語も日本語も言語の設定に無い端末では日本語で出る（N-081）。これはオーナーが決めること
+  - ⑤accessibilityIdentifier: `accessibilityIdentifier(` に displayName・displayTitle・localized を渡している所は無い（grep で確認）。genre.row・picker.row・move.row・genres.category などは `.name` と `category.name` のまま
+  - ⑥英語表示の購入月別・チュートリアル: 棚の表示（month.title・本の情報・年の月の並び）とチュートリアル L-1〜L-4・O-1 は UI テストで日本語が無いことを確認済み。ただしグリッドの長押しメニューと、そこから開く詳細の戻る先は日本語のまま（下の must）
+  - ⑦最大の文字サイズ（N-083）: 下の must の3つめ
+- 指摘:
+  - [must] Bookshelf/Shelf/ShelfReorderHandler.swift:698,745 ／ Bookshelf/Shelf/ShelfScreen.swift:759 グリッドの長押しメニュー（I-2）の下の案内が、英語表示でも日本語のまま出る。T13 で `note: String?` を足して `Text(note ?? (allowsReorder ? "…" : "…"))` にした結果、式全体が String になり、`Text(String)` が訳を引かなくなった（a1ede74 と T15 の worktree では `Text(cond ? "…" : "…")` で LocalizedStringKey だった）。日本語が出るのは、ジャンル別のグリッドの「そのままドラッグで並べ替え」、買いたい本の「買いたい本は登録した順に並びます」、購入月別のグリッドの「購入日の順に並びます」の3つ。最後のものは xcstrings にキーも無い。前の2つの xcstrings のキーが stale になっているのはこのためで、export の未翻訳0件では見つからない。acceptance の「閲覧…の画面に日本語が残っていない」を満たさない。直し方: `note` を `LocalizedStringKey?`（または LocalizedStringResource?）にし、既定の文も同じ型で渡して Text に渡す。en を足す。LocalizationUITests にグリッドの長押しメニュー（ジャンル別・購入月別）の `assertNoJapanese` を足す
+  - [must] Bookshelf/Shelf/ShelfScreen.swift:746 購入月別のグリッドの長押しメニューで「詳細を見る」を押すと、詳細の戻る先の名前に `PurchaseGroup.title` が渡され、英語表示でも「2026年11月」と出る。N-084 の追加作業では、ほかの2か所（:663・:681）だけ `displayTitle` にしていた。`.displayTitle` にすること。上の UI テストの追加で一緒に守れる
+  - [must] T15 acceptance「英語の長い文言・最大の文字サイズで主要画面が崩れないことをスクリーンショットで確認し build-log に記録」を満たしていない（N-083）。builder のスクリーンショット en_ax5_Q-1_browse.png・en_ax5_E-6_edit.png を自分で見た。閲覧画面（主要画面の中心）は、下部バー（表示・検索・＋）が画面の外に出て押せず、案内の文も切れている。本を編集は「Cancel｜Edit Book｜Done」が重なり、所持状況の切り替えが「O…｜W…」になっている。builder は確認して記録したが、結果は「崩れる」で、acceptance が求める「崩れない」の確認になっていない。**must とした根拠**: (a) acceptance に文字どおり含まれる項目で、満たしていない (b) N7 に「英語でレイアウトが崩れない…Dynamic Type と同時に確認する」とあり、T15 の範囲に明記されている (c) 見た目だけの差でなく、文字を大きくしている人が登録・検索・設定に進めない機能上の不具合（N5 の Dynamic Type 対応にも反する）。ja_ax5_browse.png で日本語でも同じに崩れることは確認した。崩れが T15 より前からあることは、直す責任がどのタスクにあるかの話で、acceptance を満たしたことにはならない。レビュー側で acceptance を外すことはしない。**扱いの選択肢（オーナー判断）**: ①T15 で直す（閲覧画面の上下の部品に dynamicTypeSize の上限を付ける、下部バーを画面内に固定する、編集画面の上の行と切り替えを大きい文字で縦に並べる）②plan.md を変えて、この項目を T12（アクセシビリティの確認）へ移す（dev-architect が plan を直す）。②にした場合は、この must は T15 の判定から外し、残る must 2件を直せば PASS にしてよい
+  - [should] Bookshelf/Shelf/ShelfListView.swift:71 ／ Bookshelf/Model/LibraryStore.swift:322 英語表示で初期ジャンルの「名前の変更」を開き、名前を変えずに「保存」すると、`name` が「Philosophy」に書き換わり nameEn が nil になる。その後は日本語表示でも「Philosophy」と出て、もとの「哲学・思想」に戻せない（識別子も変わる）。日本語表示で変えずに保存した場合も nameEn が消え、英語表示で日本語名が出るようになる。T8 からの作りだが、表示言語で名前を切り替えるようになった T15 で目に見える問題になった。N-082 の「20文字に切られる」と同じ経路。入力した名前が今の `displayName` と同じなら何もしないで閉じる（rename を呼ばない）こと。ユニットテストを1件足すとよい
+  - [nit] BookshelfTests/PhotoImportTests.swift:103-104 期待値をアプリと同じ `String(localized:)` で作っているため、xcstrings の訳が空でも欠けていても通る。英語の期待値（en の固定の文）で比べるか、`model.errorMessage` に件数「1」が入ることを確かめる形にすると、テストの意味が残る
+  - [nit] Bookshelf/Detail/BookDetailView.swift:7 ／ Bookshelf/Model/MonthGrouping.swift（displayTitle・monthLabel）英語表示の日付は Locale.current の暦で書かれる。英語表示で暦法を和暦にしている端末では年が元号の年になりうる。T13 の should（Calendar.current）と一緒に、グレゴリオ暦に固定するか決めるとよい
+  - [nit] 英語表示の購入月別・チュートリアル・グリッドの長押しメニューのスクリーンショットが無い（build-log の申告どおり）。must を直したら、英語・標準と AX5 の両方で撮って build-log に足すこと
+- オーナー判断が必要（裁定していない）: ①N-083 を T15 で直すか、plan を変えて T12 へ移すか（上の must の3つめ。移すなら T15 の判定から外す）②N-080 日本語表示の日付を「2026.10.20」のままにするか（そのままなら requirements の N7 に例外を書く）③N-081 英語も日本語も言語の設定に無い端末で日本語を出すか（開発言語 ja の副作用）④N-082 英語名が20文字を超える件（上の should と同じ経路）⑤N-079 英訳の文言の確認（Localizable の en 260キー）⑥N-085 実機の英語表示で OS のダイアログを確認すること
+
+## T15（再レビュー）: PASS (2026-11-16)
+- 前提: オーナー判断で、前回の must の3つめ（最大の文字サイズの崩れ N-083）は T12 に移った。plan.md の T15 acceptance は「英語の長い文言（標準の文字サイズ）で主要画面が崩れない」に変わり、最大の文字サイズの確認は T12 の acceptance に入った。この再レビューでは対象外とした
+- acceptance再実行（main の作業ツリー。T13＋T14＋T15＋修正）:
+  - `xcodebuild -exportLocalizations -project Bookshelf.xcodeproj -localizationPath scratchpad/t15r2/export -exportLanguage en -sdk iphonesimulator` → exit=0。en.xliff の trans-unit は275件。translated 274件、translate="no" 1件（TextField の空の見出し）で、未翻訳は0件。en の target に日本語は0件。stale のキーはリポジトリの Localizable.xcstrings、export した xcstrings ともに0件。「購入日の順に並びます」→「Sorted by purchase date」が入っている
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=CBC22FAA-68E1-47CC-943E-B88C3A478F21"`（DerivedData はスクラッチパッド）→ `** TEST SUCCEEDED **`、exit=0。ユニット `✔ Test run with 75 tests in 12 suites passed`（追加の LibraryStoreTests 1件を含む）。UI `Executed 48 tests, with 0 failures`。今回は1回目の全テストで全件通り、やり直しは要らなかった
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし、exit=0 / `scripts/check-no-network.sh` → `OK（Bookshelf に通信の記述なし）`、exit=0
+  - 日本語リテラルの洗い出し（前回と同じスクリプト。stale を除いたキーと突き合わせ）をやり直した。キーに無いのは、ログ用の「不明」、日本語表示のときだけ通る `PurchaseGroup.title`・`monthLabel` の ja 側、読み上げの区切りのコメント、データ上の名前だけになった。前回 must だったグリッドの長押しメニューの案内3つは、キーに入り訳される
+- 前回の指摘の解消:
+  - must 1（グリッドの長押しメニューの案内）: 解消。`ShelfReorderHandler.swift:698` の `note` は `LocalizedStringKey?` になった。`:745` は `note ?? (…) as LocalizedStringKey` で、`as` は `??` より先に結び付くので、式全体が LocalizedStringKey になる。ShelfScreen.swift:759 のリテラルも LocalizedStringKey として渡る。この文は `accessibilityHidden(true)` なので UI テストでは見えない。訳されることはコードと export で確認した
+  - must 2（購入月別のグリッドから開いた詳細の戻る先）: 解消。`ShelfScreen.swift:746` は `.displayTitle`。LocalizationUITests で「Back to November 2026」を確かめている
+  - must 3: T12 に移ったので対象外
+  - should（名前を変えずに保存すると日本語名が消える）: 解消。`LibraryStore.swift:322` は、整えた名前が今の `name` か `nameEn` と同じなら何もしない。`ShelfEditView.swift` の `savedName` は、変えていなければ20文字で切らない（N-082 の「保存しただけで切られる」も解消）。LibraryStoreTests に、表示名・日本語名・空白つきの英語名で保存しても両方の名前が変わらず、違う名前にすると nameEn が nil になるテストが入った
+- 新しい問題・弱体化の確認: `git diff` で見ると、LocalizationUITests の変更は追加だけで、既存のアサーションの削除・緩和は無い。既存テストファイル（ほかの UI テスト・MonthGroupingTests・LibraryStoreTests の既存分）も変わっていない。ShelfScreen の変更は戻る先の名前1か所だけで、ジャンル別の動きに影響しない。GridBookMenu の型変更は呼び出し2か所（ShelfScreen.swift:740・:934）とも、リテラルか既定値で渡していて、日本語表示の文言も同じ
+- 指摘:
+  - [nit] Bookshelf/Model/LibraryStore.swift:322 日本語表示で、初期ジャンルの名前を自分の英語名に変えようとした場合（例:「経済・経営」→「Economics & Management」）、nameEn と同じなので何も起きず、名前は「経済・経営」のまま残る（エラーも出ない）。英語表示ではその名前で出るので実害は小さい。気になるなら、ダイアログを開いたときの表示名とだけ比べる形にする
+  - [nit] 前回の nit（PhotoImportTests の期待値が同じキーで比べている、英語表示の日付の暦、英語表示の購入月別・チュートリアル・グリッドの長押しメニューのスクリーンショットが無い）は手つかず。残す判断でよい
+  - [nit] builder の申告どおり、年にまとめた購入月別のグリッドには長押しメニューが無い（T13 レビューの nit と同じ件。T15 の範囲外）
+- オーナー判断が必要（裁定していない）: N-079 英訳の文言の確認、N-080 日本語表示の日付「2026.10.20」、N-081 英語も日本語も言語の設定に無い端末で日本語が出ること、N-085 実機の英語表示での OS のダイアログの確認。N-083 は T12 で扱う

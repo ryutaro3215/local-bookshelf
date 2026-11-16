@@ -6,13 +6,23 @@ enum DisplayMode: Equatable {
     case grid
 }
 
+/// 閲覧画面のまとめ方（F6-7）
+enum BrowseGrouping: Equatable {
+    /// ジャンル別（棚）
+    case genre
+    /// 購入月別（T13）
+    case month
+}
+
 /// 下部バーの「表示」メニュー（G-2。F6-8）。見え方・まとめ方・この棚の並べ順・設定。
-/// 見え方と「この棚の並べ順」（T7。F5-3）・設定（T8。F4-0）が動く。まとめ方（購入月別）は T13
+/// 見え方・まとめ方（購入月別は T13。F6-7）・「この棚の並べ順」（T7。F5-3）・設定（T8。F4-0）
 struct DisplayMenu: View {
     let mode: DisplayMode
-    /// 今の棚の並べ順（nil = 並べ順を出さない。買いたい本の棚は登録した順に並ぶため）
+    var grouping: BrowseGrouping = .genre
+    /// 今の棚の並べ順（nil = 並べ順を出さない。買いたい本の棚は登録した順に並び、購入月別は購入日順で固定のため）
     var sortKey: ShelfSortKey?
     let onSelectMode: (DisplayMode) -> Void
+    var onSelectGrouping: (BrowseGrouping) -> Void = { _ in }
     var onSelectSort: (ShelfSortKey) -> Void = { _ in }
     /// 「設定」（F-1 へ）
     var onOpenSettings: () -> Void = {}
@@ -34,9 +44,12 @@ struct DisplayMenu: View {
                 }
                 divider
                 section("まとめ方") {
-                    // 購入月別は T13
-                    item("ジャンル別", checked: true, id: "menu.group.genre", action: onClose)
-                    item("購入月別", checked: false, id: "menu.group.month", action: onClose)
+                    item("ジャンル別", checked: grouping == .genre, id: "menu.group.genre") {
+                        onSelectGrouping(.genre)
+                    }
+                    item("購入月別", checked: grouping == .month, id: "menu.group.month") {
+                        onSelectGrouping(.month)
+                    }
                 }
                 if let sortKey {
                     divider
@@ -87,7 +100,9 @@ struct DisplayMenu: View {
             .frame(height: 1)
     }
 
-    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func section<Content: View>(_ title: LocalizedStringResource, @ViewBuilder content: () -> Content)
+        -> some View
+    {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
                 .font(BookshelfStyle.sans(11))
@@ -102,7 +117,9 @@ struct DisplayMenu: View {
         .padding(.bottom, 4)
     }
 
-    private func item(_ title: String, checked: Bool, id: String, action: @escaping () -> Void) -> some View {
+    private func item(_ title: LocalizedStringResource, checked: Bool, id: String, action: @escaping () -> Void)
+        -> some View
+    {
         Button(action: action) {
             HStack {
                 Text(title)

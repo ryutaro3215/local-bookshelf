@@ -324,3 +324,114 @@
   - build-log の記録と state.md の更新は実装エージェントの停止後にオーケストレーターが書いた（実装エージェントの報告とテストのログから）
   - 依存の追加なし。通信のコードなし
   - git: コミット・プッシュはしていない
+
+## T14: 初回チュートリアル — done（Figma との目視確認・実機の許可ダイアログはオーナー待ち） (2026-11-16)
+- changed:
+  - Bookshelf/Onboarding/OnboardingState.swift（新規）: チュートリアルを終えたかを UserDefaults（`onboarding.completed`。AppEnvironment の RecentShelves と同じ設定）に記録する。本がすでにあるときも終了扱い。最初の1冊を登録したら `complete()`。デバッグビルドの UIテスト（`-UITestReset`・`-UITestPersistentStore`）では既存のテストが止まらないように飛ばし、`-UITestOnboarding` を付けたときだけ出す
+  - Bookshelf/Onboarding/OnboardingView.swift（新規）: `AppRootView`（終えていなければチュートリアル、終えていれば閲覧画面。登録直後は閲覧画面に L-4 のシートを重ね、「続けて登録する」でチュートリアルで選んだ棚を登録先にカメラを開く）、`OnboardingView`（L-1 ようこそ → L-2 最初の棚 → O-1 カメラの許可〔まだ聞いていないときだけ〕→ L-3 案内つきの撮影。撮影・登録待ち・N 画面は T5 の RegistrationFlowView をそのまま使う。1冊撮ると自動で登録待ちの一覧へ。登録せずに閉じると L-2 に戻る）、3つの点、L-1 の書影（閲覧画面の PinLayout の倍率・位置で、架空の題名を描いたグレーの見本）、L-2 の棚のリスト（区分の見出しつき。Figma の9つ。初期は未分類）、O-1、L-4 のシート。DEBUG のみ `-UITestCameraPermission` で許可済みの合成カメラでも O-1 を出す
+  - BookshelfUITests/OnboardingUITests.swift（新規）: ①②③をまとめた testFirstLaunchRequiresFirstBookAndIsShownOnlyOnce（初回は L-1 で閲覧画面なし、カメラを閉じても・一覧を登録せずに閉じても L-2 に戻る、1冊登録で L-4 → 閲覧画面に「哲学・思想 1冊」、再起動で出ずに1冊が残る）、testRelaunchBeforeRegistrationShowsTutorialAgain（登録前に終了すると次も L-1）、testCameraPermissionPageAndContinueRegistering（L-2 の初期値は未分類・点の位置、O-1 →許可で登録先が選んだ棚の撮影画面、L-4 の「続けて登録する」でカメラ・案内なし）の3件
+  - **計画とのズレ（files 外。必要な最小限の変更）**:
+    - Bookshelf/BookshelfApp.swift: 最初の画面を `ShelfScreen` から `AppRootView` に変えた（1行）
+    - Bookshelf/Capture/CaptureViewModel.swift: `showsShutterHint`（初回の撮影かどうか）を1つ追加
+    - Bookshelf/Capture/CaptureView.swift: `showsShutterHint` で1冊も撮っていない間は、シャッターの上に「ここを押して撮影」の吹き出しを出し、ライブラリ・完了・撮影済みの数を隠す（L-3）。通常の登録・撮り直しの見た目は変わらない
+    - ShelfScreen.swift は触っていない（T13 と並行のため。L-4 のシートと「続けて登録する」の撮影は AppRootView 側で重ねた）
+- verify:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=E5FB60EA-EA92-4AA1-A318-4E7364C41327"` → `** TEST SUCCEEDED **`。ユニット `✔ Test run with 68 tests in 11 suites passed`、UI `Executed 37 tests, with 0 failures`（BookEditUITests 5・CaptureFlowUITests 8・OnboardingUITests 3・ReorderUITests 9・SearchUITests 3・ShelfManagementUITests 2・ShelfUITests 7）。既存の UI テストは無変更で通る
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし（exit 0）/ `scripts/check-no-network.sh` → OK
+  - スクリーンショット（リポジトリ外・架空の題名）: /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/b17b97f2-572c-4369-bf86-1178f32e4b34/scratchpad/t14/ の L-1.png・L-2.png・O-1.png・L-3.png・L-3b_pending.png・L-4.png。design/screens の書き出し画像と見比べた差: L-1 の書影は Figma の実写の表紙の代わりに架空のグレーの見本で、遠近のない平らなピン型 / L-3 の案内文は既存の2行（Figma は1行）/ L-4 のシートは iOS 26 の形で左右・下がわずかに浮く（地は白）/ そのほかの文言・配置・点・ボタンは一致。O-2（iOS のダイアログ）と O-3（T5 の画面をそのまま使う）は、合成カメラが常に許可済みのため撮っていない
+- notes:
+  - 撮影用の一時テスト（TmpOnboardingShots.swift）は削除済み。デバッグ用のコードは残していない（`-UITestOnboarding`・`-UITestCameraPermission` は `#if DEBUG` の中の UIテスト用の起動引数）
+  - スキル: figma:figma-swiftui を読み込んだ。Figma のブリッジは接続されていないため、design/screens の書き出し画像と design-brief を正とした
+  - 担当が決めた動き（L-2 の棚の9つと初期値の未分類、O-1 を出す条件、1冊撮ったら一覧へ自動で進む、閉じたら L-2 に戻る、「続けて登録する」はシートを挟まずカメラへ、既存の本があれば出さない）は docs/notices.md の N-075、見た目の差と実機確認は N-076 に記録
+  - 「続けて登録する」で登録しても、閲覧画面は新しい本の位置へ移らない（ShelfScreen の showRegistered が private のため。T13 が終わってから必要なら ShelfScreen に入口を足す）
+  - N-075・N-076 の番号は T13・T15 の並行作業と重なる可能性がある。取り込み時に重なっていたら振り直す
+  - 依存の追加なし。通信のコードなし。空の catch なし。追跡ファイルに実在の題名・表紙なし（L-1 の見本・テストの題名は架空）
+  - git: コミット・プッシュはしていない
+## T13: 購入月別モード — done（Figma との目視確認・実機のピンチの手触りはオーナー待ち） (2026-11-16)
+- changed:
+  - Bookshelf/Model/MonthGrouping.swift（新規）: `PurchasePeriod`（月／年）・`PurchaseGroup`（名前「2026年10月」「2026年」）・`MonthFocus`・`MonthGrouping.groups(of:by:calendar:)`（購入済みで購入日のある本だけ。まとまりは新しい順、中は購入日の古い順・同じ日はデータ追加日の古い順）・`months(in:)`・`resolve(_:in:)`（月と年を切り替えても見ていた本を見せる。本が消えたら同じまとまりの近い位置）
+  - Bookshelf/Month/MonthBrowseView.swift（新規）: J-1・J-2。上は月・年の名前（Sans 500・22、「▾」なし・押せない）と冊数・共有マーク（動きは T11）。書影のピン型は既存の ShelfCollectionView（空き枠なし）、本の情報は「ジャンル・2026.10.20 購入」と位置、年は下に「8月｜9月｜10月｜11月」（押すとその月の1冊目へ）。右に月の位置の点。縦スワイプで月（年）、ピンチ（MagnifyGesture、15%）で年／月。長押しは並べ替えなしの選択（上で別の棚へ・下で削除）。VoiceOver は見出しの操作「前の月／次の月／年にまとめる」。購入済みが無いときの案内（MonthEmptyView）
+  - Bookshelf/Month/MonthGridView.swift（新規）: J-3・J-4。ScrollView＋LazyVStack の固定見出し（「2026年11月」＋冊数）。月は横3列（I-1 の GridCellContent を使う、長押しで I-2 のメニュー）、年は1行5冊の表紙だけ（枠の高さ 92）。ピンチで切り替え、切り替えると先頭へ
+  - BookshelfTests/MonthGroupingTests.swift（新規）: acceptance ①（月・年・同じ日の順）②③と、見ていた本の求め方の6件
+  - BookshelfUITests/MonthModeUITests.swift（新規）: 切り替え・「▾」なし・押しても棚一覧が開かない・「並べ順」が出ない（ジャンル別に戻すと出る）／縦スワイプで月を移動・端で止まる／長押しで移動・削除のみ／棚表示のピンチ（同じ本のまま年→月の並び→年の移動→月）／グリッドのピンチと詳細の戻る先、の5件
+  - **計画とのズレ（files 外。組み込みに必要な最小限）**:
+    - Bookshelf/Shelf/DisplayMenu.swift: `BrowseGrouping`（ジャンル別／購入月別）を追加し、「まとめ方」を実際に切り替える（これまでは閉じるだけ）
+    - Bookshelf/Shelf/ShelfScreen.swift: まとめ方・月か年か・見ている本の状態、購入月別の中身（monthContent）・長押し・グリッドのメニュー、購入月別では「並べ順」を渡さない、ヒントの文言（J-1〜J-4）、詳細で購入済みにしたらその本を見せる。ShelfIndicator に読み上げの名前の引数（既定は「棚の位置」）
+    - Bookshelf/Shelf/ShelfReorderHandler.swift: GridBookMenu に下の案内の文を渡せる `note`（既定は従来どおり）。購入月別は「購入日の順に並びます」
+    - Bookshelf/BookshelfApp.swift（DEBUG の DebugSeed のみ）: `-SeedBooks` の各項目に「@YYYY-MM-DD」を付けると購入日をその日から1日ずつずらす（UI テスト・画面写真用）
+- verify:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → `** TEST SUCCEEDED **`。ユニット `✔ Test run with 74 tests in 12 suites passed`（MonthGroupingTests 6件を含む）、UI `Executed 39 tests, with 0 failures`（MonthModeUITests 5件を含む。既存34件はそのまま）
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし / `scripts/check-no-network.sh` → OK
+  - 画面写真（リポジトリ外・架空の題名・合成の表紙）: /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/b17b97f2-572c-4369-bf86-1178f32e4b34/scratchpad/t13/ の J-1_month.png・J-2_year.png・J-3_grid_month.png・J-4_grid_year.png・J-3b_grid_menu.png
+  - 書き出し画像（design/screens/J-1〜J-4）との比較: 構成・文言・配置（名前と冊数の位置、共有マーク、ピン型、情報3行、右の点、年の月の並び、ヒント、固定見出し＋冊数、3列／5列）は一致。差: ①右の点はまとまりの数だけ（写真は月が5つで、10月が2番目のため点が4つ。Figma は5つ）②年のグリッドの表紙は Figma より少し大きく見える（枠 92 は読み取り）③月のグリッドの見出しの間隔は Figma に寄せた（前の月の題名の下 約30pt）が、厳密な値は未確認 ④ヒントの行がグリッドの最後の行に少し重なる（ジャンル別のグリッドと同じ作り。Figma J-3 も重なって薄く見える）
+- notes:
+  - スキル: figma:figma-swiftui は Figma（DesignAgent）に接続できないため使えず、design/screens の書き出し画像と design-brief の J 行・§3 を正とした
+  - 担当が決めた動き（新しい順・1冊目から・切り替えで同じ本・月の並びを押せる・空き枠なし・スクラバーなし・空のときの文言など）は docs/notices.md N-077、見た目の確認は N-078 に追記した。**N 番号は T14・T15 の並行作業と重なる可能性があるため、取り込み時に確認してほしい**
+  - 選択（ShelfEditing.Selection）の棚 ID には、購入月別では月の最初の本の ID を入れ、比べるのは本の ID（ShelfEditing を変えないため）
+  - 登録を終えたあとの「登録先の棚の末尾を見せる」は購入月別では動かない（ジャンル別の棚の状態だけ変わる）
+  - デバッグ用の画面写真のテスト（TmpMonthShots.swift）は削除済み
+  - 依存の追加なし。通信のコードなし。git: コミット・プッシュはしていない
+## T15: 日英ローカライズ — done（英訳の確認と、最大の文字サイズの崩れの扱いはオーナー待ち） (2026-11-16)
+- changed:
+  - Bookshelf/Localizable.xcstrings（新規）: 原文は ja、en の訳が226件（「%lld冊」など11件は plural の one/other）。TextField("") の空の見出しは shouldTranslate=false。文言は Q-1・Q-2 に合わせた（9 books / Purchased Oct 20, 2026 / ←→ Flip books ↑↓ Change shelf / Search title or reading / Genre・Status・Owned・Purchased・Edit）。用語は 購入済み→Owned、買いたい・買いたい本→Wishlist（requirements の冒頭）
+  - Bookshelf/Model/InitialGenres.swift: 英語名は T2 からある。表示言語に合わせた名前を追加 — `InitialGenres.displaysInEnglish`（Bundle.main.preferredLocalizations）、`unsortedDisplayName`・`wishlistDisplayName`、`GenreCategory.displayName`、`Shelf.displayName`（英語表示で nameEn があれば nameEn。ユーザーが作った棚・名前を変えた棚は nameEn=nil なので翻訳しない）
+  - BookshelfUITests/LocalizationUITests.swift（新規）: 4件 — ①閲覧（棚・棚を選ぶ・表示メニュー・グリッド・長押しでの選択・移動先・削除の確認）→ 詳細 → 編集（買いたいに切り替え・ジャンルを選ぶ）→ 買いたい本の棚と詳細 → 検索の結果・0件 ②登録（方法のシート → 撮影 → 登録待ち → 題名の編集 → 閉じるときの確認）③設定 → ジャンル管理（末尾・追加・編集モード・名前の変更・削除の確認）→ ライセンス ④最大の文字サイズ（AX5）で詳細のカードが縦並びになり画面内に収まる。各画面で XCUIElementSnapshot のラベル・値・プレースホルダに日本語（かな・漢字・和文の記号）が無いことを確かめる（identifier はデータ上の名前なので見ない）。日付が en_US の書式（Purchased Nov 16, 2026）になることも確かめる。起動引数の言語指定 `UITestLanguage.japanese`／`.english` もこのファイルに置いた
+  - **計画とのズレ（files 外。ローカライズに必要な変更）**:
+    - Bookshelf.xcodeproj/project.xcproj: localizations の development を en から ja に変更（N7「開発言語は ja」）。supported に en・ja を追加
+    - Bookshelf/InfoPlist.xcstrings（新規）: カメラ・写真追加の用途説明と CFBundleName の en。ja にも原文の値を入れた（入れないと exportLocalizations で needs-review になる）
+    - 画面の文言を String のまま渡していた所は `String(localized:)` にした（トースト・エラー・設定の部品・ダイアログのボタン名・読み上げの値など）。または引数の型を LocalizedStringKey／LocalizedStringResource にした（ShelfSortKey.label、DisplayMenu の section/item、選択の矢印と案内、グリッドのメニューの行、登録方法のカード、小さなボタン、詳細の項目名、四隅のラベル）。棚・区分の名前の表示は `.name` から `.displayName` に変えた（accessibilityIdentifier と起動引数の棚の指定は `.name` のまま）。対象: BookshelfApp.swift（DebugSeed は英語表示のとき英語の架空の題名を作る。DEBUG のみ）、Capture/CaptureView・CaptureViewModel・CornerAdjustView・PendingListView・PhotoImportHandler、Detail/BookDetailView（BookDates: 日本語表示は「2026.10.20」のまま、それ以外は端末ロケールの .abbreviated）・BookEditView・PurchaseAction、Model/ShelfOrdering、Search/SearchView、Settings/SettingsView、Shelf/DisplayMenu・ShelfCell・ShelfCollectionView・ShelfEditView・ShelfListView・ShelfPickerSheet・ShelfReorderHandler・ShelfScreen。構造の変更・リファクタはしていない（git diff は既存28ファイルで +209/−130）
+    - 既存の UI テスト6ファイル: launchArguments の先頭に `UITestLanguage.japanese`（-AppleLanguages (ja) -AppleLocale ja_JP）を足しただけ。シミュレータ CBC22FAA の言語は en-JP なので、付けないとアプリが英語で表示され、日本語の文言に依存したテストが落ちる。アサーションは変えていない
+    - BookshelfTests/PhotoImportTests.swift: 期待値1か所を、固定の日本語から `String(localized: "\(unreadable)枚の写真を読み込めませんでした")` に変えた。ユニットテストのホストのアプリはシミュレータの言語（英語）で動くため。日本語の端末では同じ文言を比べる
+- verify:
+  - `xcodebuild -exportLocalizations -project Bookshelf.xcodeproj -localizationPath /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/b17b97f2-572c-4369-bf86-1178f32e4b34/scratchpad/t15/export2 -exportLanguage en -sdk iphonesimulator` → exit 0。en.xliff の trans-unit は240件。うち239件（Localizable 236・InfoPlist 3）が state="translated"、残る1件は TextField の空の見出しで translate="no"。**未翻訳は0件**（target 無し・new・needs-review なし）。contents.json の developmentRegion は ja
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=CBC22FAA-68E1-47CC-943E-B88C3A478F21"` → `** TEST SUCCEEDED **`。ユニット `✔ Test run with 68 tests in 11 suites passed`、UI `Executed 38 tests, with 0 failures`（既存34件＋LocalizationUITests 4件）
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし exit 0 / `scripts/check-no-network.sh` → OK exit 0
+  - スクリーンショット（リポジトリ外・架空の英語の題名）: /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/b17b97f2-572c-4369-bf86-1178f32e4b34/scratchpad/t15/shots/ — 英語・標準の文字サイズ: en_default_{Q-1_browse,Q-2_detail,G-2_menu,G-3_picker,I-1_grid,E-6_edit,A-2_method,A-3_camera,C-2_pending,C-close_confirm,F-1_settings,F-2a_genres,F-4_genres_edit,E-4_search}.png、英語・最大（AX5）: en_ax5_{Q-1_browse,G-3_picker,Q-3_detail,E-6_edit}.png、日本語・最大: ja_ax5_{browse,Q-3_detail}.png（撮影用の一時 UI テスト TmpLocalizationShots.swift で撮り、撮影後に削除した）
+  - Q-1〜Q-3 との比較: Q-1 は文言（Philosophy／9 books／Purchased 〈日付〉／「1 / 9」の形／←→ Flip books ↑↓ Change shelf／Search title or reading）も配置も一致。差は、日付が今日（Nov 16, 2026）であることと、題名が架空の英語の題名であること（Q-1 は日本語の題名）。Q-2 は「‹ Philosophy｜Edit」、カードの Genre（セリフ体の Philosophy）／Status Owned／Purchased Nov 16, 2026 で一致（表紙の大きさは合成の表紙の縦横比による）。Q-3（最大の文字サイズの詳細）の、項目名を値の上に置く縦並びと表紙が小さくなる点は、英語・日本語とも一致。Q-3 の日付は「2026.10.20」の表記で、日本語表示ではそのまま
+  - 英語の長い文言: 標準の文字サイズでは、表示メニュー（Purchase Date (Newest First) など）・ジャンル管理（Hidden のタグ・0 books）・登録待ち（Select All／Deselect All・Checked = Owned …）・下部バーのどれも切れていない
+- notes:
+  - **最大の文字サイズでの崩れ（N-083。直していない）**: AX5 では閲覧画面の下部バー（表示・検索・＋）が画面の外に押し出される。本を編集（E-6）では上の行が重なり、所持状況の切り替えが「O…｜W…」に切れる。**日本語でも同じで、T15 より前からある**。ローカライズの範囲外で、直すには ShelfScreen のレイアウトを変える必要がある（T13 と衝突しやすい）ため手を付けず、オーナー判断にした。LocalizationUITests ④は詳細だけを見る
+  - **日付（N-080）**: 日本語表示は Figma・Q-3 の「2026.10.20」を優先して固定の書式のまま。英語表示（ja 以外）は端末のロケールの書式。どちらにするかはアプリの表示言語で決める（地域設定では決めない）
+  - **開発言語を ja にした副作用（N-081）**: 日本語も英語も言語の設定に無い端末では日本語で表示される
+  - **英語名とジャンル名の上限（N-082）**: 「Economics & Management」は22文字あり、名前の変更のダイアログで保存すると20文字に切られる（N-065 と一緒に決める）
+  - **T13・T14・T11（N-084）**: 並行作業で増える文言は未対応。取り込み後に、棚の名前を displayName にし、exportLocalizations で未翻訳を数えて訳を足す。新しい UI テストには `UITestLanguage.japanese` を付けること
+  - 英訳はすべて担当が付けた（N-079 でオーナーが確認）。xcstrings はリポジトリ外のスクリプトで書き出したので、Xcode で開くとキーの並びや書式が書き直されることがある（内容は変わらない）
+  - 共有の画面は T11 で未実装。今回は共有ボタン（Share）の読み上げだけを確認した
+  - 依存の追加なし。通信のコードなし。空の catch なし。追跡ファイルに実在の題名・著者名なし（新しいテストの題名は DebugSeed が作る架空の英語の題名）。デバッグ用の一時コードは削除済み
+  - Figma（DesignAgent）は接続されていないので、design/screens の Q-1〜Q-3 の PNG と design-brief.md を正とした
+  - docs/notices.md に N-079〜N-085 を追記した
+  - git: コミット・プッシュはしていない
+- 追加作業（N-084。T13・T14 を取り込んだ main の作業ツリーで実施。2026-11-16）:
+  - changed:
+    - Bookshelf/Localizable.xcstrings: T13・T14 で増えた文言の en を34件追加（チュートリアルの L-1〜L-4・O-1、シャッターの案内、購入月別の読み上げの操作・空の表示・本の情報、操作のヒント4件、ページの位置など）。取り込みのビルドで Xcode が足した「%@・%@ 購入」の ja（state=new）を translated にし、en を付けた
+    - Bookshelf/Model/MonthGrouping.swift: `PurchaseGroup.displayTitle`（日本語表示では `title` のまま「2026年10月」、英語表示では端末のロケールの書式「October 2026」「2026」）と `PurchaseGroup.monthLabel(_:)`（J-2 の月の並び。日本語「10月」、英語「Oct」）を追加。`title` は変えていない（MonthGroupingTests が `title` を日本語で比べており、ユニットテストのホストのアプリはシミュレータの言語＝英語で動くため、表示用を分けた）
+    - Bookshelf/Month/MonthBrowseView.swift・MonthGridView.swift: 見出しを `displayTitle` に、月の並びを `monthLabel` に、本の情報のジャンルを `displayName` に、本の情報の文字列を `String(localized:)` に
+    - Bookshelf/Shelf/ShelfScreen.swift: `hintText` の型を String から LocalizedStringKey に（T13 で String を返す形になり、取り込み後に「←→ 本をめくる…」が英語にならなくなっていた）。`ShelfIndicator.label` の型を LocalizedStringKey に（同じ理由で「棚の位置」が訳されなくなっていた）。購入月別の詳細の戻る先の名前を `displayTitle` に
+    - Bookshelf/Onboarding/OnboardingView.swift: 区分・棚の名前を `displayName` に（identifier は `.name` のまま）、PrimaryButton に渡す文言を `String(localized:)` に、L-1 の見本の表紙の題名は英語表示のとき架空の英語の題名
+    - BookshelfUITests/MonthModeUITests.swift・OnboardingUITests.swift: launchArguments の先頭に `UITestLanguage.japanese` を足しただけ（アサーションは変えていない）
+    - BookshelfUITests/LocalizationUITests.swift: 2件追加 — 購入月別（「November 2026」・2 books・「Philosophy · Purchased Nov 2, 2026」、表示メニュー、ピンチで「2026」・5 books・月の並び「Oct」「Nov」）、初回チュートリアル（L-1 → L-2「Start with Unsorted／History」→ O-1 → L-3 の案内つき撮影 → 登録 → L-4 → 閲覧「History」）。各画面で日本語が残っていないことを確かめる
+    - T13・T14 のロジックとレイアウトは変えていない。MonthGrouping が Calendar.current を使っていて和暦の端末で「8年11月」になる件（T13 レビューの should）は T13 の修正範囲なので触っていない。英語表示の `displayTitle` はグレゴリオ暦で日付を作るが、まとめ方（年・月の切り方）は T13 のまま Calendar.current に従う
+  - verify:
+    - `xcodebuild -exportLocalizations -project Bookshelf.xcodeproj -localizationPath /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/b17b97f2-572c-4369-bf86-1178f32e4b34/scratchpad/t15/export5 -exportLanguage en -sdk iphonesimulator` → exit 0。en.xliff の trans-unit は274件。273件が state="translated"、1件は translate="no"（TextField の空の見出し）。**未翻訳は0件**
+    - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=CBC22FAA-68E1-47CC-943E-B88C3A478F21"` → `** TEST SUCCEEDED **`。ユニット `✔ Test run with 74 tests in 12 suites passed`、UI `Executed 48 tests, with 0 failures`（T13＋T14＋T15 を合わせた全テスト）
+    - その前の回では、MonthGroupingTests の4件（`title` を「2026年10月」で比べる）と LocalizationUITests の2件（操作のヒントが日本語のまま）が落ちた。前者は `title` を元に戻し表示用の `displayTitle` を分けて、後者は `hintText` を LocalizedStringKey にして直した。T13・T14 のテストが原因の失敗は無い
+    - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし exit 0 / `scripts/check-no-network.sh` → OK exit 0
+  - notes: 追加の英訳34件も担当が付けた（N-079 の確認対象に含む）。英語表示の購入月別・チュートリアルのスクリーンショットは撮っていない（UI テストの日本語の確認だけ）
+- レビュー指摘の修正（FAIL×1。review-report の T15: FAIL (2026-11-16)。main の作業ツリーで実施。2026-11-16）:
+  - changed:
+    - must 1 — Bookshelf/Shelf/ShelfReorderHandler.swift: `GridBookMenu.note` の型を `String?` から `LocalizedStringKey?` に。既定の文も `LocalizedStringKey` として渡すので、メニューの下の案内（「そのままドラッグで並べ替え」「買いたい本は登録した順に並びます」「購入日の順に並びます」）が訳される。ShelfScreen.swift の `note: "購入日の順に並びます"` はそのまま（リテラルが LocalizedStringKey になる）
+    - must 1 — Bookshelf/Localizable.xcstrings: 「購入日の順に並びます」→ en「Sorted by purchase date」を追加。stale になっていた2キー（上の2つの案内）の extractionState=stale を外した
+    - must 2 — Bookshelf/Shelf/ShelfScreen.swift: 購入月別のグリッドの長押しメニュー「詳細を見る」で渡す戻る先の名前を `.title` から `.displayTitle` に
+    - should — Bookshelf/Model/LibraryStore.swift `renameShelf`: 整えた名前が今の `name`（日本語名）か `nameEn`（英語名）と同じなら何もしない（name を書き換えず nameEn も消さない）。Bookshelf/Shelf/ShelfEditView.swift `GenreRenameDialog`: 名前を変えていなければ上限20文字で切らずに今の表示名を渡す（`savedName`）。これで英語表示の「Economics & Management」を変えずに保存しても切られず、store 側で何も変わらない
+    - BookshelfTests/LibraryStoreTests.swift: 1件追加「T15 名前の変更: 今の名前（表示名・日本語名）のまま保存しても、日本語名と英語名は変わらない」（表示名・日本語名・前後に空白つきの英語名で保存 → name・nameEn は変わらない。違う名前ならその名前になり nameEn は nil）
+    - BookshelfUITests/LocalizationUITests.swift: ジャンル別のグリッドの長押しメニュー（View Details ほか）と、購入月別のグリッド → 長押しメニュー → 詳細（戻る先「Back to November 2026」）の確認を追加。メニューの下の案内は accessibilityHidden なので、UI テストの日本語の確認には出てこない（訳は xcstrings の export で確認）
+    - must 3（最大の文字サイズの崩れ N-083）はオーナー判断で T12 に移したので触っていない
+  - verify:
+    - `xcodebuild -exportLocalizations -project Bookshelf.xcodeproj -localizationPath /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/b17b97f2-572c-4369-bf86-1178f32e4b34/scratchpad/t15/export6 -exportLanguage en -sdk iphonesimulator` → exit 0。trans-unit は275件。274件が state="translated"、1件は translate="no"（TextField の空の見出し）で、**未翻訳は0件**。export した Localizable.xcstrings の stale は0件
+    - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=CBC22FAA-68E1-47CC-943E-B88C3A478F21"` → `** TEST SUCCEEDED **`。ユニット `✔ Test run with 75 tests in 12 suites passed`、UI `Executed 48 tests, with 0 failures`
+    - 1回目の全テストでは、MonthModeUITests 2件・LocalizationUITests のチュートリアルが落ちた。1件あたり600〜2000秒かかっていて（シミュレータが重い・load average 8）、`-only-testing` で同じテストをやり直すとすべて通った。LocalizationUITests の購入月別は、年にまとめたグリッドで長押ししてもメニューが出なかったので、確認を月のグリッド（ピンチの前）に移した
+    - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし exit 0 / `scripts/check-no-network.sh` → OK exit 0
+    - 調査用の一時テスト TmpGridMenuProbe.swift は削除済み
+  - notes:
+    - 気づいた点（T13 の範囲。直していない）: 年にまとめた購入月別のグリッドでは、UI テストの長押し（press 1.0〜1.5秒）でメニューが出なかった。月のグリッドでは出る。実機で長押しを確かめた方がよい
+    - review の nit（PhotoImportTests の期待値、英語表示の日付の暦、英語表示のスクリーンショット）は今回の指示の範囲外なので触っていない

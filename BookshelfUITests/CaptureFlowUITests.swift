@@ -16,7 +16,7 @@ final class CaptureFlowUITests: XCTestCase {
 
     private func launch(scenario: String, seed: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-UITestReset", "-FakeCamera", scenario]
+        app.launchArguments = UITestLanguage.japanese + ["-UITestReset", "-FakeCamera", scenario]
         if let seed {
             app.launchArguments += ["-SeedBooks", seed]
         }

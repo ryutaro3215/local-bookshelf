@@ -12,16 +12,18 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            NavigationHeader(backTitle: "本棚", backID: "settings.back", onBack: { dismiss() })
+            NavigationHeader(backTitle: String(localized: "本棚"), backID: "settings.back", onBack: { dismiss() })
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    LargeTitle(text: "設定", id: "settings.title")
-                    SectionLabel(text: "本棚")
+                    LargeTitle(text: String(localized: "設定"), id: "settings.title")
+                    SectionLabel(text: String(localized: "本棚"))
                         .padding(.top, 16)
                     Button {
                         showsGenres = true
                     } label: {
-                        SettingsRow(title: "ジャンル管理", value: "\(genreCount)件", showsChevron: true)
+                        SettingsRow(
+                            title: String(localized: "ジャンル管理"), value: String(localized: "\(genreCount)件"),
+                            showsChevron: true)
                     }
                     .buttonStyle(.plain)
                     .background(RoundedRectangle(cornerRadius: 16).fill(BookshelfStyle.fill))
@@ -30,21 +32,21 @@ struct SettingsView: View {
                     .accessibilityValue("\(genreCount)件")
                     .accessibilityAddTraits(.isButton)
                     .accessibilityIdentifier("settings.genres")
-                    Footnote(text: "ジャンル（棚）の追加・名前の変更・並び替え・削除")
-                    SectionLabel(text: "プライバシー")
+                    Footnote(text: String(localized: "ジャンル（棚）の追加・名前の変更・並び替え・削除"))
+                    SectionLabel(text: String(localized: "プライバシー"))
                         .padding(.top, 26)
                     privacyCard
-                    SectionLabel(text: "このアプリについて")
+                    SectionLabel(text: String(localized: "このアプリについて"))
                         .padding(.top, 42)
                     VStack(spacing: 0) {
-                        SettingsRow(title: "バージョン", value: version, showsChevron: false)
+                        SettingsRow(title: String(localized: "バージョン"), value: version, showsChevron: false)
                             .accessibilityElement(children: .combine)
                             .accessibilityIdentifier("settings.version")
                         CardSeparator()
                         Button {
                             showsLicense = true
                         } label: {
-                            SettingsRow(title: "ライセンス", value: nil, showsChevron: true)
+                            SettingsRow(title: String(localized: "ライセンス"), value: nil, showsChevron: true)
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("settings.license")
@@ -137,11 +139,11 @@ struct LicenseView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            NavigationHeader(backTitle: "設定", backID: "license.back", onBack: { dismiss() })
+            NavigationHeader(backTitle: String(localized: "設定"), backID: "license.back", onBack: { dismiss() })
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    LargeTitle(text: "ライセンス", id: "license.title")
-                    SectionLabel(text: "書体")
+                    LargeTitle(text: String(localized: "ライセンス"), id: "license.title")
+                    SectionLabel(text: String(localized: "書体"))
                         .padding(.top, 22)
                     VStack(spacing: 0) {
                         entry("Noto Sans JP")
@@ -149,7 +151,7 @@ struct LicenseView: View {
                         entry("Noto Serif JP")
                     }
                     .background(RoundedRectangle(cornerRadius: 16).fill(BookshelfStyle.fill))
-                    Footnote(text: "どちらも SIL Open Font License, Version 1.1 で提供されています。")
+                    Footnote(text: String(localized: "どちらも SIL Open Font License, Version 1.1 で提供されています。"))
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)

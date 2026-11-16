@@ -33,7 +33,7 @@ struct ShelfListView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
-                            LargeTitle(text: "ジャンル管理", id: "genres.title")
+                            LargeTitle(text: String(localized: "ジャンル管理"), id: "genres.title")
                             subtitle
                                 .padding(.top, 4)
                             addCard
@@ -42,8 +42,10 @@ struct ShelfListView: View {
                                 section(group, counts: counts)
                             }
                             Footnote(
-                                text:
-                                    "買いたい本は「買いたい」にした本を集めて見せる棚です。\n買いたい本と未分類は、名前の変更・削除・移動が\nできません。ジャンルを削除すると、中の本は未分類に移ります。",
+                                text: String(
+                                    localized:
+                                        "買いたい本は「買いたい」にした本を集めて見せる棚です。\n買いたい本と未分類は、名前の変更・削除・移動が\nできません。ジャンルを削除すると、中の本は未分類に移ります。"
+                                ),
                                 color: BookshelfStyle.sub
                             )
                             .accessibilityIdentifier("genres.footnote")
@@ -66,13 +68,13 @@ struct ShelfListView: View {
             }
             if let shelf = renaming {
                 GenreRenameDialog(
-                    currentName: shelf.name,
+                    currentName: shelf.displayName,
                     onCancel: { renaming = nil },
                     onSave: { rename(shelf, to: $0) })
             }
             if let shelf = deleting {
                 GenreDeleteDialog(
-                    name: shelf.name,
+                    name: shelf.displayName,
                     bookCount: counts.all[shelf.persistentModelID, default: 0],
                     onCancel: { deleting = nil },
                     onDelete: { delete(shelf) })
@@ -100,8 +102,8 @@ struct ShelfListView: View {
 
     private var header: some View {
         NavigationHeader(
-            backTitle: isEditing ? nil : "設定", backID: "genres.back", onBack: { dismiss() },
-            inlineTitle: isScrolled ? "ジャンル管理" : nil, showsDivider: isScrolled
+            backTitle: isEditing ? nil : String(localized: "設定"), backID: "genres.back", onBack: { dismiss() },
+            inlineTitle: isScrolled ? String(localized: "ジャンル管理") : nil, showsDivider: isScrolled
         ) {
             Button {
                 withAnimation(.easeOut(duration: 0.2)) {
@@ -181,7 +183,7 @@ struct ShelfListView: View {
 
     private func section(_ group: GenreGroup, counts: GenreCounts) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            SectionLabel(text: group.category.name)
+            SectionLabel(text: group.category.displayName)
                 .padding(.top, 22)
                 .accessibilityIdentifier("genres.category.\(group.category.name)")
             VStack(spacing: 0) {
@@ -292,7 +294,7 @@ struct ShelfListView: View {
             try store.moveGenre(shelf, toIndex: index)
         } catch {
             Self.logger.error("ジャンルを並び替えられない: \(error.localizedDescription, privacy: .public)")
-            errorMessage = "並び替えを保存できませんでした"
+            errorMessage = String(localized: "並び替えを保存できませんでした")
         }
     }
 
@@ -304,7 +306,7 @@ struct ShelfListView: View {
         } catch {
             Self.logger.error("ジャンルを追加できない: \(error.localizedDescription, privacy: .public)")
             showsAdd = false
-            errorMessage = "ジャンルを追加できませんでした"
+            errorMessage = String(localized: "ジャンルを追加できませんでした")
         }
     }
 
@@ -314,7 +316,7 @@ struct ShelfListView: View {
             try store.renameShelf(shelf, to: name)
         } catch {
             Self.logger.error("ジャンル名を変えられない: \(error.localizedDescription, privacy: .public)")
-            errorMessage = "名前を変更できませんでした"
+            errorMessage = String(localized: "名前を変更できませんでした")
         }
     }
 
@@ -324,7 +326,7 @@ struct ShelfListView: View {
             try store.deleteShelf(shelf)
         } catch {
             Self.logger.error("ジャンルを削除できない: \(error.localizedDescription, privacy: .public)")
-            errorMessage = "ジャンルを削除できませんでした"
+            errorMessage = String(localized: "ジャンルを削除できませんでした")
         }
     }
 }
@@ -391,7 +393,7 @@ struct GenreRow: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\(shelf.name)を削除")
+                .accessibilityLabel("\(shelf.displayName)を削除")
                 .accessibilityIdentifier("genre.delete.\(shelf.name)")
             }
             if isEditing && !shelf.isSystem {
@@ -406,7 +408,7 @@ struct GenreRow: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\(shelf.name)の名前を変更")
+                .accessibilityLabel("\(shelf.displayName)の名前を変更")
                 .accessibilityIdentifier("genre.rename.\(shelf.name)")
             } else {
                 name
@@ -445,21 +447,21 @@ struct GenreRow: View {
         }
         .modifier(
             GenreRowAccessibility(
-                isContainer: isEditing && !shelf.isSystem, label: shelf.name, value: accessibilityValue)
+                isContainer: isEditing && !shelf.isSystem, label: shelf.displayName, value: accessibilityValue)
         )
         .accessibilityIdentifier("genre.row.\(shelf.name)")
     }
 
     /// 読み上げの値（「3冊」・閲覧画面に出ないときは「0冊、本棚に非表示」・システム棚は「変更できません」）
     private var accessibilityValue: String {
-        var parts = ["\(count)冊"]
-        if isHidden { parts.append("本棚に非表示") }
-        if shelf.isSystem { parts.append("変更できません") }
-        return parts.joined(separator: "、")
+        var parts = [String(localized: "\(count)冊")]
+        if isHidden { parts.append(String(localized: "本棚に非表示")) }
+        if shelf.isSystem { parts.append(String(localized: "変更できません")) }
+        return parts.joined(separator: String(localized: "、", comment: "読み上げの値の区切り"))
     }
 
     private var name: some View {
-        Text(shelf.name)
+        Text(shelf.displayName)
             .font(BookshelfStyle.serif(16))
             .tracking(0.5)
             .foregroundStyle(isHidden ? BookshelfStyle.faint : BookshelfStyle.ink)
@@ -479,7 +481,7 @@ struct GenreRow: View {
                     .onEnded { _ in onDragEnded() }
             )
             .accessibilityElement()
-            .accessibilityLabel("\(shelf.name)を並び替え")
+            .accessibilityLabel("\(shelf.displayName)を並び替え")
             .accessibilityAction(named: "上へ移動") { onStep(-1) }
             .accessibilityAction(named: "下へ移動") { onStep(1) }
             .accessibilityIdentifier("genre.handle.\(shelf.name)")

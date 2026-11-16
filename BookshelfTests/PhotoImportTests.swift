@@ -99,7 +99,9 @@ struct PhotoImportTests {
         #expect(model.items.count == 2)
         #expect(model.reservedCount == 29)
         #expect(model.remaining == 1)
-        #expect(model.errorMessage == "1枚の写真を読み込めませんでした")
+        // 文言は表示言語（ホストのアプリの言語）に合わせて出る。日本語なら「1枚の写真を読み込めませんでした」（T15）
+        let unreadable = 1
+        #expect(model.errorMessage == String(localized: "\(unreadable)枚の写真を読み込めませんでした"))
     }
 
     @Test("読み込みは1枚ずつ（前の写真の処理が終わってから次を読む。N-034）")

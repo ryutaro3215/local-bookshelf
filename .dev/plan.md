@@ -9,6 +9,7 @@ external_skills:
   - dev-reviewer / dev-security / dev-docs: 各タスクの検収、リリース前の監査（外部通信ゼロの確認を含む）、README
 
 ## 変更メモ
+- 2026-11-16 オーナー判断: 最大の文字サイズでのレイアウト崩れ（N-083。閲覧画面の下部バーが画面外に出る・編集画面の行が重なり所持状況の切り替えが切れる。T15 以前からあり日本語でも発生）の修正と確認を T15 から T12 に移した。T15 の acceptance から最大の文字サイズの確認を外し（英語の長い文言の確認は残す）、T12 の goal・files・acceptance に追加（T15 レビュー FAIL×1 の must 3 より）
 - 2026-11-11 オーナー承認: ①T4 を「自動テスト用の合成フィクスチャ（git 管理）」と「オーナーの実写での精度実測（git 管理外）」に分けた（表紙は著作物のため git に入れない）②T5 の acceptance に表紙検出の改善（撮影ガイド・`VNDetectDocumentSegmentationRequest` 併用と閾値の再調整・手動調整の軽量化。現状の実写自動検出 7/25 → 目標 15/25 以上）と CIContext の使い回しを追加（T3 レビューより）③stack にバンドルIDを記録 ④T1・T3 の files を実態に合わせた（自動生成 Info.plist、.gitignore、scripts/generate-cover-fixtures.py）
 
 ## 共通事項
@@ -112,14 +113,14 @@ external_skills:
 ## T15: 日英ローカライズ
 - goal: UI文言・初期ジャンル名・区分名・システム棚名・日付表記を日本語と英語に対応させる（N7。2026-11-10 追加）
 - files: Bookshelf/Localizable.xcstrings, Bookshelf/Model/InitialGenres.swift（en 名）, BookshelfUITests/LocalizationUITests.swift
-- acceptance: Localizable.xcstrings の en に未翻訳の文字列が0件（`xcodebuild -exportLocalizations` の結果で確認）/ LocalizationUITests を英語ロケールで実行し、閲覧・登録・詳細・設定・共有の各画面に日本語が残っていない / 日付が端末のロケールの表記で出る / 英語の長い文言・最大の文字サイズで主要画面が崩れないことをスクリーンショットで確認し build-log に記録 / 見た目・文言・画面構成が .dev/design-brief.md と Figma の詳細デザイン（Q 行）に一致
+- acceptance: Localizable.xcstrings の en に未翻訳の文字列が0件（`xcodebuild -exportLocalizations` の結果で確認）/ LocalizationUITests を英語ロケールで実行し、閲覧・登録・詳細・設定・共有の各画面に日本語が残っていない / 日付が端末のロケールの表記で出る / 英語の長い文言（標準の文字サイズ）で主要画面が崩れないことをスクリーンショットで確認し build-log に記録 / 見た目・文言・画面構成が .dev/design-brief.md と Figma の詳細デザイン（Q 行）に一致（最大の文字サイズでの確認は T12 に移した。2026-11-16 変更メモ参照）
 - depends: T6
 - skills: なし
 
 ## T12: 性能・アクセシビリティ・オフラインの確認
-- goal: 500冊のデータで非機能要件 N1〜N5 を満たすことを計測し、必要な改善を行う
-- files: Bookshelf/Debug/SeedData.swift（デバッグビルドのみ）, BookshelfUITests/PerformanceTests.swift, .dev/perf-report.md
-- acceptance: PerformanceTests（XCTApplicationLaunchMetric、スクロールのXCTOSSignpostMetric）を500冊シードで実行し、結果が .dev/perf-report.md に記録され、コールドスタートから棚表示1秒以内・共有画像3秒以内・500冊のデータ容量300MB以下を満たす / 機内モードの実機で全機能の手動確認チェックリストが perf-report.md に記録されている / `scripts/check-no-network.sh` が終了コード0
+- goal: 500冊のデータで非機能要件 N1〜N5 を満たすことを計測し、必要な改善を行う。最大の文字サイズ（Dynamic Type の最大＝アクセシビリティ XXXL）でのレイアウト崩れ（docs/notices.md N-083）を直す（N5・N7。2026-11-16 T15 から移管）
+- files: Bookshelf/Debug/SeedData.swift（デバッグビルドのみ）, BookshelfUITests/PerformanceTests.swift, .dev/perf-report.md, Bookshelf/Shelf/ShelfScreen.swift・Bookshelf/Detail/BookEditView.swift ほか崩れる画面のレイアウト修正, BookshelfUITests/DynamicTypeUITests.swift
+- acceptance: PerformanceTests（XCTApplicationLaunchMetric、スクロールのXCTOSSignpostMetric）を500冊シードで実行し、結果が .dev/perf-report.md に記録され、コールドスタートから棚表示1秒以内・共有画像3秒以内・500冊のデータ容量300MB以下を満たす / 機内モードの実機で全機能の手動確認チェックリストが perf-report.md に記録されている / DynamicTypeUITests を最大の文字サイズ（`-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityXXXL`）で日本語・英語それぞれ実行し、主要画面（閲覧・登録・詳細・編集・検索・設定・購入月別・チュートリアル・共有）の主な操作ボタン（閲覧の下部バーの表示・検索・＋を含む）が画面内にあり押せること、編集画面の行が重ならず所持状況の切り替えの文言が省略されないことが通る / 同条件のスクリーンショットを撮り、結果を perf-report.md に記録 / `scripts/check-no-network.sh` が終了コード0
 - depends: T5, T7, T8, T9, T10, T11, T13, T14, T15
 - skills: なし
 

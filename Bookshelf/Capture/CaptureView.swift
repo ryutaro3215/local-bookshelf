@@ -99,7 +99,9 @@ struct RegistrationMethodSheet: View {
         .presentationDragIndicator(.visible)
     }
 
-    private func methodCard(icon: String, title: String, detail: String, id: String, action: @escaping () -> Void)
+    private func methodCard(
+        icon: String, title: LocalizedStringKey, detail: LocalizedStringKey, id: String, action: @escaping () -> Void
+    )
         -> some View
     {
         Button(action: action) {
@@ -145,9 +147,9 @@ struct DestinationMenu: View {
                     destination = shelf
                 } label: {
                     if shelf.persistentModelID == destination.persistentModelID {
-                        Label(shelf.name, systemImage: "checkmark")
+                        Label(shelf.displayName, systemImage: "checkmark")
                     } else {
-                        Text(shelf.name)
+                        Text(shelf.displayName)
                     }
                 }
             }
@@ -156,7 +158,7 @@ struct DestinationMenu: View {
                 Text("登録先")
                     .font(BookshelfStyle.sans(12))
                     .foregroundStyle(dark ? Color.white.opacity(0.55) : BookshelfStyle.sub)
-                Text(destination.name)
+                Text(destination.displayName)
                     .font(BookshelfStyle.serif(13))
                     .foregroundStyle(dark ? Color.white : BookshelfStyle.ink)
                     .lineLimit(1)
@@ -170,7 +172,7 @@ struct DestinationMenu: View {
         }
         .accessibilityIdentifier("register.destination")
         .accessibilityLabel("登録先")
-        .accessibilityValue(destination.name)
+        .accessibilityValue(destination.displayName)
     }
 }
 
@@ -364,19 +366,28 @@ struct CaptureView: View {
 
     // MARK: 下部
 
+    /// 初回チュートリアルで、まだ1冊も撮っていない（L-3: シャッターの案内だけを出す。T14）
+    private var isGuided: Bool { model.showsShutterHint && model.reservedCount == 0 }
+
     private var bottomControls: some View {
         VStack(spacing: 0) {
             detectionPill
                 .frame(height: 30)
                 .padding(.top, 16)
-            capturedStrip
-                .frame(height: 52)
-                .padding(.top, 18)
-                .padding(.horizontal, 20)
-            Spacer(minLength: 8)
+            if isGuided {
+                Spacer(minLength: 8)
+                shutterHint
+                    .padding(.bottom, 6)
+            } else {
+                capturedStrip
+                    .frame(height: 52)
+                    .padding(.top, 18)
+                    .padding(.horizontal, 20)
+                Spacer(minLength: 8)
+            }
             HStack {
                 // 表紙の撮り直しは1枚撮れば終わるので、ライブラリと「完了」は出さない（場所だけ空ける）
-                if model.purpose == .registration {
+                if model.purpose == .registration && !isGuided {
                     libraryButton
                 } else {
                     Color.clear.frame(width: 48, height: 48)
@@ -384,7 +395,7 @@ struct CaptureView: View {
                 Spacer()
                 shutterButton
                 Spacer()
-                if model.purpose == .registration {
+                if model.purpose == .registration && !isGuided {
                     doneButton
                 } else {
                     Color.clear.frame(width: 84, height: 48)
@@ -393,6 +404,30 @@ struct CaptureView: View {
             .padding(.horizontal, 28)
             .padding(.bottom, 12)
         }
+    }
+
+    /// 「ここを押して撮影」の吹き出し（L-3）
+    private var shutterHint: some View {
+        VStack(spacing: 0) {
+            Text("ここを押して撮影")
+                .font(BookshelfStyle.sans(14, .medium))
+                .tracking(0.5)
+                .foregroundStyle(BookshelfStyle.ink)
+                .padding(.horizontal, 16)
+                .frame(height: 34)
+                .background(Capsule().fill(Color.white))
+            Path { path in
+                path.move(to: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: 16, y: 0))
+                path.addLine(to: CGPoint(x: 8, y: 8))
+                path.closeSubpath()
+            }
+            .fill(Color.white)
+            .frame(width: 16, height: 8)
+            .padding(.top, 6)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("capture.shutterHint")
     }
 
     @ViewBuilder

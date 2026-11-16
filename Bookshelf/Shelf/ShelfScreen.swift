@@ -57,6 +57,11 @@ struct ShelfScreen: View {
     @State private var editing = ShelfEditing()
     /// 検索（E-4・E-5。F7）。下部バーの検索欄で開く
     @State private var showsSearch = false
+    // 購入月別（T13。F6-7）: まとめ方・月か年か・見ている本・月（年）が入ってくる向き
+    @State private var grouping: BrowseGrouping = .genre
+    @State private var monthPeriod: PurchasePeriod = .month
+    @State private var monthFocus = MonthFocus()
+    @State private var monthEdge: Edge = .bottom
 
     var body: some View {
         let all = browseShelves
@@ -67,6 +72,8 @@ struct ShelfScreen: View {
                 VStack(spacing: 0) {
                     if books.isEmpty || current == nil {
                         emptyLibrary
+                    } else if grouping == .month {
+                        monthContent
                     } else if let current {
                         header(current, all: all)
                         content(current, all: all)
@@ -94,7 +101,9 @@ struct ShelfScreen: View {
                         }
                     }
                 }
-                if let menu = editing.gridMenu, let current {
+                if let menu = editing.gridMenu, grouping == .month {
+                    monthGridMenu(menu)
+                } else if let menu = editing.gridMenu, let current {
                     gridMenu(menu, in: current)
                 }
                 if let book = editing.deleting {
@@ -106,12 +115,23 @@ struct ShelfScreen: View {
                 if showsMenu {
                     DisplayMenu(
                         mode: mode,
-                        sortKey: current.flatMap {
-                            $0.isWishlist ? nil : editing.sortKey(for: $0.shelf, books: $0.books)
-                        },
+                        grouping: grouping,
+                        // 購入月別は購入日順で固定のため「並べ順」を出さない（F6-7）
+                        sortKey: grouping == .month
+                            ? nil
+                            : current.flatMap {
+                                $0.isWishlist ? nil : editing.sortKey(for: $0.shelf, books: $0.books)
+                            },
                         onSelectMode: { newMode in
                             editing.clearSelection()
+                            editing.gridMenu = nil
                             mode = newMode
+                            showsMenu = false
+                        },
+                        onSelectGrouping: { newGrouping in
+                            editing.clearSelection()
+                            editing.gridMenu = nil
+                            grouping = newGrouping
                             showsMenu = false
                         },
                         onSelectSort: { key in
@@ -133,7 +153,7 @@ struct ShelfScreen: View {
                         images: environment.store.images,
                         onOpen: { book in
                             // 戻ると検索の結果に戻る（戻る先の名前は「検索」）
-                            path.append(DetailRoute(bookID: book.id, backTitle: "検索"))
+                            path.append(DetailRoute(bookID: book.id, backTitle: String(localized: "検索")))
                         },
                         onCancel: { showsSearch = false }
                     )
@@ -288,6 +308,10 @@ struct ShelfScreen: View {
         editing.toast = nil
         positions[id] = max(list.firstIndex { $0.id == book.id } ?? 0, 0)
         currentID = id
+        // 購入月別では、その本を含む月（年）のその本を見せる
+        if book.ownership == .owned {
+            monthFocus.bookID = book.id
+        }
     }
 
     /// 登録を終えたら、登録先の棚の末尾（新しく並んだ本）を見せる（C-4）
@@ -308,7 +332,7 @@ struct ShelfScreen: View {
             } label: {
                 VStack(spacing: 4) {
                     HStack(alignment: .center, spacing: 7) {
-                        Text(current.shelf.name)
+                        Text(current.shelf.displayName)
                             .font(BookshelfStyle.serif(22, relativeTo: .title2))
                             .tracking(0.5)
                             .foregroundStyle(BookshelfStyle.ink)
@@ -329,7 +353,7 @@ struct ShelfScreen: View {
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(current.shelf.name)
+            .accessibilityLabel(current.shelf.displayName)
             .accessibilityValue("\(current.books.count)冊")
             .accessibilityHint("棚の一覧を開きます")
             .accessibilityAddTraits(.isButton)
@@ -482,7 +506,7 @@ struct ShelfScreen: View {
                     .accessibilityIdentifier("shelf.bookTitle")
                 if current.isWishlist {
                     HStack(spacing: 10) {
-                        Text(book.shelf?.name ?? "未分類")
+                        Text(book.shelf?.displayName ?? InitialGenres.unsortedDisplayName)
                             .font(BookshelfStyle.serif(12))
                             .tracking(0.5)
                             .foregroundStyle(BookshelfStyle.sub)
@@ -513,7 +537,7 @@ struct ShelfScreen: View {
                     .tracking(0.5)
                     .foregroundStyle(BookshelfStyle.ink)
                     .accessibilityIdentifier("shelf.bookTitle")
-                Text("タップして撮影・登録先  \(current.shelf.name)")
+                Text("タップして撮影・登録先  \(current.shelf.displayName)")
                     .font(BookshelfStyle.sans(12))
                     .tracking(0.5)
                     .foregroundStyle(BookshelfStyle.sub)
@@ -623,10 +647,134 @@ struct ShelfScreen: View {
         .accessibilityIdentifier("library.empty")
     }
 
+    // MARK: - 購入月別（T13。F6-7・J-1〜J-4）
+
+    /// 購入月別の中身（棚表示は J-1・J-2、グリッドは J-3・J-4）。購入済みの本が無ければ案内
+    @ViewBuilder
+    private var monthContent: some View {
+        let groups = MonthGrouping.groups(of: books, by: monthPeriod)
+        if let resolved = MonthGrouping.resolve(monthFocus, in: groups) {
+            let groupIndex = resolved.group
+            let index = resolved.index
+            if mode == .grid {
+                MonthGridView(
+                    groups: groups, period: monthPeriod, store: environment.store.images,
+                    onTapBook: { book, group in
+                        path.append(DetailRoute(bookID: book.id, backTitle: group.displayTitle))
+                    },
+                    onLongPress: { book, frame in
+                        editing.gridMenu = ShelfEditing.GridMenu(bookID: book.id, index: 0, frame: frame)
+                    },
+                    onPinch: switchMonthPeriod)
+            } else {
+                let group = groups[groupIndex]
+                MonthBrowseView(
+                    groups: groups, groupIndex: groupIndex, index: index, store: environment.store.images,
+                    selection: editing.selection, edge: monthEdge,
+                    onCenterChange: { focusMonth(group, at: $0) },
+                    onMoveGroup: { moveMonth(by: $0, from: groupIndex, in: groups) },
+                    onSelectMonth: { month in
+                        if let first = group.books.firstIndex(where: { MonthGrouping.month(of: $0) == month }) {
+                            focusMonth(group, at: first)
+                        }
+                    },
+                    onTapBook: { book in path.append(DetailRoute(bookID: book.id, backTitle: group.displayTitle)) },
+                    onReorderEvent: { handleMonthReorder($0, in: group) },
+                    onTapWhileSelected: { editing.clearSelection() },
+                    onMoveBook: { editing.moving = $0 },
+                    onDeleteBook: { editing.deleting = $0 },
+                    onPinch: switchMonthPeriod)
+            }
+        } else {
+            MonthEmptyView()
+        }
+    }
+
+    /// まとまりの中で見ている本を覚える（月と年を切り替えても、削除で本が消えても近くを見せる）
+    private func focusMonth(_ group: PurchaseGroup, at index: Int) {
+        guard group.books.indices.contains(index) else { return }
+        monthFocus = MonthFocus(groupID: group.id, bookID: group.books[index].id, index: index)
+    }
+
+    /// 縦スワイプで月（年）をかえる。+1 = 古いほうへ。新しいまとまりの最初の本（1日）から見せる
+    private func moveMonth(by delta: Int, from groupIndex: Int, in groups: [PurchaseGroup]) {
+        let next = groupIndex + delta
+        guard groups.indices.contains(next) else { return }
+        editing.clearSelection()
+        monthEdge = delta > 0 ? .bottom : .top
+        withAnimation(.easeOut(duration: 0.3)) {
+            focusMonth(groups[next], at: 0)
+        }
+    }
+
+    /// ピンチインで年、ピンチアウトで月（見ている本はそのまま）
+    private func switchMonthPeriod(_ period: PurchasePeriod) {
+        guard period != monthPeriod else { return }
+        editing.clearSelection()
+        editing.gridMenu = nil
+        withAnimation(.easeOut(duration: 0.25)) {
+            monthPeriod = period
+        }
+    }
+
+    /// 購入月別の長押し: 並べ替えはせず、上で別の棚へ・下で削除の確認（F6-7）
+    private func handleMonthReorder(_ event: ShelfReorderHandler.Event, in group: PurchaseGroup) {
+        // 選択の目印には、まとまりの最初の本の ID を使う（購入月別は棚を持たないため。比べるのは本の ID）
+        guard let key = group.books.first?.persistentModelID else { return }
+        let command = withAnimation(.easeOut(duration: 0.2)) {
+            editing.handle(event, books: group.books, shelfID: key, allowsReorder: false)
+        }
+        switch command {
+        case .move(let bookID):
+            editing.moving = group.books.first { $0.id == bookID }
+        case .delete(let bookID):
+            editing.deleting = group.books.first { $0.id == bookID }
+        case .reorder, nil:
+            break
+        }
+    }
+
+    /// 購入月別のグリッドの長押しメニュー（I-2 と同じ。並べ替えの代わりに並び順の案内）
+    private func monthGridMenu(_ menu: ShelfEditing.GridMenu) -> some View {
+        let book = books.first { $0.id == menu.bookID }
+        return GridBookMenu(
+            menu: menu,
+            allowsReorder: false,
+            onDetail: {
+                editing.gridMenu = nil
+                if let book {
+                    let title = MonthGrouping.groups(of: [book], by: monthPeriod).first?.displayTitle ?? ""
+                    path.append(DetailRoute(bookID: book.id, backTitle: title))
+                }
+            },
+            onMove: {
+                editing.gridMenu = nil
+                editing.moving = book
+            },
+            onDelete: {
+                editing.gridMenu = nil
+                editing.deleting = book
+            },
+            onClose: { editing.gridMenu = nil },
+            note: "購入日の順に並びます")
+    }
+
     // MARK: - 下（操作のヒント・下部バー）
 
+    /// 操作のヒント（購入月別は J-1〜J-4 の文言）
+    private var hintText: LocalizedStringKey {
+        switch (grouping, mode, monthPeriod) {
+        case (.genre, .grid, _): "↑↓ スクロール　←→ 棚をかえる　長押しでメニュー"
+        case (.genre, .shelf, _): "←→ 本をめくる　↑↓ 棚をかえる"
+        case (.month, .shelf, .month): "←→ 本をめくる　↑↓ 月をかえる　ピンチインで年"
+        case (.month, .shelf, .year): "←→ 本をめくる　↑↓ 年をかえる　ピンチアウトで月に戻る"
+        case (.month, .grid, .month): "↑↓ 月をスクロール　ピンチインで年　長押しでメニュー"
+        case (.month, .grid, .year): "↑↓ 年をスクロール　ピンチアウトで月に戻る"
+        }
+    }
+
     private var hint: some View {
-        Text(mode == .grid ? "↑↓ スクロール　←→ 棚をかえる　長押しでメニュー" : "←→ 本をめくる　↑↓ 棚をかえる")
+        Text(hintText)
             .font(BookshelfStyle.sans(10.5))
             .foregroundStyle(BookshelfStyle.faint)
             .padding(.bottom, 20)
@@ -812,7 +960,7 @@ struct ShelfScreen: View {
     }
 
     private func openDetail(_ book: Book, from shelf: BrowseShelf) {
-        path.append(DetailRoute(bookID: book.id, backTitle: shelf.shelf.name))
+        path.append(DetailRoute(bookID: book.id, backTitle: shelf.shelf.displayName))
     }
 
     private func initialShelf() -> Shelf? {
@@ -847,6 +995,8 @@ struct ShelfScreen: View {
 struct ShelfIndicator: View {
     let count: Int
     let index: Int
+    /// 読み上げの名前（購入月別では「月の位置」「年の位置」。T13）
+    var label: LocalizedStringKey = "棚の位置"
 
     var body: some View {
         VStack(spacing: 0) {
@@ -860,7 +1010,7 @@ struct ShelfIndicator: View {
             }
         }
         .accessibilityElement()
-        .accessibilityLabel("棚の位置")
+        .accessibilityLabel(label)
         .accessibilityValue("\(index + 1) / \(count)")
         .accessibilityIdentifier("shelf.indicator")
     }

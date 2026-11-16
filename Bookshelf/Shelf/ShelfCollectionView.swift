@@ -247,7 +247,7 @@ struct ShelfCollectionView: UIViewRepresentable {
                 cell.configure(parent.items[index], index: index, count: parent.items.count, store: parent.store)
                 // VoiceOver では長押しの代わりに「選択」の操作で選ぶ（N5）
                 cell.accessibilityCustomActions = [
-                    UIAccessibilityCustomAction(name: "選択して並べ替え・移動・削除") { [weak self] _ in
+                    UIAccessibilityCustomAction(name: String(localized: "選択して並べ替え・移動・削除")) { [weak self] _ in
                         guard let self, index == self.reported else { return false }
                         self.parent.onReorderEvent(.began(index))
                         self.parent.onReorderEvent(.ended(.zero))

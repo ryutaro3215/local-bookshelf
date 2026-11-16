@@ -12,7 +12,9 @@ final class ReorderUITests: XCTestCase {
 
     private func launch(seed: String, persistent: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-UITestReset", "-SeedBooks", seed] + (persistent ? ["-UITestPersistentStore"] : [])
+        app.launchArguments =
+            UITestLanguage.japanese + ["-UITestReset", "-SeedBooks", seed]
+            + (persistent ? ["-UITestPersistentStore"] : [])
         app.launch()
         XCTAssertTrue(app.buttons["shelf.title"].waitForExistence(timeout: 20))
         return app
@@ -67,7 +69,7 @@ final class ReorderUITests: XCTestCase {
         // 再起動（同じデータを開く）
         app.terminate()
         let relaunched = XCUIApplication()
-        relaunched.launchArguments = ["-UITestPersistentStore"]
+        relaunched.launchArguments = UITestLanguage.japanese + ["-UITestPersistentStore"]
         relaunched.launch()
         XCTAssertTrue(relaunched.buttons["shelf.title"].waitForExistence(timeout: 20))
         XCTAssertEqual(relaunched.buttons["shelf.title"].label, "哲学・思想")

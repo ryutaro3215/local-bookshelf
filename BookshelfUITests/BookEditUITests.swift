@@ -13,7 +13,7 @@ final class BookEditUITests: XCTestCase {
 
     private func launch(seed: String, camera: String = "cover:PAPER COMETS") -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-UITestReset", "-SeedBooks", seed, "-FakeCamera", camera]
+        app.launchArguments = UITestLanguage.japanese + ["-UITestReset", "-SeedBooks", seed, "-FakeCamera", camera]
         app.launch()
         XCTAssertTrue(app.buttons["shelf.title"].waitForExistence(timeout: 20))
         return app

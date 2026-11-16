@@ -163,7 +163,7 @@ struct PendingListView: View {
         }
     }
 
-    private func smallButton(_ title: String, id: String, disabled: Bool, action: @escaping () -> Void)
+    private func smallButton(_ title: LocalizedStringKey, id: String, disabled: Bool, action: @escaping () -> Void)
         -> some View
     {
         Button(action: action) {
@@ -249,7 +249,7 @@ struct PendingListView: View {
             onClose(count)
         } catch {
             Self.logger.error("登録に失敗: \(error.localizedDescription, privacy: .public)")
-            model.errorMessage = "登録できませんでした。もう一度お試しください"
+            model.errorMessage = String(localized: "登録できませんでした。もう一度お試しください")
         }
     }
 }
@@ -362,11 +362,11 @@ struct PendingRow: View {
     private var genreMenu: some View {
         Menu {
             ForEach(shelves) { shelf in
-                Button(shelf.name) { item.shelf = shelf }
+                Button(shelf.displayName) { item.shelf = shelf }
             }
         } label: {
             HStack(spacing: 6) {
-                Text(item.shelf.name)
+                Text(item.shelf.displayName)
                     .font(BookshelfStyle.serif(11))
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
@@ -378,7 +378,7 @@ struct PendingRow: View {
             .background(Capsule().fill(BookshelfStyle.fill))
         }
         .accessibilityIdentifier("pending.row.\(index).genre")
-        .accessibilityValue(item.shelf.name)
+        .accessibilityValue(item.shelf.displayName)
     }
 
     @ViewBuilder
@@ -587,14 +587,15 @@ struct PendingTitleEditor: View {
             .clipShape(RoundedRectangle(cornerRadius: 2))
             .padding(.top, 14)
             .accessibilityHidden(true)
-            Text("\(item.owned ? "購入済み" : "買いたい本")・登録先 \(item.shelf.name)")
+            Text(statusText(for: item))
                 .font(BookshelfStyle.sans(12))
                 .foregroundStyle(BookshelfStyle.sub)
                 .padding(.top, 16)
                 .accessibilityIdentifier("titleEditor.status")
             TitleEditField(
                 title: Binding(get: { item.title }, set: { item.title = $0 }),
-                candidates: item.candidates, isRecognizing: item.isRecognizing, label: "題名（必須）", note: nil,
+                candidates: item.candidates, isRecognizing: item.isRecognizing, label: String(localized: "題名（必須）"),
+                note: nil,
                 focus: $titleFocused, idPrefix: "titleEditor", submitLabel: .next,
                 onSubmit: { step(1) },
                 onEdited: { item.titleEdited = true }
@@ -613,10 +614,17 @@ struct PendingTitleEditor: View {
         }
     }
 
+    /// 「購入済み・登録先 小説」
+    private func statusText(for item: PendingBook) -> String {
+        let status = item.owned ? String(localized: "購入済み") : String(localized: "買いたい本")
+        return String(localized: "\(status)・登録先 \(item.shelf.displayName)")
+    }
+
     private func remainingText(for item: PendingBook) -> String {
         let untitled = model.untitledCount
-        if untitled == 0 { return "すべての本に題名が入りました" }
-        return item.hasTitle ? "未入力はあと\(untitled)冊" : "未入力はこの本を含めてあと\(untitled)冊"
+        if untitled == 0 { return String(localized: "すべての本に題名が入りました") }
+        return item.hasTitle
+            ? String(localized: "未入力はあと\(untitled)冊") : String(localized: "未入力はこの本を含めてあと\(untitled)冊")
     }
 
     /// 前後の本へ。最後の本で「次へ」を押したら、まだ未入力の本があればそこへ、無ければ一覧へ戻る

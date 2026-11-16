@@ -60,3 +60,37 @@ enum InitialGenres {
     static let wishlist = (name: "買いたい本", nameEn: "Wishlist")
     static let unsorted = (name: "未分類", nameEn: "Unsorted")
 }
+
+// MARK: - 表示言語に合わせた名前（N7）
+
+extension InitialGenres {
+    /// アプリが英語で表示されているか（端末の言語設定から OS が選んだアプリの言語）
+    nonisolated static var displaysInEnglish: Bool {
+        Bundle.main.preferredLocalizations.first?.hasPrefix("en") ?? false
+    }
+
+    /// 本が棚に入っていないときに出す「未分類」（表示言語に合わせる）
+    static var unsortedDisplayName: String {
+        displaysInEnglish ? unsorted.nameEn : unsorted.name
+    }
+
+    /// 「買いたい本」（表示言語に合わせる）
+    static var wishlistDisplayName: String {
+        displaysInEnglish ? wishlist.nameEn : wishlist.name
+    }
+}
+
+extension GenreCategory {
+    /// 画面に出す区分の名前（表示言語に合わせる）
+    nonisolated var displayName: String {
+        InitialGenres.displaysInEnglish ? nameEn : name
+    }
+}
+
+extension Shelf {
+    /// 画面に出す棚の名前。初期ジャンル・システム棚は表示言語の訳語、ユーザーが付けた名前（`nameEn` が nil）はそのまま。
+    /// `name` はデータ上の名前（accessibilityIdentifier・起動引数の棚の指定にも使う）なので、画面の文字にはこちらを使う
+    nonisolated var displayName: String {
+        InitialGenres.displaysInEnglish ? (nameEn ?? name) : name
+    }
+}

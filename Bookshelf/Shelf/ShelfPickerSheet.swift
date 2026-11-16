@@ -35,7 +35,7 @@ struct ShelfPickerSheet: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(groups, id: \.category.id) { group in
-                            Text(group.category.name)
+                            Text(group.category.displayName)
                                 .font(BookshelfStyle.sans(11, .medium))
                                 .tracking(1)
                                 .foregroundStyle(BookshelfStyle.faint)
@@ -70,7 +70,7 @@ struct ShelfPickerSheet: View {
             onSelect(entry.shelf)
         } label: {
             HStack(spacing: 12) {
-                Text(entry.shelf.name)
+                Text(entry.shelf.displayName)
                     .font(BookshelfStyle.serif(16))
                     .tracking(0.5)
                     .foregroundStyle(BookshelfStyle.ink)
@@ -92,7 +92,7 @@ struct ShelfPickerSheet: View {
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 12)
-        .accessibilityLabel(entry.shelf.name)
+        .accessibilityLabel(entry.shelf.displayName)
         .accessibilityValue("\(entry.count)冊")
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityIdentifier("picker.row.\(entry.shelf.name)")

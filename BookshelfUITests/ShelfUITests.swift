@@ -12,7 +12,7 @@ final class ShelfUITests: XCTestCase {
 
     private func launch(seed: String) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-UITestReset", "-SeedBooks", seed]
+        app.launchArguments = UITestLanguage.japanese + ["-UITestReset", "-SeedBooks", seed]
         app.launch()
         XCTAssertTrue(app.buttons["shelf.title"].waitForExistence(timeout: 20))
         return app

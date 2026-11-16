@@ -186,6 +186,26 @@ struct LibraryStoreTests {
         ProcessedCover(image: Data([byte, byte]), thumbnail: Data([byte]), corners: nil)
     }
 
+    @Test("T15 名前の変更: 今の名前（表示名・日本語名）のまま保存しても、日本語名と英語名は変わらない")
+    func renameWithUnchangedNameKeepsBothNames() throws {
+        let (store, _) = try makeStore()
+        let shelf = try #require(try store.shelves().first { $0.name == "経済・経営" })
+        // 表示名（ホストのアプリの言語に合わせて「経済・経営」か「Economics & Management」）のまま
+        try store.renameShelf(shelf, to: shelf.displayName)
+        #expect(shelf.name == "経済・経営")
+        #expect(shelf.nameEn == "Economics & Management")
+        // 日本語名・英語名のどちらを入れても同じ（前後の空白は除いて比べる）
+        try store.renameShelf(shelf, to: "経済・経営")
+        try store.renameShelf(shelf, to: " Economics & Management ")
+        #expect(shelf.name == "経済・経営")
+        #expect(shelf.nameEn == "Economics & Management")
+        // 違う名前にすると、その名前になり英語名は消える（ユーザーが付けた名前は翻訳しない）
+        try store.renameShelf(shelf, to: "経営の棚")
+        #expect(shelf.name == "経営の棚")
+        #expect(shelf.nameEn == nil)
+        #expect(shelf.displayName == "経営の棚")
+    }
+
     @Test("T9 編集: 題名（S6）・ジャンル（移した先の末尾）・購入日を保存する")
     func editTitleGenreAndDate() throws {
         let (store, _) = try makeStore()

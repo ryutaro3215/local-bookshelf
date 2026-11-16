@@ -193,7 +193,7 @@ final class ShelfSlotCell: UICollectionViewCell {
         contentConfiguration = UIHostingConfiguration { EmptyCoverBox(kind: .addBook) }.margins(.all, 0)
         isAccessibilityElement = true
         accessibilityTraits = .button
-        accessibilityLabel = "この棚に本を追加"
+        accessibilityLabel = String(localized: "この棚に本を追加")
         accessibilityIdentifier = "shelf.slot"
     }
 

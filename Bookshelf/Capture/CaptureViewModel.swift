@@ -135,6 +135,8 @@ final class CaptureViewModel {
     var errorMessage: String?
     /// ライブラリから始めたとき、一覧を開いたらすぐ写真ピッカーを出す
     var opensLibraryOnAppear = false
+    /// 初回チュートリアルの撮影（L-3）: 1冊も撮っていない間、シャッターの上に「ここを押して撮影」を出し、ほかの操作を隠す（T14）
+    var showsShutterHint = false
     /// 最後に測った「撮影 → 次の撮影可能」の時間（ミリ秒。デバッグ表示・ログ用）
     private(set) var lastShutterLatencyMilliseconds: Int?
 
@@ -208,7 +210,7 @@ final class CaptureViewModel {
             isShutterBusy = false
             processingCount -= 1
             Self.logger.error("撮影に失敗: \(error.localizedDescription, privacy: .public)")
-            errorMessage = "撮影できませんでした。もう一度お試しください"
+            errorMessage = String(localized: "撮影できませんでした。もう一度お試しください")
         }
     }
 
@@ -227,7 +229,7 @@ final class CaptureViewModel {
                 guard let source = await pipeline.adjustmentSource(data),
                     let adjustment = ManualAdjustment(source: source)
                 else {
-                    errorMessage = "画像を読み込めませんでした"
+                    errorMessage = String(localized: "画像を読み込めませんでした")
                     return
                 }
                 adjustments.append(adjustment)
@@ -235,7 +237,7 @@ final class CaptureViewModel {
         } catch {
             processingCount -= 1
             Self.logger.error("表紙の処理に失敗: \(error.localizedDescription, privacy: .public)")
-            errorMessage = "画像を読み込めませんでした"
+            errorMessage = String(localized: "画像を読み込めませんでした")
         }
     }
 
@@ -257,7 +259,7 @@ final class CaptureViewModel {
             append(result)
         } catch {
             Self.logger.error("手動の四隅で補正できない: \(error.localizedDescription, privacy: .public)")
-            errorMessage = "この範囲では補正できませんでした。角を動かしてもう一度お試しください"
+            errorMessage = String(localized: "この範囲では補正できませんでした。角を動かしてもう一度お試しください")
         }
     }
 

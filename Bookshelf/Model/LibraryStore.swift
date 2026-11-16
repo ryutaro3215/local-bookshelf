@@ -318,6 +318,8 @@ final class LibraryStore {
         guard !shelf.isSystem else { throw LibraryError.systemShelfIsProtected }
         let cleanName = Self.sanitize(name)
         guard !cleanName.isEmpty else { throw LibraryError.emptyName }
+        // 今の名前（日本語名・英語名。表示名はどちらか）のままなら何もしない。初期ジャンルの両方の名前を残す（T15）
+        guard cleanName != shelf.name, cleanName != shelf.nameEn else { return }
         shelf.name = cleanName
         shelf.nameEn = nil
         try commit()

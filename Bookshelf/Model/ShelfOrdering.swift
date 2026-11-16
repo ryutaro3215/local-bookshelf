@@ -16,8 +16,8 @@ nonisolated enum ShelfSortKey: String, CaseIterable, Sendable {
     /// 題名順（内部項目「よみ」の順。F7-1）
     case title
 
-    /// メニューに出す名前
-    var label: String {
+    /// メニューに出す名前（表示言語に合わせる）
+    var label: LocalizedStringResource {
         switch self {
         case .manual: "手動（自分で並べた順）"
         case .purchasedNewest: "購入日が新しい順"

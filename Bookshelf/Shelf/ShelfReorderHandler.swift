@@ -242,7 +242,7 @@ final class ShelfEditing {
             }
         } catch {
             Self.logger.error("並べ替えを保存できない: \(error.localizedDescription, privacy: .public)")
-            toast = Toast(message: "並べ替えを保存できませんでした", undo: nil, fromIndex: nil)
+            toast = Toast(message: String(localized: "並べ替えを保存できませんでした"), undo: nil, fromIndex: nil)
         }
     }
 
@@ -250,11 +250,11 @@ final class ShelfEditing {
     func commitMove(_ book: Book, to shelf: Shelf, fromIndex: Int?, store: LibraryStore) -> Bool {
         do {
             let record = try store.moveBook(book, to: shelf)
-            toast = Toast(message: "\(shelf.name) に移しました", undo: record, fromIndex: fromIndex)
+            toast = Toast(message: String(localized: "\(shelf.displayName) に移しました"), undo: record, fromIndex: fromIndex)
             return true
         } catch {
             Self.logger.error("棚を移せない: \(error.localizedDescription, privacy: .public)")
-            toast = Toast(message: "移動できませんでした", undo: nil, fromIndex: nil)
+            toast = Toast(message: String(localized: "移動できませんでした"), undo: nil, fromIndex: nil)
             return false
         }
     }
@@ -268,7 +268,7 @@ final class ShelfEditing {
             return record.fromShelf
         } catch {
             Self.logger.error("移動を取り消せない: \(error.localizedDescription, privacy: .public)")
-            self.toast = Toast(message: "取り消せませんでした", undo: nil, fromIndex: nil)
+            self.toast = Toast(message: String(localized: "取り消せませんでした"), undo: nil, fromIndex: nil)
             return nil
         }
     }
@@ -285,7 +285,7 @@ final class ShelfEditing {
             }
         } catch {
             Self.logger.error("本を削除できない: \(error.localizedDescription, privacy: .public)")
-            toast = Toast(message: "削除できませんでした", undo: nil, fromIndex: nil)
+            toast = Toast(message: String(localized: "削除できませんでした"), undo: nil, fromIndex: nil)
         }
     }
 
@@ -315,7 +315,7 @@ final class ShelfEditing {
             sortChoices[id] = key
         } catch {
             Self.logger.error("並べ順を変えられない: \(error.localizedDescription, privacy: .public)")
-            toast = Toast(message: "並べ順を変えられませんでした", undo: nil, fromIndex: nil)
+            toast = Toast(message: String(localized: "並べ順を変えられませんでした"), undo: nil, fromIndex: nil)
         }
     }
 }
@@ -354,7 +354,9 @@ struct SelectionArrows: View {
         .offset(y: selection.lift * 0.5)
     }
 
-    private func arrow(_ symbol: String, label: String, id: String, action: @escaping () -> Void) -> some View {
+    private func arrow(_ symbol: String, label: LocalizedStringKey, id: String, action: @escaping () -> Void)
+        -> some View
+    {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 14, weight: .semibold))
@@ -408,7 +410,7 @@ struct SelectionInfo: View {
         }
     }
 
-    private func guide(_ symbols: [String], _ text: String) -> some View {
+    private func guide(_ symbols: [String], _ text: LocalizedStringKey) -> some View {
         HStack(spacing: 6) {
             HStack(spacing: 4) {
                 ForEach(symbols, id: \.self) { symbol in
@@ -445,7 +447,7 @@ struct MoveShelfSheet: View {
                 .padding(.top, 30)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("move.title")
-            Text("\(book.title) ・現在の棚 \(book.shelf?.name ?? "未分類")")
+            Text("\(book.title) ・現在の棚 \(book.shelf?.displayName ?? InitialGenres.unsortedDisplayName)")
                 .font(BookshelfStyle.sans(12))
                 .tracking(0.5)
                 .foregroundStyle(BookshelfStyle.sub)
@@ -456,7 +458,7 @@ struct MoveShelfSheet: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(groups, id: \.category.id) { group in
-                            Text(group.category.name)
+                            Text(group.category.displayName)
                                 .font(BookshelfStyle.sans(11, .medium))
                                 .tracking(1)
                                 .foregroundStyle(BookshelfStyle.faint)
@@ -485,14 +487,17 @@ struct MoveShelfSheet: View {
             Button {
                 if let selected { onMove(selected) }
             } label: {
-                Text(selected.map { "\($0.name) へ移動" } ?? "移動先を選んでください")
-                    .font(BookshelfStyle.sans(16, .medium))
-                    .tracking(0.5)
-                    .foregroundStyle(Color.white)
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(Capsule().fill(BookshelfStyle.ink.opacity(selected == nil ? 0.3 : 1)))
+                Text(
+                    selected.map { String(localized: "\($0.displayName) へ移動") }
+                        ?? String(localized: "移動先を選んでください")
+                )
+                .font(BookshelfStyle.sans(16, .medium))
+                .tracking(0.5)
+                .foregroundStyle(Color.white)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(Capsule().fill(BookshelfStyle.ink.opacity(selected == nil ? 0.3 : 1)))
             }
             .buttonStyle(.plain)
             .disabled(selected == nil)
@@ -526,7 +531,7 @@ struct MoveShelfSheet: View {
             selected = shelf
         } label: {
             HStack(spacing: 12) {
-                Text(shelf.name)
+                Text(shelf.displayName)
                     .font(BookshelfStyle.serif(16))
                     .tracking(0.5)
                     .foregroundStyle(isCurrent ? BookshelfStyle.faint : BookshelfStyle.ink)
@@ -549,7 +554,7 @@ struct MoveShelfSheet: View {
         .buttonStyle(.plain)
         .disabled(isCurrent)
         .padding(.horizontal, 12)
-        .accessibilityLabel(shelf.name)
+        .accessibilityLabel(shelf.displayName)
         .accessibilityValue(isCurrent ? "現在の棚" : "\(count)冊")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityIdentifier("move.row.\(shelf.name)")
@@ -689,6 +694,8 @@ struct GridBookMenu: View {
     let onMove: () -> Void
     let onDelete: () -> Void
     let onClose: () -> Void
+    /// メニューの下の案内（nil = 並べ替えの可否に合わせた既定の文。購入月別は「購入日の順に並びます」。T13）
+    var note: LocalizedStringKey?
 
     private static let width: CGFloat = 262
     private static let height: CGFloat = 182
@@ -735,7 +742,7 @@ struct GridBookMenu: View {
             Rectangle().fill(Color(red: 0xE8 / 255, green: 0xE8 / 255, blue: 0xE8 / 255)).frame(height: 1)
             row("削除", symbol: "trash", color: BookshelfStyle.danger, id: "gridMenu.delete", action: onDelete)
             Rectangle().fill(Color(red: 0xF4 / 255, green: 0xF4 / 255, blue: 0xF4 / 255)).frame(height: 8)
-            Text(allowsReorder ? "そのままドラッグで並べ替え" : "買いたい本は登録した順に並びます")
+            Text(note ?? (allowsReorder ? "そのままドラッグで並べ替え" : "買いたい本は登録した順に並びます") as LocalizedStringKey)
                 .font(BookshelfStyle.sans(12))
                 .tracking(0.5)
                 .foregroundStyle(BookshelfStyle.faint)
@@ -752,7 +759,9 @@ struct GridBookMenu: View {
         .accessibilityIdentifier("gridMenu")
     }
 
-    private func row(_ title: String, symbol: String, color: Color, id: String, action: @escaping () -> Void)
+    private func row(
+        _ title: LocalizedStringKey, symbol: String, color: Color, id: String, action: @escaping () -> Void
+    )
         -> some View
     {
         Button(action: action) {

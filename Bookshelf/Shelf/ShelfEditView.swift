@@ -69,8 +69,8 @@ struct GenreAddView: View {
                     fieldLabel("名前")
                     HStack(spacing: 8) {
                         LimitedTextField(
-                            text: $name, size: 17, accessibilityLabel: "名前", identifier: "genreAdd.name",
-                            onReturn: {})
+                            text: $name, size: 17, accessibilityLabel: String(localized: "名前"),
+                            identifier: "genreAdd.name", onReturn: {})
                         Text("\(name.count)/\(GenreName.maxLength)")
                             .font(BookshelfStyle.sans(11))
                             .foregroundStyle(BookshelfStyle.faint)
@@ -109,7 +109,7 @@ struct GenreAddView: View {
         .background(Color.white)
     }
 
-    private func fieldLabel(_ text: String) -> some View {
+    private func fieldLabel(_ text: LocalizedStringKey) -> some View {
         Text(text)
             .font(BookshelfStyle.sans(13, .medium))
             .tracking(0.5)
@@ -124,7 +124,7 @@ struct GenreAddView: View {
             categoryID = category.id
         } label: {
             HStack {
-                Text(category.name)
+                Text(category.displayName)
                     .font(BookshelfStyle.sans(16, selected ? .medium : .regular))
                     .tracking(0.5)
                     .foregroundStyle(BookshelfStyle.ink)
@@ -164,11 +164,16 @@ struct GenreRenameDialog: View {
         _name = State(initialValue: currentName)
     }
 
+    /// 保存する名前。変えていなければ今の表示名のまま（上限で切らない。英語の初期ジャンル名は20文字を超えることがある。T15）
+    private var savedName: String {
+        name == currentName ? currentName : GenreName.limit(name)
+    }
+
     var body: some View {
         GenreDialog(
             onCancel: onCancel,
-            confirmTitle: "保存", confirmID: "rename.save", isDestructive: false,
-            isConfirmEnabled: GenreName.isValid(name), onConfirm: { onSave(GenreName.limit(name)) },
+            confirmTitle: String(localized: "保存"), confirmID: "rename.save", isDestructive: false,
+            isConfirmEnabled: GenreName.isValid(name), onConfirm: { onSave(savedName) },
             cancelID: "rename.cancel", dialogID: "rename.dialog"
         ) {
             VStack(spacing: 8) {
@@ -181,8 +186,8 @@ struct GenreRenameDialog: View {
                     .font(BookshelfStyle.sans(12))
                     .foregroundStyle(BookshelfStyle.sub)
                 LimitedTextField(
-                    text: $name, size: 16, accessibilityLabel: "新しい名前", identifier: "rename.field",
-                    onReturn: { if GenreName.isValid(name) { onSave(GenreName.limit(name)) } }
+                    text: $name, size: 16, accessibilityLabel: String(localized: "新しい名前"), identifier: "rename.field",
+                    onReturn: { if GenreName.isValid(name) { onSave(savedName) } }
                 )
                 .padding(.horizontal, 14)
                 .frame(height: 40)
@@ -206,7 +211,7 @@ struct GenreDeleteDialog: View {
     var body: some View {
         GenreDialog(
             onCancel: onCancel,
-            confirmTitle: "削除", confirmID: "genreDelete.confirm", isDestructive: true,
+            confirmTitle: String(localized: "削除"), confirmID: "genreDelete.confirm", isDestructive: true,
             isConfirmEnabled: true, onConfirm: onDelete,
             cancelID: "genreDelete.cancel", dialogID: "genreDelete.dialog"
         ) {
@@ -228,7 +233,9 @@ struct GenreDeleteDialog: View {
     }
 
     private var message: String {
-        bookCount > 0 ? "中の\(bookCount)冊は未分類に移動します。\n本は削除されません。" : "このジャンルに本は入っていません。"
+        bookCount > 0
+            ? String(localized: "中の\(bookCount)冊は未分類に移動します。\n本は削除されません。")
+            : String(localized: "このジャンルに本は入っていません。")
     }
 }
 

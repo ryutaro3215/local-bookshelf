@@ -80,11 +80,11 @@ final class PurchaseAction {
     func purchase(_ book: Book, store: LibraryStore) -> Bool {
         do {
             let record = try store.purchase(book)
-            toast = Toast(message: "購入済みにしました", record: record)
+            toast = Toast(message: String(localized: "購入済みにしました"), record: record)
             return true
         } catch {
             Self.logger.error("購入済みにできない: \(error.localizedDescription, privacy: .public)")
-            toast = Toast(message: "購入済みにできませんでした", record: nil)
+            toast = Toast(message: String(localized: "購入済みにできませんでした"), record: nil)
             return false
         }
     }
@@ -98,7 +98,7 @@ final class PurchaseAction {
             return true
         } catch {
             Self.logger.error("購入を取り消せない: \(error.localizedDescription, privacy: .public)")
-            self.toast = Toast(message: "取り消せませんでした", record: nil)
+            self.toast = Toast(message: String(localized: "取り消せませんでした"), record: nil)
             return false
         }
     }

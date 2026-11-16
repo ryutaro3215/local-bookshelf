@@ -26,7 +26,7 @@ struct CornerAdjustView: View {
             case .bottomLeft: "bottomLeft"
             }
         }
-        var label: String {
+        var label: LocalizedStringKey {
             switch self {
             case .topLeft: "左上の角"
             case .topRight: "右上の角"

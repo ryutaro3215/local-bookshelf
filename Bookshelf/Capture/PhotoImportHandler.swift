@@ -47,7 +47,7 @@ enum PhotoImportHandler {
             await model.ingest(data)
         }
         if unreadable > 0 {
-            model.errorMessage = "\(unreadable)枚の写真を読み込めませんでした"
+            model.errorMessage = String(localized: "\(unreadable)枚の写真を読み込めませんでした")
         }
         return accepted
     }

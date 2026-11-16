@@ -12,3 +12,6 @@ build/
 # 書籍の表紙（著作物）を含む受け渡し資料。リポジトリを Private にした場合は外してよい
 design/screens/
 design/sample-covers/
+
+# Claude Code のエージェント用の一時ワークツリー
+.claude/worktrees/
