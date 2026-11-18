@@ -4,6 +4,77 @@
     "" : {
       "shouldTranslate" : false
     },
+    "、" : {
+      "comment" : "読み上げの値の区切り",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", "
+          }
+        }
+      }
+    },
+    "（ほか%lld冊）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " (+%lld more)"
+          }
+        }
+      }
+    },
+    "「%@」に一致する本はありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No books match “%@”"
+          }
+        }
+      }
+    },
+    "「%@」の新しい名前" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New name for “%@”"
+          }
+        }
+      }
+    },
+    "「%@」を\n削除しますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete\n“%@”?"
+          }
+        }
+      }
+    },
+    "「%@」を削除しますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete “%@”?"
+          }
+        }
+      }
+    },
+    "%@ ・現在の棚 %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · Current shelf: %2$@"
+          }
+        }
+      }
+    },
     "%@ で撮影する" : {
       "localizations" : {
         "en" : {
@@ -34,16 +105,6 @@
         }
       }
     },
-    "%@ ・現在の棚 %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ · Current shelf: %2$@"
-          }
-        }
-      }
-    },
     "%@ 購入" : {
       "localizations" : {
         "en" : {
@@ -54,12 +115,172 @@
         }
       }
     },
+    "%@・%@ 購入" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · Purchased %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@・%2$@ 購入"
+          }
+        }
+      }
+    },
+    "%@・%lld冊" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %#@books@"
+          },
+          "substitutions" : {
+            "books" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg book"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg books"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@・%2$lld冊"
+          }
+        }
+      }
+    },
+    "%@・%lld冊（購入済みの本だけ）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %#@books@ (owned only)"
+          },
+          "substitutions" : {
+            "books" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg book"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg books"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@・%2$lld冊（購入済みの本だけ）"
+          }
+        }
+      }
+    },
+    "%@・登録先 %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · Adding to %2$@"
+          }
+        }
+      }
+    },
+    "%@・購入日 %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · Purchased %2$@"
+          }
+        }
+      }
+    },
     "%@に戻る" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Back to %@"
+          }
+        }
+      }
+    },
+    "%@に買った本" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bought in %@"
+          }
+        }
+      }
+    },
+    "%@に買った本・%lld冊" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %#@books@ bought"
+          },
+          "substitutions" : {
+            "books" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg book"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg books"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@に買った本・%2$lld冊"
           }
         }
       }
@@ -90,42 +311,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete %@"
-          }
-        }
-      }
-    },
-    "%@・%@ 購入" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ · Purchased %2$@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@・%2$@ 購入"
-          }
-        }
-      }
-    },
-    "%@・登録先 %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ · Adding to %2$@"
-          }
-        }
-      }
-    },
-    "%@・購入日 %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ · Purchased %2$@"
           }
         }
       }
@@ -288,36 +473,6 @@
         }
       }
     },
-    "OK" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OK"
-          }
-        }
-      }
-    },
-    "SIL OFL 1.1" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SIL OFL 1.1"
-          }
-        }
-      }
-    },
-    "local-bookshelf" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "local-bookshelf"
-          }
-        }
-      }
-    },
     "← → で本をめくり、↑ ↓ で棚をかえます。\n次の本は、右下の「＋」から登録できます。" : {
       "localizations" : {
         "en" : {
@@ -388,53 +543,92 @@
         }
       }
     },
-    "、" : {
-      "comment" : "読み上げの値の区切り",
+    "Instagram\nストーリーズ" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : ", "
+            "value" : "Instagram\nStories"
           }
         }
       }
     },
-    "「%@」に一致する本はありません" : {
+    "Instagram\nフィード" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No books match “%@”"
+            "value" : "Instagram\nFeed"
           }
         }
       }
     },
-    "「%@」の新しい名前" : {
+    "Instagram へ直接渡せないため、共有シートを開きました" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "New name for “%@”"
+            "value" : "Couldn't open Instagram directly, so the share sheet was opened."
           }
         }
       }
     },
-    "「%@」を\n削除しますか？" : {
+    "local-bookshelf" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Delete\n“%@”?"
+            "value" : "local-bookshelf"
           }
         }
       }
     },
-    "「%@」を削除しますか？" : {
+    "OK" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Delete “%@”?"
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "SIL OFL 1.1" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SIL OFL 1.1"
+          }
+        }
+      }
+    },
+    "X に投稿" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post to X"
+          }
+        }
+      }
+    },
+    "X の\nポスト" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "X\nPost"
+          }
+        }
+      }
+    },
+    "X のポスト（4:5）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "X Post (4:5)"
           }
         }
       }
@@ -487,186 +681,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Something Went Wrong"
-          }
-        }
-      }
-    },
-    "ここを押して撮影" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap here to take a photo"
-          }
-        }
-      }
-    },
-    "このアプリについて" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "About This App"
-          }
-        }
-      }
-    },
-    "このアプリはインターネットに接続しません。\nアカウント登録もありません。表紙の写真と本の\nデータは、この iPhone の中だけに保存されます。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This app never connects to the internet, and there's no account to create. Your cover photos and book data are stored only on this iPhone."
-          }
-        }
-      }
-    },
-    "このジャンルに本は入っていません。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "There are no books in this genre."
-          }
-        }
-      }
-    },
-    "この写真を使わない" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Discard This Photo"
-          }
-        }
-      }
-    },
-    "この本は見つかりませんでした" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This book couldn't be found"
-          }
-        }
-      }
-    },
-    "この棚に本を追加" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add a book to this shelf"
-          }
-        }
-      }
-    },
-    "この棚の並べ順" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sort This Shelf"
-          }
-        }
-      }
-    },
-    "この範囲では補正できませんでした。角を動かしてもう一度お試しください" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't straighten the cover with these corners. Move the corners and try again."
-          }
-        }
-      }
-    },
-    "この範囲で使う" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use This Area"
-          }
-        }
-      }
-    },
-    "すべての本に題名が入りました" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All books have titles"
-          }
-        }
-      }
-    },
-    "すべて解除" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deselect All"
-          }
-        }
-      }
-    },
-    "すべて選択" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select All"
-          }
-        }
-      }
-    },
-    "そのままドラッグで並べ替え" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Drag to reorder"
-          }
-        }
-      }
-    },
-    "どちらも SIL Open Font License, Version 1.1 で提供されています。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Both are available under the SIL Open Font License, Version 1.1."
-          }
-        }
-      }
-    },
-    "まだ本がありません" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No books yet"
-          }
-        }
-      }
-    },
-    "まとめ方" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Group By"
-          }
-        }
-      }
-    },
-    "をドラッグして並び替え" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Drag to reorder"
           }
         }
       }
@@ -731,12 +745,202 @@
         }
       }
     },
+    "ここを押して撮影" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap here to take a photo"
+          }
+        }
+      }
+    },
+    "このアプリについて" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About This App"
+          }
+        }
+      }
+    },
+    "このアプリはインターネットに接続しません。\nアカウント登録もありません。表紙の写真と本の\nデータは、この iPhone の中だけに保存されます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app never connects to the internet, and there's no account to create. Your cover photos and book data are stored only on this iPhone."
+          }
+        }
+      }
+    },
+    "このジャンルに本は入っていません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There are no books in this genre."
+          }
+        }
+      }
+    },
+    "この写真を使わない" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard This Photo"
+          }
+        }
+      }
+    },
+    "この年" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Year"
+          }
+        }
+      }
+    },
+    "この年を共有" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share This Year"
+          }
+        }
+      }
+    },
+    "この日" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Day"
+          }
+        }
+      }
+    },
+    "この日を共有" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share This Day"
+          }
+        }
+      }
+    },
+    "この月" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Month"
+          }
+        }
+      }
+    },
+    "この月を共有" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share This Month"
+          }
+        }
+      }
+    },
+    "この本は見つかりませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This book couldn't be found"
+          }
+        }
+      }
+    },
+    "この棚" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Shelf"
+          }
+        }
+      }
+    },
+    "この棚に本を追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a book to this shelf"
+          }
+        }
+      }
+    },
+    "この棚の並べ順" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort This Shelf"
+          }
+        }
+      }
+    },
+    "この棚を共有" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share This Shelf"
+          }
+        }
+      }
+    },
+    "この範囲では補正できませんでした。角を動かしてもう一度お試しください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't straighten the cover with these corners. Move the corners and try again."
+          }
+        }
+      }
+    },
+    "この範囲で使う" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use This Area"
+          }
+        }
+      }
+    },
     "ジャンル" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Genre"
+          }
+        }
+      }
+    },
+    "ジャンル（棚）の追加・名前の変更・並び替え・削除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add, rename, reorder, or delete genres (shelves)"
           }
         }
       }
@@ -811,22 +1015,72 @@
         }
       }
     },
-    "ジャンル（棚）の追加・名前の変更・並び替え・削除" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add, rename, reorder, or delete genres (shelves)"
-          }
-        }
-      }
-    },
     "スクラバー" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scrubber"
+          }
+        }
+      }
+    },
+    "ストーリーズ（9:16）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stories (9:16)"
+          }
+        }
+      }
+    },
+    "ストーリーズに投稿" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post to Stories"
+          }
+        }
+      }
+    },
+    "すべての本に題名が入りました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All books have titles"
+          }
+        }
+      }
+    },
+    "すべて解除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deselect All"
+          }
+        }
+      }
+    },
+    "すべて選択" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select All"
+          }
+        }
+      }
+    },
+    "そのままドラッグで並べ替え" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to reorder"
           }
         }
       }
@@ -891,12 +1145,52 @@
         }
       }
     },
+    "どちらも SIL Open Font License, Version 1.1 で提供されています。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Both are available under the SIL Open Font License, Version 1.1."
+          }
+        }
+      }
+    },
     "バージョン" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Version"
+          }
+        }
+      }
+    },
+    "フィード・X・保存は 4:5（1080×1350）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed, X, and Photos use 4:5 (1080×1350)"
+          }
+        }
+      }
+    },
+    "フィード（4:5）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed (4:5)"
+          }
+        }
+      }
+    },
+    "フィードに投稿" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post to Feed"
           }
         }
       }
@@ -917,6 +1211,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Page"
+          }
+        }
+      }
+    },
+    "まだ本がありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No books yet"
+          }
+        }
+      }
+    },
+    "まとめ方" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group By"
           }
         }
       }
@@ -971,6 +1285,16 @@
         }
       }
     },
+    "をドラッグして並び替え" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to reorder"
+          }
+        }
+      }
+    },
     "一度に登録できるのは30冊までです" : {
       "localizations" : {
         "en" : {
@@ -1001,12 +1325,32 @@
         }
       }
     },
+    "上 14%：ストーリーズの表示と重なる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top 14%: covered by Stories controls"
+          }
+        }
+      }
+    },
     "上へ移動" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Move Up"
+          }
+        }
+      }
+    },
+    "下 20%：返信欄と重なる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bottom 20%: covered by the reply bar"
           }
         }
       }
@@ -1083,6 +1427,16 @@
         }
       }
     },
+    "作成中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creating"
+          }
+        }
+      }
+    },
     "保存" : {
       "localizations" : {
         "en" : {
@@ -1133,12 +1487,132 @@
         }
       }
     },
-    "写真を撮る" : {
+    "共有する画像" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Take Photos"
+            "value" : "Image to share"
+          }
+        }
+      }
+    },
+    "共有する範囲" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What to Share"
+          }
+        }
+      }
+    },
+    "共有先" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share To"
+          }
+        }
+      }
+    },
+    "冊" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "books"
+          }
+        }
+      }
+    },
+    "最初の1冊が棚に並びました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your first book is on the shelf"
+          }
+        }
+      }
+    },
+    "最初の1冊を登録する" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Your First Book"
+          }
+        }
+      }
+    },
+    "最初の本を置く棚を選んでください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a shelf for your first book"
+          }
+        }
+      }
+    },
+    "写真に\n保存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save to\nPhotos"
+          }
+        }
+      }
+    },
+    "写真に保存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save to Photos"
+          }
+        }
+      }
+    },
+    "写真に保存（4:5）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save to Photos (4:5)"
+          }
+        }
+      }
+    },
+    "写真に保存しました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved to Photos"
+          }
+        }
+      }
+    },
+    "写真に保存できませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save to Photos"
+          }
+        }
+      }
+    },
+    "写真への追加が許可されていません。設定アプリで許可できます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adding to Photos isn't allowed. You can allow it in the Settings app."
           }
         }
       }
@@ -1149,6 +1623,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose from Photo Library"
+          }
+        }
+      }
+    },
+    "写真を撮る" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take Photos"
           }
         }
       }
@@ -1433,6 +1917,16 @@
         }
       }
     },
+    "戻る" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        }
+      }
+    },
     "所持状況" : {
       "localizations" : {
         "en" : {
@@ -1523,6 +2017,16 @@
         }
       }
     },
+    "撮影ガイドの枠" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Framing guide"
+          }
+        }
+      }
+    },
     "撮影できませんでした。もう一度お試しください" : {
       "localizations" : {
         "en" : {
@@ -1549,16 +2053,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Take More"
-          }
-        }
-      }
-    },
-    "撮影ガイドの枠" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Framing guide"
           }
         }
       }
@@ -1609,36 +2103,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fonts"
-          }
-        }
-      }
-    },
-    "最初の1冊が棚に並びました" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your first book is on the shelf"
-          }
-        }
-      }
-    },
-    "最初の1冊を登録する" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add Your First Book"
-          }
-        }
-      }
-    },
-    "最初の本を置く棚を選んでください" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose a shelf for your first book"
           }
         }
       }
@@ -1927,6 +2391,16 @@
         }
       }
     },
+    "次へ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
+          }
+        }
+      }
+    },
     "残り%lld冊まで選べます" : {
       "localizations" : {
         "en" : {
@@ -1955,6 +2429,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current shelf"
+          }
+        }
+      }
+    },
+    "画像を作れませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't create the image"
           }
         }
       }
@@ -2301,22 +2785,22 @@
         }
       }
     },
-    "設定を開く" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Settings"
-          }
-        }
-      }
-    },
     "設定アプリで local-bookshelf のカメラを\nオンにすると、表紙を撮影できます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Turn on camera access for local-bookshelf\nin the Settings app to photograph covers."
+          }
+        }
+      }
+    },
+    "設定を開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings"
           }
         }
       }
@@ -2491,6 +2975,16 @@
         }
       }
     },
+    "購入済み（購入日 今日）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Owned (purchased today)"
+          }
+        }
+      }
+    },
     "購入済みにしました" : {
       "localizations" : {
         "en" : {
@@ -2541,12 +3035,12 @@
         }
       }
     },
-    "購入済み（購入日 今日）" : {
+    "購入済みの本だけを1枚の画像にします" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Owned (purchased today)"
+            "value" : "Only owned books go into one image"
           }
         }
       }
@@ -2627,6 +3121,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Title"
+          }
+        }
+      }
+    },
+    "題名・よみで検索" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search title or reading"
+          }
+        }
+      }
+    },
+    "題名（必須）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title (required)"
           }
         }
       }
@@ -2713,32 +3227,12 @@
         }
       }
     },
-    "題名・よみで検索" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search title or reading"
-          }
-        }
-      }
-    },
     "題名順" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Title"
-          }
-        }
-      }
-    },
-    "題名（必須）" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Title (required)"
           }
         }
       }

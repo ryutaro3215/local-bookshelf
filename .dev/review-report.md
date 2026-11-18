@@ -331,3 +331,38 @@
   - [nit] 前回の nit（PhotoImportTests の期待値が同じキーで比べている、英語表示の日付の暦、英語表示の購入月別・チュートリアル・グリッドの長押しメニューのスクリーンショットが無い）は手つかず。残す判断でよい
   - [nit] builder の申告どおり、年にまとめた購入月別のグリッドには長押しメニューが無い（T13 レビューの nit と同じ件。T15 の範囲外）
 - オーナー判断が必要（裁定していない）: N-079 英訳の文言の確認、N-080 日本語表示の日付「2026.10.20」、N-081 英語も日本語も言語の設定に無い端末で日本語が出ること、N-085 実機の英語表示での OS のダイアログの確認。N-083 は T12 で扱う
+
+## T11: FAIL (2026-11-18)
+- acceptance再実行（main の作業ツリー。DerivedData はスクラッチパッド）:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → `** TEST SUCCEEDED **`、exit=0。ユニット `✔ Test run with 86 tests in 13 suites passed`（ShareRendererTests 11件を含む）、UI `Executed 55 tests, with 0 failures`（ShareFlowUITests 7件を含む）。ShareRendererTests の①〜⑤、ShareFlowUITests の「共有マーク→（購入月別は範囲）→共有先→プレビュー」「写真に保存で『追加のみ』の許可ダイアログ（would like to add to your Photos）」を自分の実行で確認した
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし、exit=0 / `scripts/check-no-network.sh` → `OK（Bookshelf に通信の記述なし）`、exit=0
+  - レビュー用の一時テスト（BookshelfTests/TmpReviewProbe.swift。確認後に削除済み）で、1か月の本が複数のジャンルに分かれる場合の配置と画像を作った。結果は下の must。画像は scratchpad/t11r/probe_*.jpg
+  - 未実施（オーナー待ち。builder の申告どおり）: 実機でのストーリーズ・フィード・X への受け渡し（N-089）、Meta の App ID（N-086）、Figma の K 行・共有画像の行との目視比較
+- 指摘:
+  - [must] Bookshelf/Share/ShareRenderer.swift:327-341（grid の列の数と表紙の高さ）／:399-403（区分名）購入月別の「この月／この年」で、本がいくつものジャンルに分かれると共有画像が壊れる。区分ごとに最低1行を取り、区分の間の余白（gapY＋sectionGap＝80、題名つきは1行ごとに題名の枠 約110）も区分の数だけ引くため、区分が増えると表紙の高さが急に減り、マイナスにもなる。表紙の高さの下限も、区分を横に詰める仕組みも無い。一時テストの実測（4:5、ジャンルの初期の並び順で1冊ずつ）: 3ジャンル3冊＝220px（正常）、4ジャンル4冊＝117px、6ジャンル6冊＝15px（表紙が点になり、題名だけが並ぶ。probe_6x1_portrait.jpg）、8ジャンル以上＝高さがマイナス（CGRect の height は絶対値を返すので数字は正に見える）。12ジャンル12冊では表紙が逆向きに伸びて題名の上に重なり、区分名は20px程度に縮んで「Philos…」のように切れる（probe_12x1_portrait.jpg）。表紙だけ（13〜40冊）も、10ジャンル×2冊で約50px、16ジャンル×2冊で約4px。初期ジャンルは30前後と細かく、1か月に買った数冊が別々のジャンルになるのは普通の使い方。requirements の品質の重心「共有画像の見栄え」と、design-brief §7 の構成（表紙を格子に並べる）に反する。既存テストは区分2つまでしか試していないので通っている。直し方の例: 区分の数が多いとき（目安: 1区分あたりの高さが表紙の最小の高さに届かないとき）は区分に分けずに1つの格子にまとめて区分名を出さない、または区分を同じ行に横に並べ区分名を表紙の下に置く、など。どの形にするかは見た目の判断なので、オーナーに確かめてから決めること（notices に書く）。あわせて ShareRendererTests の「はみ出さない・重ならない」テストに、1か月に3・6・12ジャンル（1冊ずつ）と10・20ジャンル（2冊ずつ）を足し、表紙の高さが下限（例: 題名つきで 120px 以上）を下回らないことと、frame の height が負でないこと（`frame.size.height > 0`。CGRect.height は絶対値なので size を見る）を確かめる
+  - [should] BookshelfTests/ShareRendererTests.swift:233-260 「はみ出さない・重ならない」テストはジャンル別（区分1つ）だけで、月・年（区分が複数）を試していない。上の must の再発を防ぐため、区分が複数の場合も同じ検査を回すこと（上の must の直し方に含めてよい）
+  - [should] Bookshelf/Share/ShareRenderer.swift:412-420 区分名の大きさは区分の高さから決め、下限 22 を下回る高さでも 22 のまま描くので、区分が低いと隣の区分の名前と重なる。また英語名は1行に収まらないと `minimumScaleFactor(0.5)` のあと「…」になる（4ジャンル以上で「Children's B…」）。must を直したときに区分名の最小の高さも合わせて決めること
+  - [nit] Bookshelf/Share/ShareFlowView.swift:598-601 Meta の App ID が入るまでは、ストーリーズに投稿するたびに「Instagram へ直接渡せないため、共有シートを開きました」と出る。App ID が無いのは設定の問題で利用者の操作の問題ではないので、App ID が無いときは案内を出さずに共有シートを開く（Instagram が開けなかったときだけ出す）ほうが自然。N-086 が片付けば消えるので残してもよい
+  - [nit] Bookshelf/Share/InstagramStoriesSharer.swift:63 Instagram を開けなかったとき `UIPasteboard.general.items = []` で、利用者が前にコピーしていた内容も消える（直前の setItems で上書き済みなので、消えるのは共有画像だけで実害は無い）。気になるなら、開けるかを先に `canOpenURL`（LSApplicationQueriesSchemes に instagram-stories を足す）で確かめてからペーストボードに置く
+- 確認して問題なしとしたもの: 「買いたい」の除外（ShareContent.make の filter と UI テストの冊数）、位置情報（UIImage からの JPEG 書き出しと GPS 入りサムネイルでのテスト）、写真の権限（`.addOnly` のみ。読み取りの権限の要求なし。S4）、App ID の検証（数字のみ・URLComponents で組み立て。秘密情報のハードコードなし）、空の catch なし（ShareRenders.render の catch は failed に入れて画面に「画像を作れませんでした」を出す）、通信コードなし、files 外の変更（ShelfScreen・MonthBrowseView・MonthGridView・Localizable.xcstrings・notices）は共有マークの接続とローカライズに限られ、既存の動き（グリッドの識別子は `.contain` の追加のみ）を壊していない。既存テストの削除・緩和なし
+- オーナー判断が必要（裁定していない）: ①上の must の直し方（区分が多い月の見せ方。区分をやめて1つの格子にするか、横に並べるか）②N-086 Meta の App ID ③N-087 範囲の解釈（年は この日／この年、グリッドは見えている月だけ）④N-088 9:16 の列の数・英語の画像の文言・アプリ名 ⑤N-089 実機での受け渡しと Figma との目視比較
+
+## T11（再レビュー）: PASS (2026-11-18)
+- 前提: 前回の must（ジャンルの多い月・年で表紙が点になる・高さが負になる）は、オーナー判断（2026-11-18）で「区分の数が多いときは区分に分けず、1つの格子にまとめる（ジャンル名は出さない）」と決まった。その方針どおりかを確認した
+- acceptance再実行（main の作業ツリー。DerivedData はスクラッチパッド）:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → `** TEST SUCCEEDED **`、exit=0。ユニット `✔ Test run with 87 tests in 13 suites passed`（ShareRendererTests 12件。全スイートを並行で実行し、①⑤の時間の検査も通過）、UI `Executed 55 tests, with 0 failures`
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし、exit=0 / `scripts/check-no-network.sh` → `OK（Bookshelf に通信の記述なし）`、exit=0
+  - 修正後の画像（builder の一時テストで作成、scratchpad/t11r/fixed_*.jpg）を自分で見た。6ジャンル×1冊（4:5）は 3×2、12ジャンル×1冊（9:16）は 4×3 の格子で、表紙・題名が重ならず、区分名・帯は出ていない。3ジャンル×1冊も1つの格子にまとまる
+  - 未実施（オーナー待ち。前回と同じ）: 実機での受け渡し（N-089）、Meta の App ID（N-086）、Figma との目視比較
+- 前回の指摘の解消:
+  - must: 解消。`ShareRenderer.swift:305-314` で、区分に分けた格子と区分を1つにまとめた格子（`ShareContent.mergingSections()`。区分名は空）の表紙の高さを比べ、区分に分けたほうが `minimumSectionedCover`（120）未満か、まとめたほうの6割未満ならまとめる。名前の無い区分には区分名を出さない（`:399` 付近）。区分が1つ（ジャンル別・日）とモザイクは前と同じ経路。既存の「月は区分ごとに分け…帯を敷く」テスト（5冊＋4冊・9:16）は区分に分けたまま通っており、2区分の見た目（Figma の月別の例）は変わらない
+  - should（区分が複数の場合のテストが無い）: 解消。`ShareRendererTests.manyGenresAreMergedIntoOneGrid` で、3・4・6・8・12ジャンル×1冊と10・20ジャンル×2冊を、4:5・9:16 の両方で検査している。表紙の高さは `frame.size.height` で見ているので、負の高さも検出できる（前回指摘した CGRect.height の絶対値の落とし穴を避けている）
+  - should（区分名が重なる・切れる）: 解消。区分に分けるのは表紙が 120 以上のときだけになり、区分名の帯の高さも 120 以上になる（同じテストで `labels` の高さを検査）
+  - nit 2件（App ID が無いときの案内・ペーストボード）: 手つかず。N-086 に従うので残してよい
+- 新しい問題・弱体化の確認:
+  - ①⑤の時間の検査（`ShareRendererTests.swift:124-129`）は、3秒を超えたときだけ2回まで測り直して最短で判定する形になった。最短でも3秒以上なら落ちるので、検査は残っている。builder の全テストで、ほかのスイートの重いテストと同時に1回だけ 3.405 秒になったことはログで確認した。単独の生成は 0.01〜0.08 秒なので、測り直しは妥当と判断した
+  - そのほかの既存のアサーションの削除・緩和は無い。UI のコードは変わっていない
+- 指摘:
+  - [nit] Bookshelf/Share/ShareRenderer.swift:313 区分に分けるかを、格子全体の表紙の高さ（`best.cover`）で比べている。横長の表紙（縦横比が中央値より大きいもの）は、実際にはセルの幅で決まるのでこれより低く描かれる。区分に分けた場合でも 120 を少し下回る表紙が出うるが、見た目の破綻にはならない
+  - [nit] 前回の nit 2件（ShareFlowView.swift:598-601 の案内、InstagramStoriesSharer.swift:63 のペーストボード）は残っている
+- オーナー判断が必要（裁定していない）: N-086 Meta の App ID、N-087 範囲の解釈、N-088 9:16 の列の数・英語の画像の文言・アプリ名・区分をまとめる基準（120px・6割）、N-089 実機での受け渡しと Figma との目視比較

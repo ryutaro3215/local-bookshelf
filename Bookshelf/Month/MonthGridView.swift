@@ -12,6 +12,10 @@ struct MonthGridView: View {
     /// 長押し（本・セルの画面上の位置）。月のグリッドだけ
     let onLongPress: (Book, CGRect) -> Void
     let onPinch: (PurchasePeriod) -> Void
+    /// 右上の共有マーク（T11）。いちばん上に見えている月（年）を共有する
+    let onShare: (PurchaseGroup) -> Void
+    /// 画面に見えているまとまり（共有するまとまりを決める）
+    @State private var visible: Set<String> = []
 
     var body: some View {
         ScrollView {
@@ -20,6 +24,13 @@ struct MonthGridView: View {
                     Section {
                         grid(group, start: start(of: groupIndex))
                             .padding(.bottom, 12)
+                            .onScrollVisibilityChange(threshold: 0.05) { isVisible in
+                                if isVisible {
+                                    visible.insert(group.id)
+                                } else {
+                                    visible.remove(group.id)
+                                }
+                            }
                     } header: {
                         header(group)
                     }
@@ -32,9 +43,14 @@ struct MonthGridView: View {
         // 見出しを上から少し下げた位置に固定する（ジャンル別の棚の名前と同じ高さ。上の余白には本を出さない）
         .padding(.top, 30)
         .overlay(alignment: .topTrailing) {
-            MonthShareButton()
-                .padding(.trailing, 22)
-                .padding(.top, 40)
+            MonthShareButton {
+                // 見えているうちいちばん上（新しい）のまとまり
+                if let group = groups.first(where: { visible.contains($0.id) }) ?? groups.first {
+                    onShare(group)
+                }
+            }
+            .padding(.trailing, 22)
+            .padding(.top, 40)
         }
         .simultaneousGesture(
             MagnifyGesture(minimumScaleDelta: 0.05)
@@ -46,6 +62,8 @@ struct MonthGridView: View {
                     }
                 }
         )
+        // 子（右上の共有マーク）の識別子を残す（T11）
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("monthGrid")
     }
 

@@ -62,6 +62,8 @@ struct ShelfScreen: View {
     @State private var monthPeriod: PurchasePeriod = .month
     @State private var monthFocus = MonthFocus()
     @State private var monthEdge: Edge = .bottom
+    /// 共有（T11。F8）: 右上の共有マークで開く
+    @State private var shareRequest: ShareRequest?
 
     var body: some View {
         let all = browseShelves
@@ -213,6 +215,9 @@ struct ShelfScreen: View {
                 },
                 onCancel: { methodRequest = nil })
         }
+        .sheet(item: $shareRequest) { request in
+            ShareFlowView(request: request, images: environment.store.images) { shareRequest = nil }
+        }
         .fullScreenCover(item: $flow) { model in
             RegistrationFlowView(model: model) { registered in
                 let destination = model.destination
@@ -362,9 +367,10 @@ struct ShelfScreen: View {
             .accessibilityAction(named: "前の棚") { move(by: -1, from: current, in: all) }
             HStack {
                 Spacer()
-                // 共有（F8）は T11。買いたい本の棚では出さない（共有画像に「買いたい」の本を含めないため）
+                // 共有（F8・T11）。買いたい本の棚では出さない（共有画像に「買いたい」の本を含めないため）
                 if !current.isWishlist {
                     Button {
+                        openShare(.genre(name: current.shelf.displayName, books: current.books))
                     } label: {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 16, weight: .regular))
@@ -665,7 +671,8 @@ struct ShelfScreen: View {
                     onLongPress: { book, frame in
                         editing.gridMenu = ShelfEditing.GridMenu(bookID: book.id, index: 0, frame: frame)
                     },
-                    onPinch: switchMonthPeriod)
+                    onPinch: switchMonthPeriod,
+                    onShare: { openShare(.purchase(group: $0, focused: nil)) })
             } else {
                 let group = groups[groupIndex]
                 MonthBrowseView(
@@ -683,7 +690,11 @@ struct ShelfScreen: View {
                     onTapWhileSelected: { editing.clearSelection() },
                     onMoveBook: { editing.moving = $0 },
                     onDeleteBook: { editing.deleting = $0 },
-                    onPinch: switchMonthPeriod)
+                    onPinch: switchMonthPeriod,
+                    onShare: {
+                        let focused = group.books.indices.contains(index) ? group.books[index] : nil
+                        openShare(.purchase(group: group, focused: focused))
+                    })
             }
         } else {
             MonthEmptyView()
@@ -950,6 +961,14 @@ struct ShelfScreen: View {
     }
 
     // MARK: - 検索・詳細・登録の入口
+
+    /// 共有を開く（F8。T11）。選択中・メニューは閉じる
+    private func openShare(_ request: ShareRequest) {
+        showsMenu = false
+        editing.clearSelection()
+        editing.gridMenu = nil
+        shareRequest = request
+    }
 
     /// 検索を開く（F7）。選択中・メニューは閉じる
     private func openSearch() {

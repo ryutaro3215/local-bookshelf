@@ -435,3 +435,49 @@
   - notes:
     - 気づいた点（T13 の範囲。直していない）: 年にまとめた購入月別のグリッドでは、UI テストの長押し（press 1.0〜1.5秒）でメニューが出なかった。月のグリッドでは出る。実機で長押しを確かめた方がよい
     - review の nit（PhotoImportTests の期待値、英語表示の日付の暦、英語表示のスクリーンショット）は今回の指示の範囲外なので触っていない
+
+## T11: 共有（ジャンル別・月別・日別） — done（実機での受け渡し・Meta の App ID・Figma との目視確認はオーナー待ち） (2026-11-18)
+- changed:
+  - Bookshelf/Share/ShareRenderer.swift（新規）: 共有の単位 `ShareScope`（ジャンル・日・月・年）と中身 `ShareContent.make`（購入済みの本だけ。月・年はジャンルの並び順で区分に分ける。300冊を超えたら購入日の新しい300冊＋「（ほか○冊）」）、縦横比 `ShareFormat`（4:5＝1080×1350、9:16＝1080×1920。9:16 は上 14%・下 20% を空ける）、配置 `ShareLayoutEngine`（1〜12冊＝表紙＋題名／13〜40冊＝表紙だけ／41冊〜＝モザイク＋大きな数字。列の数は表紙がいちばん大きくなる数を、最後の行の空きで減点して選ぶ。各段は上端そろえ、2つ目以降の区分に帯、右端に縦書きの区分名（英数字だけの名前・日付は90度回す））、題名の折り返し `ShareTitle`（「の」「・」と助詞のあと・「「」の前で2行。入らなければ小さく→「…」）、生成 `ShareRenderer`（サムネイルを並行で読み、ImageRenderer で scale 1 に描いて UIImage から JPEG にする＝元の写真の EXIF・位置情報は入らない）
+  - Bookshelf/Share/ShareTemplateView.swift（新規）: 共有画像の型（design-brief §7 の色・Noto Serif JP 700 の題名・左下の事実・右下のアプリ名「local-bookshelf」・柔らかい影）
+  - Bookshelf/Share/ShareFlowView.swift（新規）: 共有の流れのシート。K-3 範囲を選ぶ（購入月別。範囲が2つ以上のときだけ。高さ 470 のシート）→ K-2 共有先（4:5 の縮小・Instagram フィード／ストーリーズ／X のポスト／写真に保存）→ K-4・K-5 プレビュー（‹ 戻る・見出し・ストーリーズは上 14%・下 20% の案内つき・主ボタン「○○に投稿」・副ボタン「写真に保存」）。フィード・X は OS の共有シート（UIActivityViewController）。写真に保存は `PHPhotoLibrary.requestAuthorization(for: .addOnly)`（追加のみ）→ PHAssetCreationRequest。作った画像は範囲×縦横比ごとに覚えて作り直さない。`ShareRequest.genre` / `.purchase`（月: この日／この月、年: この日／この年、グリッド: いちばん上に見えている月（年）だけ）
+  - Bookshelf/Share/InstagramStoriesSharer.swift（新規）: ストーリーズへの受け渡し（ペーストボードに `com.instagram.sharedSticker.backgroundImage` を5分の期限で置き `instagram-stories://share?source_application=<App ID>` を開く）。App ID は Info.plist の `MetaAppID`（数字のみ）から読む。無い・開けないときは共有シートで渡す（開けなかったときはペーストボードを空にする）
+  - BookshelfTests/ShareRendererTests.swift（新規）: 11件（下の verify）。生成時間を正しく測るため `@Suite(.serialized)`
+  - BookshelfUITests/ShareFlowUITests.swift（新規）: 7件 — ジャンル別で共有マーク→共有先→X（4:5）・ストーリーズ（9:16）のプレビュー→キャンセル／買いたい本の棚に共有マークが無い／購入月別で範囲（この日 11月2日・1冊／この月 2026年11月・2冊）→次へ→フィードのプレビュー／年にまとめると この日／この年／購入月別のグリッドからいちばん上の月を共有／英語表示で共有の画面に日本語が残らない（冊数の複数形）／写真に保存で「追加のみ」の許可ダイアログが出て、許可すると「写真に保存しました」
+  - **計画とのズレ（files 外。組み込み・ローカライズに必要な最小限）**:
+    - Bookshelf/Shelf/ShelfScreen.swift: 右上の共有マークの動作（`openShare`）と `.sheet(item: $shareRequest)`。購入月別の棚表示・グリッドに onShare を渡す
+    - Bookshelf/Month/MonthBrowseView.swift: `onShare` を足し、MonthHeader → MonthShareButton(action:) に渡す
+    - Bookshelf/Month/MonthGridView.swift: `onShare(PurchaseGroup)` と、見えているまとまり（onScrollVisibilityChange）。`"monthGrid"` の識別子が子（共有マーク）の識別子を上書きしていたので `.accessibilityElement(children: .contain)` を足した
+    - Bookshelf/Localizable.xcstrings: T11 の文言41件の en（「%@・%lld冊」など3件は冊数の複数形の substitutions）。既存の訳は変えていない
+    - docs/notices.md: N-086〜N-089 を追加
+- verify:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → `** TEST SUCCEEDED **`。ユニット `✔ Test run with 86 tests in 13 suites passed`（既存75＋ShareRendererTests 11）、UI `Executed 55 tests, with 0 failures`（既存48＋ShareFlowUITests 7）。※シミュレータ CBC22FAA はアプリの起動を拒否（"Busy / Application failed preflight checks"）し続けたので 64DCF75A を使った
+  - ShareRendererTests: ①ジャンル30冊・日3冊・月9冊それぞれで 1080×1350 と 1080×1920（JPEG のピクセル数で確認）②「買いたい」の本（ジャンル3冊・日1冊）が含まれない ③配置のアプリ名が「local-bookshelf」で、画像の下の帯を Vision で読むと "bookshelf" が出る ④表紙のサムネイルに GPS を入れておいても、共有画像に GPS の辞書が無い ⑤生成（表紙の読み込みを含む）が各3秒以内 — 単独実行で 0.014〜0.084 秒。ほかに 冊数による見せ方の切り替え・表紙どうしが重ならず画像（9:16 は上 14%・下 20% の外）に収まる（1〜60冊×2形式）・300冊の上限・月の区分と帯・題名の折り返し・日の区分名
+  - ShareFlowUITests 7件 通過（acceptance「共有マーク→（購入月別では範囲の選択）→共有先の選択→プレビュー」「写真への保存で『追加のみ』権限が要求される」を含む。ダイアログの文言は “Bookshelf” would like to add to your Photos.）
+  - `xcodebuild -exportLocalizations ... -exportLanguage en` → exit 0。trans-unit 322件のうち translated 321・translate="no" 1、**未翻訳0件**
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし exit 0 / `scripts/check-no-network.sh` → OK exit 0
+  - 画面写真・生成画像（リポジトリ外・架空の題名・合成の表紙）: /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/432c5e25-8beb-46b4-b4d3-12990fffcb40/scratchpad/t11/ui/K-1〜K-5.png、t11/shots/{genre9,day3,day3b,month12,month24,year128}_{portrait,story}.jpg（英語表示で上書きした版）。撮影用の一時テスト（TmpShareShots・TmpShareUIShots）は削除済み
+  - Figma との比較: K-2（見出し・補足・縮小・共有先4つ・キャンセル）、K-3（範囲の2行・選択中は白地に黒枠・次へ・キャンセル）、K-4（上下の案内つきの 9:16）、K-5（4:5・「フィード・X・保存は 4:5（1080×1350）」）は構成・文言とも一致。共有画像は 4:5 ジャンル別9冊が参考版と同じ3×3、日3冊は日付を回して右端、月は区分ごとの帯と縦書き、128冊はモザイクと大きな数字・期間
+  - **未実施（手動）**: 実機でのストーリーズ・フィード・X への受け渡し（N-089）。ストーリーズは Meta の App ID が無いので現状は共有シート経由（N-086）
+- notes:
+  - Figma の MCP（get_design_context）は未認証で使えなかったため、figma:figma-swiftui の手順のうち Figma の読み取りは design-brief.md と書き出し済みの PNG（design/screens/K-*・share/*）で代えた
+  - プロジェクトは既定で MainActor に隔離される（SWIFT_DEFAULT_ACTOR_ISOLATION）。写真の `performChanges` のクロージャが MainActor 扱いになり、許可直後にアプリが落ちたため `PhotoSaver` を `nonisolated` にした（同じ形の API を足すときは注意）
+  - 画面全体に付けた accessibilityIdentifier は、`.accessibilityElement(children: .contain)` を付けないと子の識別子を上書きする（共有のシート・購入月別のグリッドで発生。直し済み）
+  - 範囲の解釈（年は この日／この年、グリッドは見えている月だけ）は N-087、9:16 の列の数・英語の画像の文言は N-088 でオーナー確認
+  - 共有シートを開くプレビューはシートの中の画面（Figma の K-4・K-5 は全画面に見える）。シートの地は Figma に合わせて白（iOS 26 の半透明にしない）
+  - 依存の追加なし。通信のコードなし（instagram-stories:// はアプリを開く URL で、通信ではない）。空の catch なし。追跡ファイルに実在の題名・著者名・表紙なし
+
+## T11（レビュー FAIL×1 の修正）: 共有（ジャンル別・月別・日別） — done (2026-11-18)
+- changed:
+  - Bookshelf/Share/ShareRenderer.swift: must（ジャンルの多い月・年で表紙が点になる・高さが負になる）を直した。オーナー判断（2026-11-18）で「区分の数が多いときは区分に分けず、1つの格子にまとめる（ジャンル名は出さない）」。`ShareLayoutEngine.layout` で、区分に分けた格子と、区分を1つにまとめた格子（`ShareContent.mergingSections()`。区分名は空）の両方の表紙の高さを出し、区分に分けたほうが `minimumSectionedCover`（120px）未満か、まとめたほうの6割未満なら、まとめたほうを使う。名前の無い区分には区分名を出さない（帯も無い）。`grid` は配置と表紙の高さを返すようにした。区分が1つ（ジャンル別・日）とモザイク（41冊〜）は変わらない。区分名の帯の高さも 120px 以上になるので、レビューの should（区分名が重なる・切れる）もこれで起きない
+  - BookshelfTests/ShareRendererTests.swift: 「ジャンルの多い月は1つの格子にまとめる」を追加（3・4・6・8・12ジャンル×1冊、10・20ジャンル×2冊、4:5 と 9:16。表紙の高さが 120px 以上（`frame.size.height` で負でないことも）、区分名は全部か無し（帯も無し）、画像・安全域の外に出ない、表紙が重ならない、4ジャンル以上×1冊はまとめる）。①⑤の時間の検査は、3秒を超えたときだけ2回まで測り直して最短で判定するようにした（全テストで、ほかのスイートの重いテストと同時に走ったとき1回だけ 3.4 秒になったため。生成そのものは 0.01〜0.08 秒）
+- verify:
+  - 修正前の再現（一時テスト。削除済み）: 4:5 で 6ジャンル×1冊＝表紙 15px、12ジャンル×1冊＝高さが負で題名に重なる（scratchpad/t11r/probe_*.jpg）
+  - 修正後の画像（一時テスト。削除済み）: 3・6・12ジャンル×1冊、16ジャンル×2冊とも1つの格子に並び、区分名・帯なし。6冊は 3×2、12冊（9:16）は 4×3（scratchpad/t11r/fixed_*.jpg）
+  - `xcodebuild test ... -only-testing:BookshelfTests`（シミュレータ 64DCF75A）を2回 → 2回とも `✔ Test run with 87 tests in 13 suites passed`（ShareRendererTests 12件）
+  - 全テスト（修正後・時間の検査を変える前）: UI `Executed 55 tests, with 0 failures`。ユニットは①⑤の時間の検査が1回 3.405 秒で落ちた → 上のとおりテストを直し、ユニットを2回流して通過。UI のコードは変えていない
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし exit 0 / `scripts/check-no-network.sh` → OK exit 0
+- notes:
+  - 3ジャンル×1冊も、区分に分けると表紙が 220px、まとめると約 390px になるので、まとめる（6割の基準）。2区分（月12冊＝哲学9・歴史3など、既存のテスト・Figma の月別の例）は区分に分けたまま
+  - nit 2件（App ID が無いときの案内、開けなかったときのペーストボード）は、N-086 で App ID が入れば変わるので直していない
+  - 区分に分けるかの基準（120px・6割）は見た目の判断。N-088 に追記した

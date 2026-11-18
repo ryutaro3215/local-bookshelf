@@ -26,6 +26,8 @@ struct MonthBrowseView: View {
     let onDeleteBook: (Book) -> Void
     /// ピンチ（年にまとめる・月に戻る）
     let onPinch: (PurchasePeriod) -> Void
+    /// 右上の共有マーク（T11。見ている本の日と、この月（年）から範囲を選ぶ）
+    let onShare: () -> Void
 
     private var group: PurchaseGroup { groups[groupIndex] }
 
@@ -38,7 +40,8 @@ struct MonthBrowseView: View {
             MonthHeader(
                 group: group,
                 onMoveGroup: onMoveGroup,
-                onPinch: onPinch)
+                onPinch: onPinch,
+                onShare: onShare)
             ZStack {
                 VStack(spacing: 0) {
                     carousel(group, selection: selection)
@@ -185,6 +188,7 @@ struct MonthHeader: View {
     let group: PurchaseGroup
     let onMoveGroup: (Int) -> Void
     let onPinch: (PurchasePeriod) -> Void
+    let onShare: () -> Void
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -215,7 +219,7 @@ struct MonthHeader: View {
             }
             HStack {
                 Spacer()
-                MonthShareButton()
+                MonthShareButton(action: onShare)
             }
             .padding(.trailing, 22)
             .offset(y: -4)
@@ -224,11 +228,12 @@ struct MonthHeader: View {
     }
 }
 
-/// 共有マーク（F8-5。購入月別では「この日／この月」・年では「この年」を選んでから共有する。動きは T11）
+/// 共有マーク（F8-5。購入月別では「この日／この月」・年では「この日／この年」を選んでから共有する。T11）
 struct MonthShareButton: View {
+    let action: () -> Void
+
     var body: some View {
-        Button {
-        } label: {
+        Button(action: action) {
             Image(systemName: "square.and.arrow.up")
                 .font(.system(size: 16, weight: .regular))
                 .foregroundStyle(BookshelfStyle.ink)
