@@ -66,8 +66,21 @@ struct RegistrationMethodSheet: View {
     @Binding var destination: Shelf
     let onSelect: (RegistrationStart) -> Void
     let onCancel: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// 最大の文字サイズでは、シートを画面いっぱいに広げてスクロールできるようにする（N5）
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
+        ScrollView {
+            content
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .presentationDetents([isLarge ? .large : .height(420)])
+        .presentationCornerRadius(28)
+        .presentationDragIndicator(.visible)
+    }
+
+    private var content: some View {
         VStack(spacing: 0) {
             Text("本を登録")
                 .font(BookshelfStyle.sans(18, .medium))
@@ -94,9 +107,6 @@ struct RegistrationMethodSheet: View {
                 .accessibilityIdentifier("register.cancel")
         }
         .frame(maxWidth: .infinity)
-        .presentationDetents([.height(420)])
-        .presentationCornerRadius(28)
-        .presentationDragIndicator(.visible)
     }
 
     private func methodCard(
@@ -119,13 +129,16 @@ struct RegistrationMethodSheet: View {
                         .font(BookshelfStyle.sans(12))
                         .foregroundStyle(BookshelfStyle.sub)
                 }
-                Spacer()
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(BookshelfStyle.faint)
             }
             .padding(.horizontal, 14)
-            .frame(height: 72)
+            .padding(.vertical, isLarge ? 12 : 0)
+            .frame(minHeight: 72)
             .background(RoundedRectangle(cornerRadius: 16).fill(BookshelfStyle.fill))
         }
         .buttonStyle(.plain)
@@ -167,7 +180,7 @@ struct DestinationMenu: View {
                     .foregroundStyle(dark ? Color.white.opacity(0.55) : BookshelfStyle.sub)
             }
             .padding(.horizontal, 14)
-            .frame(height: 32)
+            .frame(minHeight: 32)
             .background(Capsule().fill(dark ? BookshelfStyle.cameraControl : BookshelfStyle.fill))
         }
         .accessibilityIdentifier("register.destination")

@@ -72,19 +72,41 @@ struct ShelfScreen: View {
             ZStack {
                 Color.white.ignoresSafeArea()
                 VStack(spacing: 0) {
-                    if books.isEmpty || current == nil {
-                        emptyLibrary
-                    } else if grouping == .month {
-                        monthContent
-                    } else if let current {
-                        header(current, all: all)
-                        content(current, all: all)
+                    VStack(spacing: 0) {
+                        if books.isEmpty || current == nil {
+                            emptyLibrary
+                        } else if grouping == .month {
+                            monthContent
+                        } else if let current {
+                            header(current, all: all)
+                            content(current, all: all)
+                                #if DEBUG
+                                    // 性能の計測（plan T12。`-PerfProbe` のときだけ）: 棚に本が出るまでの時間とデータの容量
+                                    .onAppear {
+                                        PerfProbe.shared.shelfShown(
+                                            dataFolder: environment.store.images.directory.deletingLastPathComponent())
+                                    }
+                                #endif
+                        }
                     }
+                    // 大きい文字で中身が高くなっても下部バーを画面の外に押し出さない（中を縮めて切る。N5・N-083）
+                    .frame(minHeight: 0, maxHeight: .infinity, alignment: .top)
+                    .clipped()
                     hint
+                        .layoutPriority(1)
                     bottomBar
+                        .layoutPriority(1)
                 }
+                // 閲覧画面は表紙の大きさが決まっているので、文字の拡大は AX2 までにする（N5・N-083。シート・詳細は上限なし）
+                .dynamicTypeSize(...DynamicTypeSize.accessibility2)
                 // 検索のキーボードで高さが縮んでも、閲覧画面の高さで全体が押し広げられて検索欄が上にずれないようにする
                 .frame(minHeight: 0, maxHeight: .infinity, alignment: .top)
+                #if DEBUG
+                    if PerfProbe.isEnabled {
+                        PerfProbeMarker()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    }
+                #endif
                 if let toast = editing.toast {
                     VStack {
                         Spacer()
@@ -788,6 +810,11 @@ struct ShelfScreen: View {
         Text(hintText)
             .font(BookshelfStyle.sans(10.5))
             .foregroundStyle(BookshelfStyle.faint)
+            // 読み上げない補助の案内なので、大きい文字でも1行に収める
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .padding(.horizontal, 16)
             .padding(.bottom, 20)
             .accessibilityHidden(true)
             .opacity(books.isEmpty ? 0 : 1)
@@ -817,6 +844,9 @@ struct ShelfScreen: View {
                         .font(BookshelfStyle.sans(15))
                         .tracking(0.5)
                         .foregroundStyle(BookshelfStyle.sub)
+                        // 高さ 48 のカプセルに収める（大きい文字では縮める）
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                     Spacer(minLength: 0)
                 }
                 .padding(.leading, 16)

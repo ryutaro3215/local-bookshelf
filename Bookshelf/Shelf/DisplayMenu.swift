@@ -27,6 +27,9 @@ struct DisplayMenu: View {
     /// 「設定」（F-1 へ）
     var onOpenSettings: () -> Void = {}
     let onClose: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// 最大の文字サイズでは、メニューを画面の幅に広げて項目を折り返し、入らなければスクロールする（N5）
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -37,54 +40,18 @@ struct DisplayMenu: View {
                 .accessibilityLabel("閉じる")
                 .accessibilityAddTraits(.isButton)
                 .accessibilityIdentifier("menu.dismiss")
-            VStack(alignment: .leading, spacing: 0) {
-                section("見え方") {
-                    item("棚", checked: mode == .shelf, id: "menu.mode.shelf") { onSelectMode(.shelf) }
-                    item("グリッド", checked: mode == .grid, id: "menu.mode.grid") { onSelectMode(.grid) }
-                }
-                divider
-                section("まとめ方") {
-                    item("ジャンル別", checked: grouping == .genre, id: "menu.group.genre") {
-                        onSelectGrouping(.genre)
-                    }
-                    item("購入月別", checked: grouping == .month, id: "menu.group.month") {
-                        onSelectGrouping(.month)
-                    }
-                }
-                if let sortKey {
-                    divider
-                    section("この棚の並べ順") {
-                        ForEach(ShelfSortKey.allCases, id: \.self) { key in
-                            item(key.label, checked: key == sortKey, id: "menu.sort.\(key.rawValue)") {
-                                onSelectSort(key)
-                            }
-                        }
-                    }
-                }
-                divider
-                Button(action: onOpenSettings) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 17, weight: .regular))
-                        Text("設定")
-                            .font(BookshelfStyle.sans(16))
-                            .tracking(0.5)
-                        Spacer()
-                    }
-                    .foregroundStyle(BookshelfStyle.ink)
-                    .padding(.horizontal, 16)
-                    .frame(height: 52)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("menu.settings")
+            ViewThatFits(in: .vertical) {
+                items
+                ScrollView { items }
             }
-            .frame(width: 270)
+            .frame(width: isLarge ? nil : 270)
             .background(RoundedRectangle(cornerRadius: 24).fill(Color.white))
             .shadow(color: .black.opacity(0.16), radius: 15, x: 0, y: 10)
             .padding(.leading, 30)
+            .padding(.trailing, isLarge ? 30 : 0)
             // 下部バー（高さ 48）の少し上に出す（Figma G-2: メニューの下端 y=772・バーの上端 y=790）
             .padding(.bottom, 68)
+            .padding(.top, isLarge ? 16 : 0)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("menu")
         }
@@ -92,6 +59,52 @@ struct DisplayMenu: View {
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
         .accessibilityAction(.escape, onClose)
+    }
+
+    private var items: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            section("見え方") {
+                item("棚", checked: mode == .shelf, id: "menu.mode.shelf") { onSelectMode(.shelf) }
+                item("グリッド", checked: mode == .grid, id: "menu.mode.grid") { onSelectMode(.grid) }
+            }
+            divider
+            section("まとめ方") {
+                item("ジャンル別", checked: grouping == .genre, id: "menu.group.genre") {
+                    onSelectGrouping(.genre)
+                }
+                item("購入月別", checked: grouping == .month, id: "menu.group.month") {
+                    onSelectGrouping(.month)
+                }
+            }
+            if let sortKey {
+                divider
+                section("この棚の並べ順") {
+                    ForEach(ShelfSortKey.allCases, id: \.self) { key in
+                        item(key.label, checked: key == sortKey, id: "menu.sort.\(key.rawValue)") {
+                            onSelectSort(key)
+                        }
+                    }
+                }
+            }
+            divider
+            Button(action: onOpenSettings) {
+                HStack(spacing: 12) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 17, weight: .regular))
+                    Text("設定")
+                        .font(BookshelfStyle.sans(16))
+                        .tracking(0.5)
+                    Spacer()
+                }
+                .foregroundStyle(BookshelfStyle.ink)
+                .padding(.horizontal, 16)
+                .frame(minHeight: 52)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("menu.settings")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var divider: some View {
@@ -134,7 +147,8 @@ struct DisplayMenu: View {
                 }
             }
             .padding(.horizontal, 16)
-            .frame(height: 44)
+            .padding(.vertical, isLarge ? 6 : 0)
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

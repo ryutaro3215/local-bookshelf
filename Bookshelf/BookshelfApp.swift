@@ -99,6 +99,12 @@ final class AppEnvironment {
             if reset, let index = arguments.firstIndex(of: "-SeedBooks"), index + 1 < arguments.count {
                 try DebugSeed.apply(arguments[index + 1], to: environment.store)
             }
+            // 性能の計測用の500冊（plan T12）
+            if reset, let index = arguments.firstIndex(of: "-SeedPerf"), index + 1 < arguments.count,
+                let count = Int(arguments[index + 1]), (1...2000).contains(count)
+            {
+                try PerfSeed.apply(count: count, to: environment.store)
+            }
             return environment
         }
     #endif

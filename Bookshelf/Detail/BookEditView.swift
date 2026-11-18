@@ -11,6 +11,9 @@ struct BookEditView: View {
     /// 保存できた（新しい表紙に入れ替えたかを渡す）
     let onSaved: (_ coverReplaced: Bool) -> Void
     let onCancel: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// 最大の文字サイズ（アクセシビリティの大きさ）では、上の行とカードの行を縦に並べる（N5・N-083）
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     @State private var title: String
     /// ジャンル（通常は必ずある。無いときは未分類として保存する）
@@ -123,33 +126,54 @@ struct BookEditView: View {
     // MARK: 上
 
     private var header: some View {
-        ZStack {
-            Text("本を編集")
-                .font(BookshelfStyle.sans(16, .medium))
-                .tracking(0.5)
-                .foregroundStyle(BookshelfStyle.ink)
-                .accessibilityAddTraits(.isHeader)
-            HStack {
-                Button("キャンセル", action: onCancel)
-                    .font(BookshelfStyle.sans(15))
-                    .foregroundStyle(BookshelfStyle.ink)
-                    .frame(minHeight: 44)
-                    .accessibilityIdentifier("edit.cancel")
-                Spacer()
-                Button(action: save) {
-                    Text("完了")
-                        .font(BookshelfStyle.sans(15, .medium))
-                        .foregroundStyle(canSave ? BookshelfStyle.ink : BookshelfStyle.faint)
-                        .frame(minWidth: 44, minHeight: 44)
+        Group {
+            if isLarge {
+                // 大きい文字では「キャンセル｜完了」の下に見出しを置く（重ならないように）
+                VStack(spacing: 0) {
+                    headerButtons
+                    headerTitle
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
                 }
-                .disabled(!canSave)
-                .accessibilityIdentifier("edit.done")
+            } else {
+                ZStack {
+                    headerTitle
+                    headerButtons
+                }
+                .frame(height: 50)
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 20)
         }
-        .frame(height: 50)
         .padding(.top, 4)
+    }
+
+    private var headerTitle: some View {
+        Text("本を編集")
+            .font(BookshelfStyle.sans(16, .medium))
+            .tracking(0.5)
+            .foregroundStyle(BookshelfStyle.ink)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var headerButtons: some View {
+        HStack {
+            Button("キャンセル", action: onCancel)
+                .font(BookshelfStyle.sans(15))
+                .foregroundStyle(BookshelfStyle.ink)
+                .frame(minHeight: 44)
+                .accessibilityIdentifier("edit.cancel")
+            Spacer()
+            Button(action: save) {
+                Text("完了")
+                    .font(BookshelfStyle.sans(15, .medium))
+                    .foregroundStyle(canSave ? BookshelfStyle.ink : BookshelfStyle.faint)
+                    .frame(minWidth: 44, minHeight: 44)
+            }
+            .disabled(!canSave)
+            .accessibilityIdentifier("edit.done")
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 20)
     }
 
     private var coverView: some View {
@@ -200,18 +224,34 @@ struct BookEditView: View {
             Button {
                 showsGenrePicker = true
             } label: {
-                HStack {
-                    Text("ジャンル")
-                        .font(BookshelfStyle.sans(14))
-                        .foregroundStyle(BookshelfStyle.sub)
-                    Spacer()
-                    Text(shelfName)
-                        .font(BookshelfStyle.serif(15))
-                        .foregroundStyle(BookshelfStyle.ink)
-                        .lineLimit(1)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(BookshelfStyle.faint)
+                let name = Text(shelfName)
+                    .font(BookshelfStyle.serif(15))
+                    .foregroundStyle(BookshelfStyle.ink)
+                let chevron = Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(BookshelfStyle.faint)
+                Group {
+                    if isLarge {
+                        // 項目名を値の上に置き、ジャンル名は折り返して全部出す
+                        VStack(alignment: .leading, spacing: 4) {
+                            rowLabel("ジャンル", enabled: true)
+                            HStack {
+                                name
+                                Spacer(minLength: 8)
+                                chevron
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 12)
+                    } else {
+                        HStack {
+                            rowLabel("ジャンル", enabled: true)
+                            Spacer()
+                            name
+                                .lineLimit(1)
+                            chevron
+                        }
+                    }
                 }
                 .tracking(0.3)
                 .padding(.horizontal, 16)
@@ -223,13 +263,22 @@ struct BookEditView: View {
             .accessibilityValue(shelfName)
             .accessibilityIdentifier("edit.genre")
             separator
-            HStack {
-                Text("所持状況")
-                    .font(BookshelfStyle.sans(14))
-                    .tracking(0.3)
-                    .foregroundStyle(BookshelfStyle.sub)
-                Spacer()
-                OwnershipSwitch(ownership: ownership) { setOwnership($0) }
+            Group {
+                if isLarge {
+                    // 切り替えは縦に並べ、文言を省略しない
+                    VStack(alignment: .leading, spacing: 8) {
+                        rowLabel("所持状況", enabled: true)
+                        OwnershipSwitch(ownership: ownership, isVertical: true) { setOwnership($0) }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 12)
+                } else {
+                    HStack {
+                        rowLabel("所持状況", enabled: true)
+                        Spacer()
+                        OwnershipSwitch(ownership: ownership) { setOwnership($0) }
+                    }
+                }
             }
             .padding(.horizontal, 16)
             .frame(minHeight: 52)
@@ -243,42 +292,63 @@ struct BookEditView: View {
 
     /// 購入日の行。「買いたい」のときは入力できず、案内を出す（§10.3）
     private var dateRow: some View {
-        HStack {
-            Text("購入日")
-                .font(BookshelfStyle.sans(14))
-                .tracking(0.3)
-                .foregroundStyle(ownership == .owned ? BookshelfStyle.sub : BookshelfStyle.faint)
-            Spacer()
-            if ownership == .owned {
-                Button {
-                    showsDatePicker = true
-                } label: {
-                    Text(BookDates.format(purchaseDate))
-                        .font(BookshelfStyle.sans(15))
-                        .foregroundStyle(BookshelfStyle.ink)
-                        .padding(.horizontal, 12)
-                        .frame(height: 30)
-                        .background(Capsule().fill(Color.white))
-                        .frame(minHeight: 44)
-                        .contentShape(Rectangle())
+        Group {
+            if isLarge {
+                VStack(alignment: .leading, spacing: 4) {
+                    rowLabel("購入日", enabled: ownership == .owned)
+                    dateValue
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("購入日")
-                .accessibilityValue(BookDates.format(purchaseDate))
-                .accessibilityIdentifier("edit.purchaseDate")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 12)
             } else {
-                Text("購入済みにすると今日の日付が入ります")
-                    .font(BookshelfStyle.sans(12))
-                    .foregroundStyle(BookshelfStyle.faint)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .accessibilityLabel("購入日")
-                    .accessibilityValue("購入済みにすると今日の日付が入ります")
-                    .accessibilityIdentifier("edit.purchaseDateDisabled")
+                HStack {
+                    rowLabel("購入日", enabled: ownership == .owned)
+                    Spacer()
+                    dateValue
+                }
             }
         }
         .padding(.horizontal, 16)
         .frame(minHeight: 52)
+    }
+
+    /// カードの行の項目名
+    private func rowLabel(_ text: LocalizedStringKey, enabled: Bool) -> some View {
+        Text(text)
+            .font(BookshelfStyle.sans(14))
+            .tracking(0.3)
+            .foregroundStyle(enabled ? BookshelfStyle.sub : BookshelfStyle.faint)
+    }
+
+    @ViewBuilder
+    private var dateValue: some View {
+        if ownership == .owned {
+            Button {
+                showsDatePicker = true
+            } label: {
+                Text(BookDates.format(purchaseDate))
+                    .font(BookshelfStyle.sans(15))
+                    .foregroundStyle(BookshelfStyle.ink)
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 30)
+                    .background(Capsule().fill(Color.white))
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("購入日")
+            .accessibilityValue(BookDates.format(purchaseDate))
+            .accessibilityIdentifier("edit.purchaseDate")
+        } else {
+            Text("購入済みにすると今日の日付が入ります")
+                .font(BookshelfStyle.sans(12))
+                .foregroundStyle(BookshelfStyle.faint)
+                .lineLimit(isLarge ? nil : 1)
+                .minimumScaleFactor(0.8)
+                .accessibilityLabel("購入日")
+                .accessibilityValue("購入済みにすると今日の日付が入ります")
+                .accessibilityIdentifier("edit.purchaseDateDisabled")
+        }
     }
 
     private var separator: some View {
@@ -462,10 +532,13 @@ struct TitleEditField: View {
 /// 「購入済み｜買いたい」（白い地・角 18・内側 3 に 76×30 の2つ。選択中は INK の地・白文字。design-brief §3）
 struct OwnershipSwitch: View {
     let ownership: Ownership
+    /// 最大の文字サイズでは縦に並べ、幅いっぱいに広げる（文言を省略しない。N5・N-083）
+    var isVertical = false
     let onSelect: (Ownership) -> Void
 
     var body: some View {
-        HStack(spacing: 0) {
+        let layout = isVertical ? AnyLayout(VStackLayout(spacing: 0)) : AnyLayout(HStackLayout(spacing: 0))
+        layout {
             segment(String(localized: "購入済み"), .owned, id: "edit.ownership.owned")
             segment(String(localized: "買いたい"), .wanted, id: "edit.ownership.wanted")
         }
@@ -481,7 +554,9 @@ struct OwnershipSwitch: View {
             Text(label)
                 .font(BookshelfStyle.sans(13, selected ? .medium : .regular))
                 .foregroundStyle(selected ? Color.white : BookshelfStyle.sub)
-                .frame(width: 76, height: 30)
+                .frame(width: isVertical ? nil : 76, height: isVertical ? nil : 30)
+                .frame(maxWidth: isVertical ? .infinity : nil, minHeight: isVertical ? 44 : nil)
+                .padding(.horizontal, isVertical ? 12 : 0)
                 .background(Capsule().fill(selected ? BookshelfStyle.ink : Color.clear))
                 .contentShape(Rectangle())
         }

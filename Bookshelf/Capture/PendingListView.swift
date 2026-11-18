@@ -12,20 +12,26 @@ struct PendingListView: View {
     /// 題名の編集（C-3）で開いている本
     @State private var titleEditorStart: TitleEditorStart?
     @FocusState private var focusedItem: UUID?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// 最大の文字サイズでは、上の行・追加ボタン・下の案内を縦に並べる（重ならないように。N5）
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
     private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "PendingList")
 
     var body: some View {
         VStack(spacing: 0) {
             header
-            addButtons
-                .padding(.horizontal, 20)
-                .padding(.top, 14)
-            ownedHeader
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
+            if !isLarge {
+                topControls
+            }
             // 行を左へスワイプして「外す」と、登録待ちから外れて残りの冊数が戻る（Figma に削除の形が無いため iOS 標準の操作）
             let shelves = model.selectableShelves()
             List {
+                // 最大の文字サイズでは、追加ボタンと購入済みの見出しも一覧と一緒にスクロールする（行の場所を残す。N5）
+                if isLarge {
+                    topControls
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets())
+                }
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
                     PendingRow(item: item, index: index, shelves: shelves, focusedItem: $focusedItem)
                         .listRowSeparator(.hidden)
@@ -90,31 +96,64 @@ struct PendingListView: View {
     // MARK: 上部
 
     private var header: some View {
-        ZStack {
-            Text("登録待ち \(model.reservedCount) / \(CaptureViewModel.limit)冊")
-                .font(BookshelfStyle.sans(16, .medium))
-                .foregroundStyle(BookshelfStyle.ink)
-                .accessibilityIdentifier("pending.heading")
-            HStack {
-                Button("閉じる") {
-                    if model.reservedCount > 0 {
-                        confirmClose = true
-                    } else {
-                        onClose(0)
-                    }
+        Group {
+            if isLarge {
+                VStack(spacing: 0) {
+                    closeRow
+                    heading
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
                 }
-                .font(BookshelfStyle.sans(15))
-                .foregroundStyle(BookshelfStyle.ink)
-                .accessibilityIdentifier("pending.close")
-                Spacer()
+            } else {
+                ZStack {
+                    heading
+                    closeRow
+                }
+                .frame(height: 50)
             }
-            .padding(.horizontal, 20)
         }
-        .frame(height: 50)
+    }
+
+    private var heading: some View {
+        Text("登録待ち \(model.reservedCount) / \(CaptureViewModel.limit)冊")
+            .font(BookshelfStyle.sans(16, .medium))
+            .foregroundStyle(BookshelfStyle.ink)
+            .accessibilityIdentifier("pending.heading")
+    }
+
+    private var closeRow: some View {
+        HStack {
+            Button("閉じる") {
+                if model.reservedCount > 0 {
+                    confirmClose = true
+                } else {
+                    onClose(0)
+                }
+            }
+            .font(BookshelfStyle.sans(15))
+            .foregroundStyle(BookshelfStyle.ink)
+            .accessibilityIdentifier("pending.close")
+            .frame(minHeight: 44)
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+    }
+
+    /// 追加ボタンと購入済みの見出し
+    private var topControls: some View {
+        VStack(spacing: 0) {
+            addButtons
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+            ownedHeader
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+        }
     }
 
     private var addButtons: some View {
-        HStack(spacing: 12) {
+        let layout = isLarge ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 12))
+        return layout {
             Button {
                 model.screen = .camera
             } label: {
@@ -144,22 +183,36 @@ struct PendingListView: View {
 
     private var ownedHeader: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Text("購入済み \(model.ownedCount) / \(model.items.count)冊")
-                    .font(BookshelfStyle.sans(14, .medium))
-                    .foregroundStyle(BookshelfStyle.ink)
-                    .accessibilityIdentifier("pending.ownedCount")
-                Spacer()
-                smallButton("すべて選択", id: "pending.selectAll", disabled: model.ownedCount == model.items.count) {
-                    model.setAllOwned(true)
-                }
-                smallButton("すべて解除", id: "pending.deselectAll", disabled: model.ownedCount == 0) {
-                    model.setAllOwned(false)
+            if isLarge {
+                ownedCount
+                HStack(spacing: 8) { selectButtons }
+            } else {
+                HStack(spacing: 8) {
+                    ownedCount
+                    Spacer()
+                    selectButtons
                 }
             }
             Text("チェックあり＝購入済み　チェックなし＝買いたい本")
                 .font(BookshelfStyle.sans(11))
                 .foregroundStyle(BookshelfStyle.faint)
+        }
+    }
+
+    private var ownedCount: some View {
+        Text("購入済み \(model.ownedCount) / \(model.items.count)冊")
+            .font(BookshelfStyle.sans(14, .medium))
+            .foregroundStyle(BookshelfStyle.ink)
+            .accessibilityIdentifier("pending.ownedCount")
+    }
+
+    @ViewBuilder
+    private var selectButtons: some View {
+        smallButton("すべて選択", id: "pending.selectAll", disabled: model.ownedCount == model.items.count) {
+            model.setAllOwned(true)
+        }
+        smallButton("すべて解除", id: "pending.deselectAll", disabled: model.ownedCount == 0) {
+            model.setAllOwned(false)
         }
     }
 
@@ -171,7 +224,7 @@ struct PendingListView: View {
                 .font(BookshelfStyle.sans(13))
                 .foregroundStyle(disabled ? BookshelfStyle.faint : BookshelfStyle.ink)
                 .padding(.horizontal, 13)
-                .frame(height: 28)
+                .frame(minHeight: 28)
                 .background(Capsule().fill(BookshelfStyle.fill))
         }
         .disabled(disabled)
@@ -205,6 +258,7 @@ struct PendingListView: View {
                     .background(Capsule().fill(model.canRegister ? BookshelfStyle.ink : BookshelfStyle.fill))
             }
             .disabled(!model.canRegister)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
             .accessibilityIdentifier("pending.register")
@@ -213,12 +267,15 @@ struct PendingListView: View {
 
     private var untitledNotice: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack {
+            let layout =
+                isLarge
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout())
+            layout {
                 Label("題名が未入力の本が\(model.untitledCount)冊あります", systemImage: "exclamationmark.circle")
                     .font(BookshelfStyle.sans(13, .medium))
                     .foregroundStyle(BookshelfStyle.ink)
                     .accessibilityIdentifier("pending.untitledNotice")
-                Spacer()
+                if !isLarge { Spacer() }
                 Button {
                     // 題名の編集（C-3）を、題名が未入力の最初の本から開く
                     if let first = model.items.first(where: { !$0.hasTitle }) {
@@ -260,51 +317,72 @@ struct PendingRow: View {
     let index: Int
     let shelves: [Shelf]
     var focusedItem: FocusState<UUID?>.Binding
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// 最大の文字サイズでは、チェックと表紙の下に題名・ジャンル・状態を幅いっぱいに置く（N5）
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Button {
-                item.owned.toggle()
-            } label: {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(item.owned ? BookshelfStyle.ink : Color.white)
-                    .overlay {
-                        if item.owned {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(.white)
-                        } else {
-                            RoundedRectangle(cornerRadius: 6).stroke(BookshelfStyle.checkOff, lineWidth: 1.5)
-                        }
-                    }
-                    .frame(width: 22, height: 22)
-                    .frame(width: 32, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("pending.row.\(index).check")
-            .accessibilityLabel("購入済み")
-            .accessibilityValue(item.owned ? "オン" : "オフ")
-            .accessibilityAddTraits(item.owned ? .isSelected : [])
-
-            Group {
-                if let image = item.thumbnailImage {
-                    Image(uiImage: image).resizable().scaledToFit()
-                } else {
-                    BookshelfStyle.fill
-                }
-            }
-            .frame(width: 44, height: 62)
-            .clipShape(RoundedRectangle(cornerRadius: 2))
-
+        if isLarge {
             VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 14) {
+                    checkButton
+                    thumbnail
+                }
                 titleField
-                HStack(spacing: 10) {
-                    genreMenu
-                    status
+                genreMenu
+                status
+            }
+        } else {
+            HStack(alignment: .center, spacing: 14) {
+                checkButton
+                thumbnail
+                VStack(alignment: .leading, spacing: 8) {
+                    titleField
+                    HStack(spacing: 10) {
+                        genreMenu
+                        status
+                    }
                 }
             }
         }
+    }
+
+    private var checkButton: some View {
+        Button {
+            item.owned.toggle()
+        } label: {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(item.owned ? BookshelfStyle.ink : Color.white)
+                .overlay {
+                    if item.owned {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white)
+                    } else {
+                        RoundedRectangle(cornerRadius: 6).stroke(BookshelfStyle.checkOff, lineWidth: 1.5)
+                    }
+                }
+                .frame(width: 22, height: 22)
+                .frame(width: 32, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("pending.row.\(index).check")
+        .accessibilityLabel("購入済み")
+        .accessibilityValue(item.owned ? "オン" : "オフ")
+        .accessibilityAddTraits(item.owned ? .isSelected : [])
+    }
+
+    private var thumbnail: some View {
+        Group {
+            if let image = item.thumbnailImage {
+                Image(uiImage: image).resizable().scaledToFit()
+            } else {
+                BookshelfStyle.fill
+            }
+        }
+        .frame(width: 44, height: 62)
+        .clipShape(RoundedRectangle(cornerRadius: 2))
     }
 
     @ViewBuilder
@@ -336,9 +414,10 @@ struct PendingRow: View {
             .focused(focusedItem, equals: item.id)
             .submitLabel(.next)
             .padding(.leading, 12)
-            .padding(.trailing, missing ? 44 : 12)
+            .padding(.trailing, missing && !isLarge ? 44 : 12)
             .accessibilityIdentifier("pending.row.\(index).title")
-            if missing {
+            // 大きい文字では「必須」を欄の中に重ねない（下の「題名を入力してください」で伝わる）
+            if missing && !isLarge {
                 HStack {
                     Spacer()
                     Text("必須")
@@ -349,7 +428,7 @@ struct PendingRow: View {
                 .allowsHitTesting(false)
             }
         }
-        .frame(height: 36)
+        .frame(minHeight: 36)
         .background {
             if missing {
                 RoundedRectangle(cornerRadius: 10).stroke(BookshelfStyle.ink, lineWidth: 1.5)
@@ -374,7 +453,7 @@ struct PendingRow: View {
             }
             .foregroundStyle(BookshelfStyle.ink)
             .padding(.horizontal, 10)
-            .frame(height: 24)
+            .frame(minHeight: 24)
             .background(Capsule().fill(BookshelfStyle.fill))
         }
         .accessibilityIdentifier("pending.row.\(index).genre")

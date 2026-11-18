@@ -481,3 +481,35 @@
   - 3ジャンル×1冊も、区分に分けると表紙が 220px、まとめると約 390px になるので、まとめる（6割の基準）。2区分（月12冊＝哲学9・歴史3など、既存のテスト・Figma の月別の例）は区分に分けたまま
   - nit 2件（App ID が無いときの案内、開けなかったときのペーストボード）は、N-086 で App ID が入れば変わるので直していない
   - 区分に分けるかの基準（120px・6割）は見た目の判断。N-088 に追記した
+
+## T12: 性能・アクセシビリティ・オフラインの確認 — done（実機での計測・機内モードの手動確認・閲覧画面の文字の上限の判断はオーナー待ち） (2026-11-18)
+- changed:
+  - Bookshelf/Debug/SeedData.swift（新規・デバッグビルドのみ）: `PerfSeed`（起動引数 `-SeedPerf 500`。小説に200冊・ほかの27棚に300冊・1割は買いたい・購入日は約2年に散らす。表紙は実際の登録と同じ CoverProcessor を通した JPEG で、git 管理外の実写サンプル25枚があれば順に使い、無ければ合成）、`PerfProbe`（起動引数 `-PerfProbe`。プロセスの開始〔sysctl kinfo_proc〕から閲覧画面に本が出た次の描画までのミリ秒と、データのフォルダの容量を、見えない要素 `perf.probe` のラベルで渡す）、`PerfProbeMarker`
+  - BookshelfUITests/PerformanceTests.swift（新規）: 500冊のシードを1回作り、①コールドスタートから棚の表示まで1秒以内（5回の中央値）②XCTApplicationLaunchMetric ③棚のスクロールの XCTOSSignpostMetric ④共有画像（小説200冊のモザイク・4:5 と 9:16）が3秒以内 ⑤データ容量300MB以下。結果は「PERF」の行で出す
+  - BookshelfUITests/DynamicTypeUITests.swift（新規）: 最大の文字サイズ（AccessibilityXXXL）で日本語・英語×主要画面（閲覧・表示メニュー・設定・ジャンル管理・詳細・編集・検索・共有 K-2/K-4/K-3・購入月別・登録 A-2/A-3/C-2）とチュートリアル（L-1・L-2・O-1）の4件。主な操作ボタンが画面（スクロールの中は枠）の中で押せる、編集の上の行・カードの行が重ならない、所持状況の切り替えが縦並びで幅の6割より広い、プレビューと登録待ちの見出しがボタンに重ならない。スクリーンショットを xcresult に添付し、TEST_RUNNER_BOOKSHELF_SHOTS_DIR があれば書き出す
+  - Bookshelf/Shelf/ShelfScreen.swift: 閲覧画面の中を縮めて切り（`minHeight: 0`・clipped）、案内と下部バーを必ず画面に残す。閲覧画面の文字の拡大を AX2 までにした（`.dynamicTypeSize(...accessibility2)`。オーバーレイ・シート・詳細には掛からない）。案内は xxxLarge まで・1行。検索のカプセルの文字は1行で縮める。デバッグの `-PerfProbe` の計測と見えない要素
+  - Bookshelf/Detail/BookEditView.swift: 大きい文字（isAccessibilitySize）では、上の行を「キャンセル｜完了」の下に見出しの2段に、カードの行（ジャンル・所持状況・購入日）を項目名の下に値に、OwnershipSwitch を縦並び・幅いっぱい（`isVertical`）に。標準の大きさの見た目は変えていない
+  - **計画とのズレ（files の「ほか崩れる画面のレイアウト修正」に当たるもの）**: AX5 の全画面のスクリーンショットで崩れていた画面を直した
+    - Bookshelf/Shelf/DisplayMenu.swift: 大きい文字では画面の幅に広げて項目を折り返し、入らなければスクロール（「購入日が…」が2つ並んで区別できなかった）
+    - Bookshelf/Capture/CaptureView.swift: 登録方法のシート（A-2）は大きい文字では画面いっぱい・スクロール、行の高さ・登録先のチップの高さを固定しない（文字が重なっていた）
+    - Bookshelf/Capture/PendingListView.swift: 登録待ち（C-2）の上の行を2段、追加ボタンを縦、購入済みの見出しを2段、追加ボタンなどを一覧と一緒にスクロール、本の行を縦並び、題名の欄に「必須」を重ねない（見出しが重なり、文字が切れていた）
+    - Bookshelf/Share/ShareFlowView.swift: 範囲のシートは大きい文字では画面いっぱい・スクロール・名前の下に補足（「こ… 11月18…」で この日／この月 が区別できなかった）、共有先は1行ずつ、プレビューは「戻る」の下に見出し
+    - Bookshelf/Onboarding/OnboardingView.swift: 主ボタンを2行まで折り返す、L-1・O-1 の絵と文、L-2 の見出しと棚の一覧をスクロールにしてボタンを画面に残す（ボタンの文字が切れ、L-2 の一覧が高さ約50に潰れていた。O-1 は下のボタンが画面の外）
+  - **計画とのズレ（files 外）**:
+    - Bookshelf/BookshelfApp.swift: `-UITestPersistentStore -UITestReset` のときに `-SeedPerf <1〜2000>` で PerfSeed を呼ぶ（デバッグビルドのみ。DebugSeed と同じ場所）
+    - docs/notices.md: N-090〜N-093 を追加、N-083 を完了へ移動
+  - .dev/perf-report.md（新規）: 計測の条件・結果・最大の文字サイズの確認・機内モードのチェックリスト
+- verify:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → `** TEST SUCCEEDED **`。ユニット `✔ Test run with 87 tests in 13 suites passed`、UI `Executed 64 tests, with 0 failures`（既存55＋DynamicTypeUITests 4＋PerformanceTests 5）
+  - PerformanceTests（500冊・シミュレータ）: `PERF coldStartToShelf ms=[928, 892, 927, 902, 884] median=902`（1秒以内）、XCTApplicationLaunchMetric 平均 0.938 秒、Scroll_DraggingAndDeceleration 平均 0.594 秒（ヒッチ率はシミュレータでは出ない）、`PERF shareImage portrait=1.95s story=2.19s`（3秒以内）、`PERF dataSize books=500 bytes=138301440 MB=138.3`（300MB 以下）。詳細は .dev/perf-report.md §2
+  - DynamicTypeUITests（最大の文字サイズ・日本語と英語）4件 通過。スクリーンショット38枚: /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/432c5e25-8beb-46b4-b4d3-12990fffcb40/scratchpad/t12/shots/（直す前の調査の写真は同じフォルダの ../ax/ と sheet_*.jpg）
+  - `xcodebuild -exportLocalizations ... -exportLanguage en` → exit 0。trans-unit 322件のうち translated 321・translate="no" 1、**未翻訳0件**（新しい文言は足していない）
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし exit 0 / `scripts/check-no-network.sh` → OK exit 0
+  - **未実施（オーナー・実機）**: iPhone 13 相当の実機での PerformanceTests とヒッチ率（N-090）、機内モードの実機での手動確認チェックリスト（N-091。perf-report §4）、連続撮影の1秒（N-092。plan の acceptance 外の N1 の項目）
+- notes:
+  - 閲覧画面の文字の拡大を AX2 で止めたのは見た目の判断（N-093 でオーナー確認）。上限を上げるなら閲覧画面の表紙の大きさを変える設計が要る
+  - 起動の計測は余裕が約0.1秒（シミュレータ）。実機では超えるおそれがあるので N-090 で早めに測るとよい
+  - 共有画像（200冊）は UI 上で約2秒。表紙200枚の読み込みが大半と見られる。実機で3秒に近ければ、サムネイルより小さい共有用の表紙を使うなどの改善が要る
+  - LocalizationUITests の testLargestTextKeepsDetailOnScreen のコメント（閲覧画面は AX5 で崩れるので見ない）は古くなったが、テストの中身は正しいので変えていない（DynamicTypeUITests で閲覧画面を見ている）
+  - 長い題名・棚の名前は1行で「…」になるところが残る（閲覧の題名、月の見出し、ジャンル管理のバッジ）。読み上げでは全文が読まれる
+  - 依存の追加なし。通信のコードなし。空の catch なし。実写の表紙はシミュレータの一時フォルダにだけ置き、リポジトリには入れていない

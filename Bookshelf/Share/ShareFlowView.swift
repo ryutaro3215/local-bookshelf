@@ -161,8 +161,13 @@ struct ShareFlowView: View {
     @State private var selected: ShareOption.Kind
     @State private var renders = ShareRenders()
     @State private var detent: PresentationDetent
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private static let rangeDetent = PresentationDetent.height(470)
+    /// 範囲を選ぶシートの高さ（最大の文字サイズでは画面いっぱい。N5）
+    private var rangeDetent: PresentationDetent {
+        dynamicTypeSize.isAccessibilitySize ? .large : Self.rangeDetent
+    }
 
     init(request: ShareRequest, images: ImageStore, onClose: @escaping () -> Void) {
         self.request = request
@@ -202,13 +207,16 @@ struct ShareFlowView: View {
             }
         }
         .presentationDetents(request.options.count > 1 ? [Self.rangeDetent, .large] : [.large], selection: $detent)
+        .onAppear {
+            if request.options.count > 1 { detent = rangeDetent }
+        }
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
         // Figma の K-2・K-3 は白い地（iOS 26 の半透明のシートにしない）
         .presentationBackground(Color.white)
         // 範囲を選んだら共有先・プレビューは画面いっぱいに広げる
         .onChange(of: path) { _, steps in
-            detent = steps.isEmpty && request.options.count > 1 ? Self.rangeDetent : .large
+            detent = steps.isEmpty && request.options.count > 1 ? rangeDetent : .large
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("share.sheet")
@@ -266,8 +274,20 @@ private struct ShareRangeStep: View {
     @Binding var selected: ShareOption.Kind
     let onNext: () -> Void
     let onCancel: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// 最大の文字サイズでは、範囲の名前の下に補足を置き、全体をスクロールできるようにする（N5）
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
+        ScrollView {
+            content
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("share.range")
+    }
+
+    private var content: some View {
         VStack(spacing: 0) {
             Text("共有する範囲")
                 .font(BookshelfStyle.sans(18, .medium))
@@ -310,11 +330,8 @@ private struct ShareRangeStep: View {
             .buttonStyle(.plain)
             .padding(.top, 10)
             .accessibilityIdentifier("share.cancel")
-            Spacer(minLength: 0)
         }
         .padding(.horizontal, 20)
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("share.range")
     }
 
     private func row(_ option: ShareOption) -> some View {
@@ -332,18 +349,26 @@ private struct ShareRangeStep: View {
                         Circle().fill(Color.white).frame(width: 7, height: 7)
                     }
                 }
-                Text(option.label)
-                    .font(BookshelfStyle.sans(16, .medium))
-                    .tracking(0.5)
-                    .foregroundStyle(BookshelfStyle.ink)
-                Text(verbatim: option.detail)
-                    .font(BookshelfStyle.sans(12))
-                    .tracking(0.3)
-                    .foregroundStyle(BookshelfStyle.sub)
-                    .lineLimit(1)
+                let layout =
+                    isLarge
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                    : AnyLayout(HStackLayout(spacing: 16))
+                layout {
+                    Text(option.label)
+                        .font(BookshelfStyle.sans(16, .medium))
+                        .tracking(0.5)
+                        .foregroundStyle(BookshelfStyle.ink)
+                    Text(verbatim: option.detail)
+                        .font(BookshelfStyle.sans(12))
+                        .tracking(0.3)
+                        .foregroundStyle(BookshelfStyle.sub)
+                        .lineLimit(isLarge ? nil : 1)
+                }
+                .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 20)
+            .padding(.vertical, isLarge ? 12 : 0)
             .frame(maxWidth: .infinity, minHeight: 60)
             .background(
                 RoundedRectangle(cornerRadius: 18)
@@ -371,6 +396,9 @@ private struct ShareDestinationStep: View {
     let renders: ShareRenders
     let onSelect: (ShareDestination) -> Void
     let onCancel: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// 最大の文字サイズでは、共有先を4つ横に並べず1行ずつにする（名前を省略しない。N5）
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -402,14 +430,24 @@ private struct ShareDestinationStep: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 44)
                         .padding(.horizontal, 24)
-                    HStack(alignment: .top, spacing: 0) {
-                        ForEach(ShareDestination.allCases, id: \.self) { destination in
-                            tile(destination)
-                                .frame(maxWidth: .infinity)
+                    if isLarge {
+                        VStack(spacing: 10) {
+                            ForEach(ShareDestination.allCases, id: \.self) { destination in
+                                row(destination)
+                            }
                         }
+                        .padding(.top, 14)
+                        .padding(.horizontal, 20)
+                    } else {
+                        HStack(alignment: .top, spacing: 0) {
+                            ForEach(ShareDestination.allCases, id: \.self) { destination in
+                                tile(destination)
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+                        .padding(.top, 14)
+                        .padding(.horizontal, 12)
                     }
-                    .padding(.top, 14)
-                    .padding(.horizontal, 12)
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -424,12 +462,45 @@ private struct ShareDestinationStep: View {
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 20)
+            .padding(.top, 8)
             .padding(.bottom, 8)
             .accessibilityIdentifier("share.cancel")
         }
         .background(Color.white)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("share.destinations")
+    }
+
+    /// 最大の文字サイズの共有先の1行（アイコン・名前・縦横比）
+    private func row(_ destination: ShareDestination) -> some View {
+        Button {
+            onSelect(destination)
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: destination.icon)
+                    .font(.system(size: 19, weight: .regular))
+                    .foregroundStyle(BookshelfStyle.ink)
+                    .frame(width: 44, height: 44)
+                VStack(alignment: .leading, spacing: 2) {
+                    // 名前は2行の形（「Instagram\nフィード」）なので、1行の形にしない（文言をそのまま使う）
+                    Text(destination.name)
+                        .font(BookshelfStyle.sans(12))
+                        .foregroundStyle(BookshelfStyle.ink)
+                    Text(verbatim: destination.ratio)
+                        .font(BookshelfStyle.sans(10))
+                        .foregroundStyle(BookshelfStyle.faint)
+                }
+                .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 16).fill(BookshelfStyle.fill))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("share.destination.\(destination.rawValue)")
     }
 
     private func tile(_ destination: ShareDestination) -> some View {
@@ -476,37 +547,30 @@ private struct SharePreviewStep: View {
     @State private var status: LocalizedStringKey?
     @State private var activityImage: ActivityImage?
     @State private var isWorking = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var shareImage: ShareImage? { renders.image(for: option.content, format: destination.format) }
 
     var body: some View {
         VStack(spacing: 0) {
-            ZStack {
-                Text(destination.previewTitle)
-                    .font(BookshelfStyle.sans(16, .medium))
-                    .tracking(0.5)
-                    .foregroundStyle(BookshelfStyle.ink)
-                    .lineLimit(1)
-                    .padding(.horizontal, 90)
-                    .accessibilityAddTraits(.isHeader)
-                    .accessibilityIdentifier("share.preview.title")
-                HStack {
-                    Button(action: onBack) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 17, weight: .regular))
-                            Text("戻る")
-                                .font(BookshelfStyle.sans(15))
-                        }
-                        .foregroundStyle(BookshelfStyle.ink)
-                        .frame(minHeight: 44)
-                        .contentShape(Rectangle())
+            // 最大の文字サイズでは「‹ 戻る」の下に見出しを置く（重ならないように。N5）
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(spacing: 4) {
+                        backRow
+                        previewTitle
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("share.back")
-                    Spacer()
+                } else {
+                    ZStack {
+                        previewTitle
+                            .lineLimit(1)
+                            .padding(.horizontal, 90)
+                        backRow
+                    }
                 }
-                .padding(.horizontal, 12)
             }
             .padding(.top, 14)
             GeometryReader { geometry in
@@ -574,6 +638,35 @@ private struct SharePreviewStep: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("share.preview")
+    }
+
+    private var previewTitle: some View {
+        Text(destination.previewTitle)
+            .font(BookshelfStyle.sans(16, .medium))
+            .tracking(0.5)
+            .foregroundStyle(BookshelfStyle.ink)
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityIdentifier("share.preview.title")
+    }
+
+    private var backRow: some View {
+        HStack {
+            Button(action: onBack) {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 17, weight: .regular))
+                    Text("戻る")
+                        .font(BookshelfStyle.sans(15))
+                }
+                .foregroundStyle(BookshelfStyle.ink)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("share.back")
+            Spacer()
+        }
+        .padding(.horizontal, 12)
     }
 
     /// 画面に収まる大きさ（ストーリーズは縦長なので高さで決める）

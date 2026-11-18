@@ -366,3 +366,20 @@
   - [nit] Bookshelf/Share/ShareRenderer.swift:313 区分に分けるかを、格子全体の表紙の高さ（`best.cover`）で比べている。横長の表紙（縦横比が中央値より大きいもの）は、実際にはセルの幅で決まるのでこれより低く描かれる。区分に分けた場合でも 120 を少し下回る表紙が出うるが、見た目の破綻にはならない
   - [nit] 前回の nit 2件（ShareFlowView.swift:598-601 の案内、InstagramStoriesSharer.swift:63 のペーストボード）は残っている
 - オーナー判断が必要（裁定していない）: N-086 Meta の App ID、N-087 範囲の解釈、N-088 9:16 の列の数・英語の画像の文言・アプリ名・区分をまとめる基準（120px・6割）、N-089 実機での受け渡しと Figma との目視比較
+
+## T12: PASS (2026-11-18)
+- acceptance再実行（main の作業ツリー。DerivedData はスクラッチパッド。シミュレータ iPhone 17 Pro 64DCF75A・Apple M5）:
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → `** TEST SUCCEEDED **`、exit=0。ユニット `✔ Test run with 87 tests in 13 suites passed`、UI `Executed 64 tests, with 0 failures`（DynamicTypeUITests 4・PerformanceTests 5 を含む）
+  - PerformanceTests（500冊シード）を自分の実行で再現: `PERF coldStartToShelf ms=[914, 895, 884, 887, 899] median=895`（1秒以内）、XCTApplicationLaunchMetric 平均 0.919 秒、Scroll_DraggingAndDeceleration 平均 0.617 秒、`PERF shareImage portrait=1.85s story=2.23s`（3秒以内）、`PERF dataSize books=500 bytes=138301440 MB=138.3`（300MB 以下）。builder の値とほぼ同じ
+  - DynamicTypeUITests（最大の文字サイズ・日本語と英語）4件 通過。書き出したスクリーンショット38枚（scratchpad/t12r/shots）を見て、編集の所持状況が「購入済み／買いたい」「Owned / Wishlist」と縦に並んで省略されていないこと、閲覧の下部バーが画面内にあることを目で確認した
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし、exit=0 / `scripts/check-no-network.sh` → OK、exit=0
+  - **標準の文字サイズでの見た目の変化**（レビュー用の一時テストで、変更前〔HEAD d28f7a8 の一時ワークツリー〕と変更後の同じ12画面を撮って画素を比べた。一時テスト・ワークツリーは削除済み）: 閲覧・表示メニュー・編集・共有先・ストーリーズのプレビュー・購入月別・共有の範囲・登録待ちは**差 0%**。差があったのは登録方法のシート（5.8%。下の should）と、チュートリアル L-1・L-2・O-1（0.1〜1.1%。主ボタンの文字の内側の余白による文字の位置のわずかな差で、見た目はほぼ同じ）
+  - 未実施（オーナー・実機。builder の申告どおり）: iPhone 13 相当の実機での計測とヒッチ率（N-090）、機内モードの実機での手動確認（N-091。チェックリストは perf-report §4 に用意済みで、結果は空欄）、連続撮影の1秒（N-092）
+- 要件との整合: N1 の3項目（起動・共有画像・容量）はシミュレータで基準内。N1 の基準機は iPhone 13 相当で、シミュレータの値はその代わりにならない（perf-report に明記されている）。N5 の Dynamic Type 対応は、閲覧画面だけ AX2 で上限を付けた（N-093 でオーナー判断待ち）。ほかの画面は上限なしで組み替えている。S1（通信なし）・S3（秘密情報なし）に反するものは無い。SeedData.swift は全体が `#if DEBUG`、`-SeedPerf` の件数は 1〜2000 に制限されている
+- 指摘:
+  - [should] Bookshelf/Capture/CaptureView.swift:73-80 登録方法のシート（A-2）を、標準の大きさでも ScrollView に入れたため、中身の位置が変わった。変更前はシート（高さ 420）の上下中央、変更後は上寄せで、「キャンセル」の下に約 140pt の空白ができる（scratchpad/t12r/cmp1.jpg の左＝変更前・中＝変更後・右＝Figma A-2）。上の余白は Figma に近くなったが、Figma はシートの下端が「キャンセル」のすぐ下にある。build-log の「標準の大きさの見た目は変えていない」とも合わない。直し方: ScrollView は大きい文字のときだけにする（`if isLarge { ScrollView { content } } else { content }`）か、標準ではシートの高さを中身に合わせる（`presentationDetents` を中身の高さに）。どちらにするかは Figma と見比べて決める
+  - [should] BookshelfUITests/PerformanceTests.swift:68-80 「コールドスタート」は、直前に同じアプリを終了してすぐ起動し直しているので、ファイルのキャッシュが温まった状態での起動になる（本当のコールドスタートより速く出やすい）。基準まで余裕が約0.1秒しかないので、実機での計測（N-090）では端末の再起動後の1回目も測り、perf-report に分けて書くとよい
+  - [nit] .dev/perf-report.md §3 スクリーンショットはスクラッチパッド（一時フォルダ）にしかなく、再起動で消える。acceptance「同条件のスクリーンショットを撮り、結果を perf-report.md に記録」の証跡として残すなら、オーナーがどこかに保存する（xcresult にも添付されている）
+  - [nit] BookshelfUITests/LocalizationUITests.swift:401-402 のコメント「閲覧画面は AX5 で下部バーが画面の外に押し出される…ここでは見ない」は T12 で古くなった（builder の申告どおり）
+  - [nit] Bookshelf/Debug/SeedData.swift の PerfProbe は「棚に本が出た次の描画」を DispatchQueue.main.async で取っている。最初のフレームが画面に出た時刻と完全には一致しない（XCTApplicationLaunchMetric の 0.919 秒とは近い値なので、実用上は十分）
+- オーナー判断が必要（裁定していない）: N-093 閲覧画面の文字の拡大を AX2 で止めたこと、上の should の登録方法のシートの見た目（Figma A-2 との比較）。実機作業は N-090・N-091・N-092

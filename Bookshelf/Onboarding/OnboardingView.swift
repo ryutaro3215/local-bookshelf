@@ -193,6 +193,35 @@ private struct PageDots: View {
     }
 }
 
+/// ページの上の部分（絵と文）。ふだんは上下の余白で中央に置き、最大の文字サイズでは
+/// 下のボタンを画面の中に残すため、この部分だけをスクロールできるようにする（N5）
+private struct LargeTextScroll<Content: View>: View {
+    /// ふだんの下の余白（O-1 は下に2つ置いて、上寄りにする）
+    var bottomSpacers = 1
+    @ViewBuilder let content: Content
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            ScrollView {
+                VStack(spacing: 0) { content }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        } else {
+            Spacer(minLength: 0)
+            content
+            if bottomSpacers > 1 {
+                Spacer(minLength: 0)
+                Spacer(minLength: 0)
+            } else {
+                Spacer(minLength: 24)
+            }
+        }
+    }
+}
+
 /// 主ボタン（INK の地・白文字・高さ 52）
 private struct PrimaryButton: View {
     let title: String
@@ -206,9 +235,14 @@ private struct PrimaryButton: View {
                 .font(BookshelfStyle.sans(16, .medium))
                 .tracking(0.5)
                 .foregroundStyle(Color.white)
-                .lineLimit(1)
+                // 大きい文字では2行まで折り返す（省略しない。N5）
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
                 .frame(maxWidth: .infinity)
-                .frame(height: 52)
+                .frame(minHeight: 52)
+                .fixedSize(horizontal: false, vertical: true)
                 .background(Capsule().fill(BookshelfStyle.ink.opacity(enabled ? 1 : 0.3)))
         }
         .buttonStyle(.plain)
@@ -222,39 +256,47 @@ private struct PrimaryButton: View {
 
 private struct WelcomePage: View {
     let onStart: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer(minLength: 0)
-            SampleCoverFan()
-                .frame(height: 300)
-                .accessibilityHidden(true)
-            Text("local-bookshelf")
-                .font(BookshelfStyle.sans(13))
-                .tracking(2)
-                .foregroundStyle(BookshelfStyle.faint)
-                .padding(.top, 30)
-            Text("撮るだけで、自分の本棚に。")
-                .font(BookshelfStyle.sans(24, .medium, relativeTo: .title2))
-                .tracking(0.5)
-                .foregroundStyle(BookshelfStyle.ink)
-                .padding(.top, 18)
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier("onboarding.welcome")
-            Text("表紙を撮ると、本棚に並びます。\n題名で探せて、買った月ごとにも見返せます。")
-                .font(BookshelfStyle.sans(13))
-                .tracking(0.5)
-                .foregroundStyle(BookshelfStyle.sub)
-                .multilineTextAlignment(.center)
-                .lineSpacing(7)
-                .padding(.top, 18)
-            Spacer(minLength: 24)
+            LargeTextScroll {
+                SampleCoverFan()
+                    // 最大の文字サイズでは見本の表紙を小さくして、文とボタンの場所を空ける（N5）
+                    .scaleEffect(dynamicTypeSize.isAccessibilitySize ? 0.6 : 1)
+                    .frame(height: dynamicTypeSize.isAccessibilitySize ? 180 : 300)
+                    .accessibilityHidden(true)
+                Text("local-bookshelf")
+                    .font(BookshelfStyle.sans(13))
+                    .tracking(2)
+                    .foregroundStyle(BookshelfStyle.faint)
+                    .padding(.top, 30)
+                Text("撮るだけで、自分の本棚に。")
+                    .font(BookshelfStyle.sans(24, .medium, relativeTo: .title2))
+                    .tracking(0.5)
+                    .foregroundStyle(BookshelfStyle.ink)
+                    .padding(.top, 18)
+                    .accessibilityAddTraits(.isHeader)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("onboarding.welcome")
+                Text("表紙を撮ると、本棚に並びます。\n題名で探せて、買った月ごとにも見返せます。")
+                    .font(BookshelfStyle.sans(13))
+                    .tracking(0.5)
+                    .foregroundStyle(BookshelfStyle.sub)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(7)
+                    .padding(.top, 18)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             PageDots(index: 0)
             PrimaryButton(title: String(localized: "最初の1冊を登録する"), id: "onboarding.start", action: onStart)
                 .padding(.top, 46)
             Text("データはこの iPhone の中だけに保存されます")
                 .font(BookshelfStyle.sans(11))
                 .foregroundStyle(BookshelfStyle.faint)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 16)
                 .padding(.bottom, 12)
         }
@@ -340,22 +382,19 @@ private struct FirstShelfPage: View {
     @Binding var selection: Shelf?
     let onConfirm: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
+        let large = dynamicTypeSize.isAccessibilitySize
         VStack(alignment: .leading, spacing: 0) {
-            Text("最初の本を置く棚を選んでください")
-                .font(BookshelfStyle.sans(20, .medium, relativeTo: .title3))
-                .tracking(0.5)
-                .foregroundStyle(BookshelfStyle.ink)
-                .padding(.horizontal, 24)
-                .padding(.top, 28)
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier("onboarding.shelf.heading")
-            Text("あとから変えられます。迷ったら「未分類」でも大丈夫です")
-                .font(BookshelfStyle.sans(12))
-                .foregroundStyle(BookshelfStyle.sub)
-                .padding(.horizontal, 24)
-                .padding(.top, 10)
+            if !large {
+                headings
+            }
             ScrollView {
+                // 最大の文字サイズでは見出しも一緒にスクロールし、棚の一覧の場所を残す（N5）
+                if large {
+                    headings
+                }
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(groups, id: \.category.id) { group in
                         Text(group.category.displayName)
@@ -389,6 +428,27 @@ private struct FirstShelfPage: View {
         .background(Color.white.ignoresSafeArea())
     }
 
+    private var headings: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("最初の本を置く棚を選んでください")
+                .font(BookshelfStyle.sans(20, .medium, relativeTo: .title3))
+                .tracking(0.5)
+                .foregroundStyle(BookshelfStyle.ink)
+                .padding(.horizontal, 24)
+                .padding(.top, 28)
+                .accessibilityAddTraits(.isHeader)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("onboarding.shelf.heading")
+            Text("あとから変えられます。迷ったら「未分類」でも大丈夫です")
+                .font(BookshelfStyle.sans(12))
+                .foregroundStyle(BookshelfStyle.sub)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 24)
+                .padding(.top, 10)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private func row(_ shelf: Shelf) -> some View {
         let selected = shelf.persistentModelID == selection?.persistentModelID
         return Button {
@@ -399,7 +459,7 @@ private struct FirstShelfPage: View {
                     .font(BookshelfStyle.serif(16))
                     .tracking(0.5)
                     .foregroundStyle(shelf.kind == .unsorted && !selected ? BookshelfStyle.sub : BookshelfStyle.ink)
-                    .lineLimit(1)
+                    .multilineTextAlignment(.leading)
                 Spacer()
                 if selected {
                     Image(systemName: "checkmark")
@@ -408,7 +468,8 @@ private struct FirstShelfPage: View {
                 }
             }
             .padding(.horizontal, 14)
-            .frame(height: 46)
+            .padding(.vertical, 6)
+            .frame(minHeight: 46)
             .background(RoundedRectangle(cornerRadius: 12).fill(selected ? BookshelfStyle.fill : Color.clear))
             .contentShape(Rectangle())
         }
@@ -442,30 +503,31 @@ private struct CameraPermissionPage: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer(minLength: 0)
-            Image(systemName: "camera")
-                .font(.system(size: 26, weight: .regular))
-                .foregroundStyle(BookshelfStyle.ink)
-                .frame(width: 88, height: 88)
-                .background(Circle().fill(BookshelfStyle.fill))
-                .accessibilityHidden(true)
-            Text("表紙を撮るために\nカメラを使います")
-                .font(BookshelfStyle.sans(20, .medium, relativeTo: .title3))
-                .tracking(0.5)
-                .foregroundStyle(BookshelfStyle.ink)
-                .multilineTextAlignment(.center)
-                .lineSpacing(8)
-                .padding(.top, 44)
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier("onboarding.permission.heading")
-            Text("撮った写真は、この iPhone の中だけに保存され、\nどこにも送信されません。")
-                .font(BookshelfStyle.sans(13))
-                .foregroundStyle(BookshelfStyle.sub)
-                .multilineTextAlignment(.center)
-                .lineSpacing(7)
-                .padding(.top, 26)
-            Spacer(minLength: 0)
-            Spacer(minLength: 0)
+            LargeTextScroll(bottomSpacers: 2) {
+                Image(systemName: "camera")
+                    .font(.system(size: 26, weight: .regular))
+                    .foregroundStyle(BookshelfStyle.ink)
+                    .frame(width: 88, height: 88)
+                    .background(Circle().fill(BookshelfStyle.fill))
+                    .accessibilityHidden(true)
+                Text("表紙を撮るために\nカメラを使います")
+                    .font(BookshelfStyle.sans(20, .medium, relativeTo: .title3))
+                    .tracking(0.5)
+                    .foregroundStyle(BookshelfStyle.ink)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(8)
+                    .padding(.top, 44)
+                    .accessibilityAddTraits(.isHeader)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("onboarding.permission.heading")
+                Text("撮った写真は、この iPhone の中だけに保存され、\nどこにも送信されません。")
+                    .font(BookshelfStyle.sans(13))
+                    .foregroundStyle(BookshelfStyle.sub)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(7)
+                    .padding(.top, 26)
+            }
             PageDots(index: 2)
             PrimaryButton(title: String(localized: "カメラを許可する"), id: "onboarding.permission.allow", action: onAllow)
                 .padding(.top, 46)
@@ -474,7 +536,9 @@ private struct CameraPermissionPage: View {
                     .font(BookshelfStyle.sans(14, .medium))
                     .tracking(0.5)
                     .foregroundStyle(BookshelfStyle.sub)
+                    .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity, minHeight: 44)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .buttonStyle(.plain)
             .padding(.top, 6)
