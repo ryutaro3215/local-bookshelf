@@ -19,6 +19,7 @@ struct BookshelfApp: App {
                 AppRootView(environment: environment)
                     .modelContainer(environment.container)
                     .environment(environment.appearance)
+                    .environment(environment.language)
                     // 起動したウインドウに、保存した外観を付ける
                     .onAppear { environment.appearance.apply() }
             case .failure(let error):
@@ -36,6 +37,7 @@ final class AppEnvironment {
     let store: LibraryStore
     let recent: RecentShelves
     let appearance: AppearanceSettings
+    let language: LanguageSettings
     private let arguments: [String]
 
     init(container: ModelContainer, images: ImageStore, defaults: UserDefaults, arguments: [String]) throws {
@@ -43,6 +45,7 @@ final class AppEnvironment {
         self.store = LibraryStore(container: container, images: images)
         self.recent = RecentShelves(defaults: defaults)
         self.appearance = AppearanceSettings(defaults: defaults)
+        self.language = LanguageSettings(defaults: defaults)
         #if DEBUG
             // UI テスト・スクリーンショット用: 起動引数 `-UITestAppearance dark` で外観を決める
             if let index = arguments.firstIndex(of: "-UITestAppearance"), index + 1 < arguments.count,

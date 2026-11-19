@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var showsGenres = false
     @State private var showsLicense = false
     @Environment(AppearanceSettings.self) private var appearanceSettings
+    @Environment(LanguageSettings.self) private var languageSettings
 
     var body: some View {
         VStack(spacing: 0) {
@@ -37,6 +38,16 @@ struct SettingsView: View {
                     SectionLabel(text: String(localized: "外観"))
                         .padding(.top, 26)
                     appearanceCard
+                    SectionLabel(text: String(localized: "言語"))
+                        .padding(.top, 26)
+                    languageCard
+                    Footnote(
+                        text: languageSettings.needsRelaunch
+                            ? String(localized: "アプリを閉じて開き直すと、選んだ言語に切り替わります。")
+                            : String(localized: "選んだ言語は、アプリを開き直したときから使われます。"),
+                        color: languageSettings.needsRelaunch ? BookshelfStyle.ink : BookshelfStyle.faint
+                    )
+                    .accessibilityIdentifier("settings.language.note")
                     SectionLabel(text: String(localized: "プライバシー"))
                         .padding(.top, 26)
                     privacyCard
@@ -98,6 +109,38 @@ struct SettingsView: View {
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(appearanceSettings.appearance == option ? .isSelected : [])
                 .accessibilityIdentifier("settings.appearance.\(option.rawValue)")
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: 16).fill(BookshelfStyle.fill))
+    }
+
+    /// 言語（システムに合わせる・日本語・English）。選んだ行にチェック。切り替わるのは開き直したとき
+    private var languageCard: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(AppLanguage.allCases.enumerated()), id: \.element) { index, option in
+                if index > 0 { CardSeparator() }
+                Button {
+                    languageSettings.language = option
+                } label: {
+                    HStack {
+                        option.label
+                            .font(BookshelfStyle.sans(16))
+                            .tracking(0.5)
+                            .foregroundStyle(BookshelfStyle.ink)
+                        Spacer()
+                        if languageSettings.language == option {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(BookshelfStyle.ink)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 48)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(languageSettings.language == option ? .isSelected : [])
+                .accessibilityIdentifier("settings.language.\(option.rawValue)")
             }
         }
         .background(RoundedRectangle(cornerRadius: 16).fill(BookshelfStyle.fill))

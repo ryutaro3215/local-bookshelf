@@ -581,3 +581,21 @@
   - 縦のページの隣の棚は、SwiftUI の accessibilityHidden では UI テスト・読み上げから消えなかったため、見えていない棚には識別子を付けない形にした
   - グリッド表示と購入月別は今までどおり（縦のページ送りは棚表示だけ）
   - 全件のテストで LocalizationUITests が1件失敗: グリッドから棚表示に戻すと、縦のページが先頭の棚のまま開くことがあった（見えている棚と画面の棚がずれ、長押しが効かない）。開いたときに今の棚へ送るようにして解消（ShelfScreen.shelfPager の ScrollViewReader）
+
+## オーナーの指示: 言語を設定で切り替える — done (2026-11-19)
+- changed:
+  - Settings/AppLanguage.swift（新規。AppLanguage: システムに合わせる・日本語・English。LanguageSettings: 選択を保存し AppleLanguages に書く／システムでは消す。起動時の言語と違えば needsRelaunch。iOS の設定アプリで言語を変えたときは今の言語に合わせる）
+  - Settings/SettingsView.swift（「外観」の下に「言語」の欄と補足。開き直しが要るときは補足を濃い色に）
+  - BookshelfApp.swift（AppEnvironment.language・environment に渡す）
+  - 文言: Localizable.xcstrings（言語・補足2つ）
+  - テスト: BookshelfTests/LanguageSettingsTests.swift（新規4件）、BookshelfUITests/LanguageSettingUITests.swift（新規1件）、LocalizationUITests（選択肢「日本語」は英語表示でも日本語のままなので、日本語の残りの確認から外す）
+  - scripts/check-no-network.sh（AppIcon.icon の SVG の xmlns を対象から外す。前回のアイコンの追加で引っかかるようになっていた）
+  - 文書: .dev/requirements.md（F4-5）
+- verify:
+  - ユニット 94件通過。LanguageSettingUITests・LocalizationUITests 7件・AppearanceUITests 2件通過
+  - シミュレータで、アプリが書くのと同じ AppleLanguages（en）を入れて起動し、英語で表示されることを確認（確認後に元へ戻した）
+  - `swift format lint` → 出力なし / `scripts/check-no-network.sh` → OK
+- notes:
+  - その場で切り替えず、開き直しで切り替える形にした。String(localized:) で作る文言が多く（約90か所）、その場で切り替えると画面の一部だけ古い言語が残るため。iOS の「App ごとの言語」も切り替え時にアプリを開き直す
+  - -UITestReset のときは専用の設定に書くので、UI テストで選んでも端末の言語は変わらない
+

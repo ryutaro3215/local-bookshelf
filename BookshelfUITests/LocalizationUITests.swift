@@ -65,6 +65,8 @@ final class LocalizationUITests: XCTestCase {
         var stack: [XCUIElementSnapshot] = [snapshot]
         while let node = stack.popLast() {
             if node.elementType == .keyboard { continue }
+            // 設定の言語の選択肢「日本語」は、どの言語で表示していても日本語で書く（言語名はその言語自身で書く）
+            if node.identifier == "settings.language.ja" { continue }
             let texts = [node.label, node.value as? String, node.placeholderValue].compactMap { $0 }
             for text in texts where Self.containsJapanese(text) {
                 found.append("[\(node.identifier)] \(text)")

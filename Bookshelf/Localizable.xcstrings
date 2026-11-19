@@ -5148,6 +5148,54 @@
           }
         }
       }
+    },
+    "言語" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "言語"
+          }
+        }
+      }
+    },
+    "アプリを閉じて開き直すと、選んだ言語に切り替わります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close and reopen the app to switch to the selected language."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを閉じて開き直すと、選んだ言語に切り替わります。"
+          }
+        }
+      }
+    },
+    "選んだ言語は、アプリを開き直したときから使われます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The selected language is used the next time you open the app."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだ言語は、アプリを開き直したときから使われます。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

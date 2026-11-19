@@ -5,6 +5,8 @@
 # どこから実行してもよい（フォルダはこのスクリプトの場所を基準に決める。N-010）。
 # 同梱の書体のライセンス文（Bookshelf/Resources/Licenses/）は著作権表示に URL を含むが、
 # 表示するだけの文書でアプリは開かないので対象から外す（N-033）。
+# アプリアイコン（Bookshelf/AppIcon.icon/）の SVG は、名前空間の宣言（xmlns="http://www.w3.org/2000/svg"）に
+# URL の形を含むが、通信ではない（ビルド時に画像になる）ので対象から外す。
 set -eu
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -17,7 +19,7 @@ if [ ! -d "$target" ]; then
     exit 2
 fi
 
-if grep -rnIE --exclude-dir=Licenses "$pattern" "$target"; then
+if grep -rnIE --exclude-dir=Licenses --exclude-dir=AppIcon.icon "$pattern" "$target"; then
     echo "check-no-network: 外部通信につながる記述が見つかりました（上の行）" >&2
     exit 1
 fi
