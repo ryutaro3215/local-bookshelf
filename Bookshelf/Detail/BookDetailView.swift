@@ -4,7 +4,7 @@ import SwiftUI
 enum BookDates {
     static func format(_ date: Date) -> String {
         guard !InitialGenres.displaysInEnglish else {
-            return date.formatted(date: .abbreviated, time: .omitted)
+            return date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, locale: AppLocale.locale))
         }
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -194,7 +194,7 @@ struct BookDetailView: View {
                 "ジャンル", book.shelf?.displayName ?? InitialGenres.unsortedDisplayName, serif: true, id: "detail.genre")
             separator
             infoRow(
-                "所持状況", book.ownership == .owned ? String(localized: "購入済み") : String(localized: "買いたい"),
+                "所持状況", book.ownership == .owned ? String(appLocalized: "購入済み") : String(appLocalized: "買いたい"),
                 serif: false, id: "detail.ownership")
             // 購入日は購入済みの本だけ（F6-3）。データ追加日は出さない
             if book.ownership == .owned, let date = book.purchaseDate {

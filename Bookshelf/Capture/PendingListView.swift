@@ -92,7 +92,7 @@ struct PendingListView: View {
             Button("登録せずに閉じる", role: .destructive) { onClose(0) }
             Button("一覧に戻る", role: .cancel) {}
         } message: {
-            Text("登録待ちの\(model.reservedCount)冊は保存されません")
+            Text(String(appLocalized: "登録待ちの\(model.reservedCount)冊は保存されません"))
         }
     }
 
@@ -118,7 +118,7 @@ struct PendingListView: View {
     }
 
     private var heading: some View {
-        Text("登録待ち \(model.reservedCount) / \(CaptureViewModel.limit)冊")
+        Text(String(appLocalized: "登録待ち \(model.reservedCount) / \(CaptureViewModel.limit)冊"))
             .font(BookshelfStyle.sans(16, .medium))
             .foregroundStyle(BookshelfStyle.ink)
             .accessibilityIdentifier("pending.heading")
@@ -179,7 +179,7 @@ struct PendingListView: View {
             }
             .disabled(model.remaining == 0)
             .accessibilityIdentifier("pending.addLibrary")
-            .accessibilityValue("残り\(model.remaining)冊まで選べます")
+            .accessibilityValue(String(appLocalized: "残り\(model.remaining)冊まで選べます"))
         }
         .opacity(model.remaining == 0 ? 0.45 : 1)
     }
@@ -203,7 +203,7 @@ struct PendingListView: View {
     }
 
     private var ownedCount: some View {
-        Text("購入済み \(model.ownedCount) / \(model.items.count)冊")
+        Text(String(appLocalized: "購入済み \(model.ownedCount) / \(model.items.count)冊"))
             .font(BookshelfStyle.sans(14, .medium))
             .foregroundStyle(BookshelfStyle.ink)
             .accessibilityIdentifier("pending.ownedCount")
@@ -243,7 +243,7 @@ struct PendingListView: View {
                 if model.untitledCount > 0 {
                     untitledNotice
                 } else {
-                    Text("購入済み \(model.ownedCount)冊・買いたい本 \(model.wantedCount)冊")
+                    Text(String(appLocalized: "購入済み \(model.ownedCount)冊・買いたい本 \(model.wantedCount)冊"))
                         .font(BookshelfStyle.sans(12))
                         .foregroundStyle(BookshelfStyle.sub)
                         .frame(maxWidth: .infinity)
@@ -254,11 +254,14 @@ struct PendingListView: View {
             .padding(.horizontal, 20)
             .padding(.top, 8)
             Button(action: register) {
-                Text(model.untitledCount > 0 ? "題名を入力すると登録できます" : "\(model.items.count)冊を登録")
-                    .font(BookshelfStyle.sans(16, .medium))
-                    .foregroundStyle(model.canRegister ? BookshelfStyle.onInk : BookshelfStyle.faint)
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(Capsule().fill(model.canRegister ? BookshelfStyle.ink : BookshelfStyle.fill))
+                Text(
+                    model.untitledCount > 0
+                        ? String(appLocalized: "題名を入力すると登録できます") : String(appLocalized: "\(model.items.count)冊を登録")
+                )
+                .font(BookshelfStyle.sans(16, .medium))
+                .foregroundStyle(model.canRegister ? BookshelfStyle.onInk : BookshelfStyle.faint)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .background(Capsule().fill(model.canRegister ? BookshelfStyle.ink : BookshelfStyle.fill))
             }
             .disabled(!model.canRegister)
             .fixedSize(horizontal: false, vertical: true)
@@ -274,10 +277,12 @@ struct PendingListView: View {
                 isLarge
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout())
             layout {
-                Label("題名が未入力の本が\(model.untitledCount)冊あります", systemImage: "exclamationmark.circle")
-                    .font(BookshelfStyle.sans(13, .medium))
-                    .foregroundStyle(BookshelfStyle.ink)
-                    .accessibilityIdentifier("pending.untitledNotice")
+                Label(
+                    String(appLocalized: "題名が未入力の本が\(model.untitledCount)冊あります"), systemImage: "exclamationmark.circle"
+                )
+                .font(BookshelfStyle.sans(13, .medium))
+                .foregroundStyle(BookshelfStyle.ink)
+                .accessibilityIdentifier("pending.untitledNotice")
                 if !isLarge { Spacer() }
                 Button {
                     // 題名の編集（C-3）を、題名が未入力の最初の本から開く
@@ -295,7 +300,7 @@ struct PendingListView: View {
                 .accessibilityIdentifier("pending.fillNext")
             }
             if model.recognizingUntitledCount > 0 {
-                Text("うち\(model.recognizingUntitledCount)冊は読み取り中。候補が届くと自動で入ります")
+                Text(String(appLocalized: "うち\(model.recognizingUntitledCount)冊は読み取り中。候補が届くと自動で入ります"))
                     .font(BookshelfStyle.sans(11))
                     .foregroundStyle(BookshelfStyle.sub)
                     .padding(.leading, 20)
@@ -309,7 +314,7 @@ struct PendingListView: View {
             onClose(count)
         } catch {
             Self.logger.error("登録に失敗: \(error.localizedDescription, privacy: .public)")
-            model.errorMessage = String(localized: "登録できませんでした。もう一度お試しください")
+            model.errorMessage = String(appLocalized: "登録できませんでした。もう一度お試しください")
         }
     }
 }
@@ -699,7 +704,7 @@ struct PendingTitleEditor: View {
                 .accessibilityIdentifier("titleEditor.status")
             TitleEditField(
                 title: Binding(get: { item.title }, set: { item.title = $0 }),
-                candidates: item.candidates, isRecognizing: item.isRecognizing, label: String(localized: "題名（必須）"),
+                candidates: item.candidates, isRecognizing: item.isRecognizing, label: String(appLocalized: "題名（必須）"),
                 note: nil,
                 focus: $titleFocused, idPrefix: "titleEditor", submitLabel: .next,
                 onSubmit: { step(1) },
@@ -721,15 +726,15 @@ struct PendingTitleEditor: View {
 
     /// 「購入済み・登録先 小説」
     private func statusText(for item: PendingBook) -> String {
-        let status = item.owned ? String(localized: "購入済み") : String(localized: "買いたい本")
-        return String(localized: "\(status)・登録先 \(item.shelf.displayName)")
+        let status = item.owned ? String(appLocalized: "購入済み") : String(appLocalized: "買いたい本")
+        return String(appLocalized: "\(status)・登録先 \(item.shelf.displayName)")
     }
 
     private func remainingText(for item: PendingBook) -> String {
         let untitled = model.untitledCount
-        if untitled == 0 { return String(localized: "すべての本に題名が入りました") }
+        if untitled == 0 { return String(appLocalized: "すべての本に題名が入りました") }
         return item.hasTitle
-            ? String(localized: "未入力はあと\(untitled)冊") : String(localized: "未入力はこの本を含めてあと\(untitled)冊")
+            ? String(appLocalized: "未入力はあと\(untitled)冊") : String(appLocalized: "未入力はこの本を含めてあと\(untitled)冊")
     }
 
     /// 前後の本へ。最後の本で「次へ」を押したら、まだ未入力の本があればそこへ、無ければ一覧へ戻る。
@@ -747,7 +752,7 @@ struct PendingTitleEditor: View {
             } else {
                 titleFocused = true
                 UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                AccessibilityNotification.Announcement(String(localized: "題名を入力してください")).post()
+                AccessibilityNotification.Announcement(String(appLocalized: "題名を入力してください")).post()
             }
         }
     }

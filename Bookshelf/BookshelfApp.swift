@@ -16,16 +16,36 @@ struct BookshelfApp: App {
             switch environment {
             case .success(let environment):
                 // 初回はチュートリアル（F1-7。T14）、終えていれば閲覧画面
-                AppRootView(environment: environment)
-                    .modelContainer(environment.container)
-                    .environment(environment.appearance)
-                    .environment(environment.language)
-                    // 起動したウインドウに、保存した外観を付ける
-                    .onAppear { environment.appearance.apply() }
+                LanguageRoot(language: environment.language) {
+                    AppRootView(environment: environment)
+                }
+                .modelContainer(environment.container)
+                .environment(environment.appearance)
+                .environment(environment.language)
+                // 起動したウインドウに、保存した外観を付ける
+                .onAppear { environment.appearance.apply() }
             case .failure(let error):
                 Text("データを開けませんでした（\(error.localizedDescription)）")
                     .padding()
             }
+        }
+    }
+}
+
+/// 設定の「言語」をその場で反映する。言語を変えたら中の画面を作り直し（id）、SwiftUI の文言・日付の locale も変える
+private struct LanguageRoot<Content: View>: View {
+    let language: LanguageSettings
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        // 「システムに合わせる」のときは locale を触らない（SwiftUI の既定のまま。端末の言語・地域で表示する）
+        if language.language == .system {
+            content()
+                .id(language.revision)
+        } else {
+            content()
+                .id(language.revision)
+                .environment(\.locale, AppLocale.locale)
         }
     }
 }

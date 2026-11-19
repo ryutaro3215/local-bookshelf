@@ -22,13 +22,13 @@ struct PurchaseGroup: Identifiable {
     var displayTitle: String {
         guard InitialGenres.displaysInEnglish else { return title }
         guard let month, let date = Self.firstDay(year: year, month: month) else { return String(year) }
-        return date.formatted(.dateTime.year().month(.wide))
+        return date.formatted(.dateTime.year().month(.wide).locale(AppLocale.locale))
     }
 
     /// 年の表示の月の並び（J-2「8月」。英語表示では「Aug」など端末のロケールの短い月名。T15）
     static func monthLabel(_ month: Int) -> String {
         guard InitialGenres.displaysInEnglish, let date = firstDay(year: 2001, month: month) else { return "\(month)月" }
-        return date.formatted(.dateTime.month(.abbreviated))
+        return date.formatted(.dateTime.month(.abbreviated).locale(AppLocale.locale))
     }
 
     private static func firstDay(year: Int, month: Int) -> Date? {

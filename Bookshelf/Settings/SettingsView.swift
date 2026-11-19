@@ -14,17 +14,17 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            NavigationHeader(backTitle: String(localized: "本棚"), backID: "settings.back", onBack: { dismiss() })
+            NavigationHeader(backTitle: String(appLocalized: "本棚"), backID: "settings.back", onBack: { dismiss() })
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    LargeTitle(text: String(localized: "設定"), id: "settings.title")
-                    SectionLabel(text: String(localized: "本棚"))
+                    LargeTitle(text: String(appLocalized: "設定"), id: "settings.title")
+                    SectionLabel(text: String(appLocalized: "本棚"))
                         .padding(.top, 16)
                     Button {
                         showsGenres = true
                     } label: {
                         SettingsRow(
-                            title: String(localized: "ジャンル管理"), value: String(localized: "\(genreCount)件"),
+                            title: String(appLocalized: "ジャンル管理"), value: String(appLocalized: "\(genreCount)件"),
                             showsChevron: true)
                     }
                     .buttonStyle(.plain)
@@ -34,34 +34,27 @@ struct SettingsView: View {
                     .accessibilityValue("\(genreCount)件")
                     .accessibilityAddTraits(.isButton)
                     .accessibilityIdentifier("settings.genres")
-                    Footnote(text: String(localized: "ジャンル（棚）の追加・名前の変更・並び替え・削除"))
-                    SectionLabel(text: String(localized: "外観"))
+                    Footnote(text: String(appLocalized: "ジャンル（棚）の追加・名前の変更・並び替え・削除"))
+                    SectionLabel(text: String(appLocalized: "外観"))
                         .padding(.top, 26)
                     appearanceCard
-                    SectionLabel(text: String(localized: "言語"))
+                    SectionLabel(text: String(appLocalized: "言語"))
                         .padding(.top, 26)
                     languageCard
-                    Footnote(
-                        text: languageSettings.needsRelaunch
-                            ? String(localized: "アプリを閉じて開き直すと、選んだ言語に切り替わります。")
-                            : String(localized: "選んだ言語は、アプリを開き直したときから使われます。"),
-                        color: languageSettings.needsRelaunch ? BookshelfStyle.ink : BookshelfStyle.faint
-                    )
-                    .accessibilityIdentifier("settings.language.note")
-                    SectionLabel(text: String(localized: "プライバシー"))
+                    SectionLabel(text: String(appLocalized: "プライバシー"))
                         .padding(.top, 26)
                     privacyCard
-                    SectionLabel(text: String(localized: "このアプリについて"))
+                    SectionLabel(text: String(appLocalized: "このアプリについて"))
                         .padding(.top, 42)
                     VStack(spacing: 0) {
-                        SettingsRow(title: String(localized: "バージョン"), value: version, showsChevron: false)
+                        SettingsRow(title: String(appLocalized: "バージョン"), value: version, showsChevron: false)
                             .accessibilityElement(children: .combine)
                             .accessibilityIdentifier("settings.version")
                         CardSeparator()
                         Button {
                             showsLicense = true
                         } label: {
-                            SettingsRow(title: String(localized: "ライセンス"), value: nil, showsChevron: true)
+                            SettingsRow(title: String(appLocalized: "ライセンス"), value: nil, showsChevron: true)
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("settings.license")
@@ -114,7 +107,7 @@ struct SettingsView: View {
         .background(RoundedRectangle(cornerRadius: 16).fill(BookshelfStyle.fill))
     }
 
-    /// 言語（システムに合わせる・日本語・English）。選んだ行にチェック。切り替わるのは開き直したとき
+    /// 言語（システムに合わせる・日本語・English）。選んだ行にチェック。その場で切り替わる
     private var languageCard: some View {
         VStack(spacing: 0) {
             ForEach(Array(AppLanguage.allCases.enumerated()), id: \.element) { index, option in
@@ -219,11 +212,11 @@ struct LicenseView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            NavigationHeader(backTitle: String(localized: "設定"), backID: "license.back", onBack: { dismiss() })
+            NavigationHeader(backTitle: String(appLocalized: "設定"), backID: "license.back", onBack: { dismiss() })
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    LargeTitle(text: String(localized: "ライセンス"), id: "license.title")
-                    SectionLabel(text: String(localized: "書体"))
+                    LargeTitle(text: String(appLocalized: "ライセンス"), id: "license.title")
+                    SectionLabel(text: String(appLocalized: "書体"))
                         .padding(.top, 22)
                     VStack(spacing: 0) {
                         entry(.sans)
@@ -231,7 +224,7 @@ struct LicenseView: View {
                         entry(.serif)
                     }
                     .background(RoundedRectangle(cornerRadius: 16).fill(BookshelfStyle.fill))
-                    Footnote(text: String(localized: "どちらも SIL Open Font License, Version 1.1 で提供されています。"))
+                    Footnote(text: String(appLocalized: "どちらも SIL Open Font License, Version 1.1 で提供されています。"))
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
@@ -298,7 +291,7 @@ struct LicenseTextView: View {
     var body: some View {
         VStack(spacing: 0) {
             NavigationHeader(
-                backTitle: String(localized: "ライセンス"), backID: "licenseText.back", onBack: { dismiss() })
+                backTitle: String(appLocalized: "ライセンス"), backID: "licenseText.back", onBack: { dismiss() })
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     LargeTitle(text: font.name, id: "licenseText.title")

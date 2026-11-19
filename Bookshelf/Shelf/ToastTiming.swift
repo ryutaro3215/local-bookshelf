@@ -20,7 +20,7 @@ enum ToastTiming {
     /// トーストの文言を読み上げる（取り消せるときはそのことも伝える）
     static func announce(_ message: String, canUndo: Bool) {
         guard UIAccessibility.isVoiceOverRunning else { return }
-        let text = canUndo ? "\(message)。\(String(localized: "取り消す"))" : message
+        let text = canUndo ? "\(message)。\(String(appLocalized: "取り消す"))" : message
         AccessibilityNotification.Announcement(text).post()
     }
 }

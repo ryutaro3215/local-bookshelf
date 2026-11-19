@@ -240,7 +240,7 @@ final class ShelfEditing {
             try store.moveBook(book, toIndex: index)
         } catch {
             Self.logger.error("並べ替えを保存できない: \(error.localizedDescription, privacy: .public)")
-            toast = Toast(message: String(localized: "並べ替えを保存できませんでした"), undo: nil, fromIndex: nil)
+            toast = Toast(message: String(appLocalized: "並べ替えを保存できませんでした"), undo: nil, fromIndex: nil)
         }
     }
 
@@ -248,11 +248,12 @@ final class ShelfEditing {
     func commitMove(_ book: Book, to shelf: Shelf, fromIndex: Int?, store: LibraryStore) -> Bool {
         do {
             let record = try store.moveBook(book, to: shelf)
-            toast = Toast(message: String(localized: "\(shelf.displayName) に移しました"), undo: record, fromIndex: fromIndex)
+            toast = Toast(
+                message: String(appLocalized: "\(shelf.displayName) に移しました"), undo: record, fromIndex: fromIndex)
             return true
         } catch {
             Self.logger.error("棚を移せない: \(error.localizedDescription, privacy: .public)")
-            toast = Toast(message: String(localized: "移動できませんでした"), undo: nil, fromIndex: nil)
+            toast = Toast(message: String(appLocalized: "移動できませんでした"), undo: nil, fromIndex: nil)
             return false
         }
     }
@@ -266,7 +267,7 @@ final class ShelfEditing {
             return record.fromShelf
         } catch {
             Self.logger.error("移動を取り消せない: \(error.localizedDescription, privacy: .public)")
-            self.toast = Toast(message: String(localized: "取り消せませんでした"), undo: nil, fromIndex: nil)
+            self.toast = Toast(message: String(appLocalized: "取り消せませんでした"), undo: nil, fromIndex: nil)
             return nil
         }
     }
@@ -285,7 +286,7 @@ final class ShelfEditing {
             Self.logger.error("本を削除できない: \(error.localizedDescription, privacy: .public)")
             // 削除できなかった（データは変わっていない）ので、出ていた移動の取り消しは残す（N-068⑤）
             toast = Toast(
-                message: String(localized: "削除できませんでした"), undo: toast?.undo, fromIndex: toast?.fromIndex)
+                message: String(appLocalized: "削除できませんでした"), undo: toast?.undo, fromIndex: toast?.fromIndex)
         }
     }
 
@@ -318,7 +319,7 @@ final class ShelfEditing {
             }
         } catch {
             Self.logger.error("並べ順を変えられない: \(error.localizedDescription, privacy: .public)")
-            toast = Toast(message: String(localized: "並べ順を変えられませんでした"), undo: nil, fromIndex: nil)
+            toast = Toast(message: String(appLocalized: "並べ順を変えられませんでした"), undo: nil, fromIndex: nil)
         }
     }
 }
@@ -491,8 +492,8 @@ struct MoveShelfSheet: View {
                 if let selected { onMove(selected) }
             } label: {
                 Text(
-                    selected.map { String(localized: "\($0.displayName) へ移動") }
-                        ?? String(localized: "移動先を選んでください")
+                    selected.map { String(appLocalized: "\($0.displayName) へ移動") }
+                        ?? String(appLocalized: "移動先を選んでください")
                 )
                 .font(BookshelfStyle.sans(16, .medium))
                 .tracking(0.5)
@@ -540,7 +541,7 @@ struct MoveShelfSheet: View {
                     .foregroundStyle(isCurrent ? BookshelfStyle.faint : BookshelfStyle.ink)
                     .lineLimit(1)
                 Spacer()
-                Text(isCurrent ? "現在の棚" : "\(count)冊")
+                Text(isCurrent ? String(appLocalized: "現在の棚") : String(appLocalized: "\(count)冊"))
                     .font(BookshelfStyle.sans(12))
                     .foregroundStyle(isCurrent ? BookshelfStyle.faint : BookshelfStyle.sub)
                 if isSelected {
@@ -558,7 +559,7 @@ struct MoveShelfSheet: View {
         .disabled(isCurrent)
         .padding(.horizontal, 12)
         .accessibilityLabel(shelf.displayName)
-        .accessibilityValue(isCurrent ? "現在の棚" : "\(count)冊")
+        .accessibilityValue(isCurrent ? String(appLocalized: "現在の棚") : String(appLocalized: "\(count)冊"))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityIdentifier("move.row.\(shelf.name)")
     }

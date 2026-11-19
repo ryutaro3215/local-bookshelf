@@ -94,7 +94,7 @@ struct SearchView: View {
     private func resultList(_ results: [Book]) -> some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                Text("\(results.count)件（題名・よみの一部に一致）")
+                Text(String(appLocalized: "\(results.count)件（題名・よみの一部に一致）"))
                     .font(BookshelfStyle.sans(12))
                     .tracking(0.5)
                     .foregroundStyle(BookshelfStyle.sub)
@@ -228,7 +228,7 @@ struct SearchResultRow: View {
     private var detailLine: String {
         let shelf = book.shelf?.displayName ?? InitialGenres.unsortedDisplayName
         guard let date = book.purchaseDate else { return shelf }
-        return String(localized: "\(shelf)・購入日 \(BookDates.format(date))")
+        return String(appLocalized: "\(shelf)・購入日 \(BookDates.format(date))")
     }
 
     /// 題名の一致した部分に強調の地を付ける

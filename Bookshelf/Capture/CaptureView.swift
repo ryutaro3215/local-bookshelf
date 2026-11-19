@@ -521,7 +521,7 @@ struct CaptureView: View {
         .disabled(model.remaining == 0)
         .accessibilityIdentifier("capture.library")
         .accessibilityLabel("ライブラリから選ぶ")
-        .accessibilityValue("残り\(model.remaining)冊まで選べます")
+        .accessibilityValue(String(appLocalized: "残り\(model.remaining)冊まで選べます"))
     }
 
     private var shutterButton: some View {

@@ -271,7 +271,7 @@ struct ShelfCollectionView: UIViewRepresentable {
                 if !parent.isAccessible { cell.accessibilityIdentifier = nil }
                 // VoiceOver では長押しの代わりに「選択」の操作で選ぶ（N5）。操作は中央の本にだけ出す（N-064）
                 cell.selectAction = UIAccessibilityCustomAction(
-                    name: String(localized: "選択して並べ替え・移動・削除")
+                    name: String(appLocalized: "選択して並べ替え・移動・削除")
                 ) { [weak self] _ in
                     guard let self, index == self.reported else { return false }
                     self.parent.onReorderEvent(.began(index))

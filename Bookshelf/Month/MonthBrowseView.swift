@@ -178,7 +178,7 @@ struct MonthBrowseView: View {
     private func meta(of book: Book) -> String {
         let genre = book.shelf?.displayName ?? InitialGenres.unsortedDisplayName
         guard let date = book.purchaseDate else { return genre }
-        return String(localized: "\(genre)・\(BookDates.format(date)) 購入")
+        return String(appLocalized: "\(genre)・\(BookDates.format(date)) 購入")
     }
 }
 
@@ -200,7 +200,7 @@ struct MonthHeader: View {
                     .foregroundStyle(BookshelfStyle.ink)
                     .lineLimit(1)
                     .frame(minHeight: 32)
-                Text("\(group.books.count)冊")
+                Text(String(appLocalized: "\(group.books.count)冊"))
                     .font(BookshelfStyle.sans(12))
                     .tracking(0.5)
                     .foregroundStyle(BookshelfStyle.sub)
@@ -209,7 +209,7 @@ struct MonthHeader: View {
             .frame(maxWidth: .infinity)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(group.displayTitle)
-            .accessibilityValue("\(group.books.count)冊")
+            .accessibilityValue(String(appLocalized: "\(group.books.count)冊"))
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("month.title")
             // ピンチ・縦スワイプの代わり（VoiceOver。N5）

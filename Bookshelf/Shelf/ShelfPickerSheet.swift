@@ -78,7 +78,7 @@ struct ShelfPickerSheet: View {
                     .foregroundStyle(BookshelfStyle.ink)
                     .lineLimit(1)
                 Spacer()
-                Text("\(entry.count)冊")
+                Text(String(appLocalized: "\(entry.count)冊"))
                     .font(BookshelfStyle.sans(12))
                     .foregroundStyle(BookshelfStyle.sub)
                 if selected {
@@ -95,7 +95,7 @@ struct ShelfPickerSheet: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 12)
         .accessibilityLabel(entry.shelf.displayName)
-        .accessibilityValue("\(entry.count)冊")
+        .accessibilityValue(String(appLocalized: "\(entry.count)冊"))
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityIdentifier("picker.row.\(entry.shelf.name)")
     }

@@ -64,9 +64,9 @@ enum InitialGenres {
 // MARK: - 表示言語に合わせた名前（N7）
 
 extension InitialGenres {
-    /// アプリが英語で表示されているか（端末の言語設定から OS が選んだアプリの言語）
+    /// アプリが英語で表示されているか（設定の「言語」で選んだ言語。システムに合わせるときは端末の言語から OS が選んだ言語）
     nonisolated static var displaysInEnglish: Bool {
-        Bundle.main.preferredLocalizations.first?.hasPrefix("en") ?? false
+        AppLocale.isEnglish
     }
 
     /// 本が棚に入っていないときに出す「未分類」（表示言語に合わせる）

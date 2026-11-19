@@ -80,7 +80,7 @@ struct MonthGridView: View {
                 .tracking(0.5)
                 .foregroundStyle(BookshelfStyle.ink)
                 .lineLimit(1)
-            Text("\(group.books.count)冊")
+            Text(String(appLocalized: "\(group.books.count)冊"))
                 .font(BookshelfStyle.sans(12))
                 .tracking(0.5)
                 .foregroundStyle(BookshelfStyle.sub)

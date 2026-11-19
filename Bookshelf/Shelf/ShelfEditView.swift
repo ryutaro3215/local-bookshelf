@@ -79,7 +79,7 @@ struct GenreAddView: View {
                     fieldLabel("名前")
                     HStack(spacing: 8) {
                         LimitedTextField(
-                            text: $name, size: 17, accessibilityLabel: String(localized: "名前"),
+                            text: $name, size: 17, accessibilityLabel: String(appLocalized: "名前"),
                             identifier: "genreAdd.name", onReturn: {})
                         Text("\(name.count)/\(GenreName.maxLength)")
                             .font(BookshelfStyle.sans(11))
@@ -200,7 +200,7 @@ struct GenreRenameDialog: View {
     var body: some View {
         GenreDialog(
             onCancel: onCancel,
-            confirmTitle: String(localized: "保存"), confirmID: "rename.save", isDestructive: false,
+            confirmTitle: String(appLocalized: "保存"), confirmID: "rename.save", isDestructive: false,
             isConfirmEnabled: canSave, onConfirm: { onSave(savedName) },
             cancelID: "rename.cancel", dialogID: "rename.dialog"
         ) {
@@ -214,7 +214,8 @@ struct GenreRenameDialog: View {
                     .font(BookshelfStyle.sans(12))
                     .foregroundStyle(BookshelfStyle.sub)
                 LimitedTextField(
-                    text: $name, size: 16, accessibilityLabel: String(localized: "新しい名前"), identifier: "rename.field",
+                    text: $name, size: 16, accessibilityLabel: String(appLocalized: "新しい名前"),
+                    identifier: "rename.field",
                     onReturn: { if canSave { onSave(savedName) } }
                 )
                 .padding(.horizontal, 14)
@@ -242,7 +243,7 @@ struct GenreDeleteDialog: View {
     var body: some View {
         GenreDialog(
             onCancel: onCancel,
-            confirmTitle: String(localized: "削除"), confirmID: "genreDelete.confirm", isDestructive: true,
+            confirmTitle: String(appLocalized: "削除"), confirmID: "genreDelete.confirm", isDestructive: true,
             isConfirmEnabled: true, onConfirm: onDelete,
             cancelID: "genreDelete.cancel", dialogID: "genreDelete.dialog"
         ) {
@@ -265,8 +266,8 @@ struct GenreDeleteDialog: View {
 
     private var message: String {
         bookCount > 0
-            ? String(localized: "中の\(bookCount)冊は未分類に移動します。\n本は削除されません。")
-            : String(localized: "このジャンルに本は入っていません。")
+            ? String(appLocalized: "中の\(bookCount)冊は未分類に移動します。\n本は削除されません。")
+            : String(appLocalized: "このジャンルに本は入っていません。")
     }
 }
 

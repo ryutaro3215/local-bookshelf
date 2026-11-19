@@ -599,3 +599,26 @@
   - その場で切り替えず、開き直しで切り替える形にした。String(localized:) で作る文言が多く（約90か所）、その場で切り替えると画面の一部だけ古い言語が残るため。iOS の「App ごとの言語」も切り替え時にアプリを開き直す
   - -UITestReset のときは専用の設定に書くので、UI テストで選んでも端末の言語は変わらない
 
+## オーナーの指摘の修正: 言語を選んでも開き直すまで変わらない — done (2026-11-19)
+- changed:
+  - Settings/AppLocale.swift（新規。いまの言語と locale を持つ。String(appLocalized:) は選んだ言語の表から読む。テスト用に TaskLocal の override）
+  - アプリのすべての String(localized:)（96か所・22ファイル）を String(appLocalized:) に。日付の formatted（BookDetailView・MonthGrouping・ShareRenderer）に AppLocale.locale を渡す。InitialGenres.displaysInEnglish は AppLocale を見る
+  - Settings/AppLanguage.swift（選ぶと AppLocale を変え、revision を増やす。閲覧画面の状態 BrowseSnapshot を持つ。反映の関数を差し替えられるように）
+  - BookshelfApp.swift（LanguageRoot: revision で画面を作り直し、環境の locale を選んだ言語に）
+  - Shelf/ShelfScreen.swift（作り直したときに見ていた棚・見え方・まとめ方・設定を開いた状態に戻す）
+  - Settings/SettingsView.swift・Localizable.xcstrings（「開き直すと切り替わる」の補足と文言を削除）
+  - テスト: LanguageSettingsTests（その場での反映・選んだ言語の文言）、LanguageSettingUITests（設定で English を選ぶと開き直さずに設定と閲覧画面が英語になり、見ていた棚のまま。日本語に戻せる）、PhotoImportTests（比べる文言を appLocalized に）
+  - 文書: .dev/requirements.md（F4-5）
+- verify:
+  - ユニット 96件通過・LanguageSettingUITests 通過（英語にした設定と閲覧画面のスクリーンショットで、日付「Purchased Nov 19, 2026」まで英語になったことを確認）
+  - 全件（PerformanceTests を除く）→ ユニット 96件・UI 63件 すべて通過（冊数の文言を直したあと）
+  - `swift format lint` → 出力なし / `scripts/check-no-network.sh` → OK
+- notes:
+  - iOS の String(localized:) は起動したときの言語で固定され、Bundle を差し替えても変わらなかった（試して確認）。LocalizedStringResource に locale を付けると選んだ言語の表から読めるので、それを使う String(appLocalized:) にそろえた
+  - 新しく文言を足すときは String(localized:) ではなく String(appLocalized:) を使う（使うと、その文言だけ開き直すまで切り替わらない）
+  - 冊数・件数など英語で単数・複数の形がある文言（%lld冊 など11件）は、SwiftUI の Text・accessibilityValue に直接書くと、日本語表示でも英語の表の「1 books」になることがあった（チュートリアルの UI テスト2件で発見。直前のコミットでは通る）。これらは String(appLocalized:) で読んでから渡すようにした（ShelfScreen・ShelfPickerSheet・ShelfListView・ShelfReorderHandler・MonthBrowseView・MonthGridView・SearchView・PendingListView・CaptureView）
+  - 「システムに合わせる」のときはルートの locale を変えない（今までと同じ SwiftUI の既定）
+  - 作業中に Xcode が project.xcproj の対応言語から en を消していた。今回の変更とは関係ないので元に戻した
+  - iOS が出す部品（スクロールバーの読み上げ・写真の選択・共有シートなど）は、開き直すまで端末の言語のまま
+  - 本の題名などユーザーのデータは翻訳しない（今までどおり）
+

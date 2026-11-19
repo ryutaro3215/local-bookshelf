@@ -129,9 +129,13 @@ struct ShareTemplateView: View {
                     .font(ShareFonts.serif(190))
                     .foregroundStyle(ShareFonts.text)
                 // 英語は1冊のとき単数（book）にする。日本語はどちらも「冊」
-                Text(number == "1" ? String(localized: "share.unit.single", defaultValue: "冊") : String(localized: "冊"))
-                    .font(ShareFonts.serif(60))
-                    .foregroundStyle(ShareFonts.text)
+                Text(
+                    number == "1"
+                        ? String(appLocalized: LocalizedStringResource("share.unit.single", defaultValue: "冊"))
+                        : String(appLocalized: "冊")
+                )
+                .font(ShareFonts.serif(60))
+                .foregroundStyle(ShareFonts.text)
             }
             Text(verbatim: heading)
                 .font(ShareFonts.serif(50))

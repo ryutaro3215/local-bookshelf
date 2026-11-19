@@ -90,21 +90,21 @@ struct ShareContent: Hashable, Sendable {
         let mosaicFooter: String
         switch scope {
         case .genre(let name):
-            fact = String(localized: "\(count)冊")
+            fact = String(appLocalized: "\(count)冊")
             heading = name
             mosaicFooter = fact
         case .day, .month, .year:
-            fact = String(localized: "\(period)に買った本・\(count)冊")
-            heading = String(localized: "\(period)に買った本")
+            fact = String(appLocalized: "\(period)に買った本・\(count)冊")
+            heading = String(appLocalized: "\(period)に買った本")
             mosaicFooter = ShareText.range(of: scope, calendar: calendar)
         }
         let omitted = count - shown.count
         if omitted > 0 {
-            fact += String(localized: "（ほか\(omitted)冊）")
+            fact += String(appLocalized: "（ほか\(omitted)冊）")
         }
         return ShareContent(
             scope: scope, sections: sections, total: count, fact: fact, heading: heading,
-            mosaicFooter: omitted > 0 ? mosaicFooter + String(localized: "（ほか\(omitted)冊）") : mosaicFooter)
+            mosaicFooter: omitted > 0 ? mosaicFooter + String(appLocalized: "（ほか\(omitted)冊）") : mosaicFooter)
     }
 
     @MainActor
@@ -160,13 +160,17 @@ enum ShareText {
 
     /// 「2026年10月20日」（英語表示は「October 20, 2026」）
     static func day(_ date: Date) -> String {
-        guard !InitialGenres.displaysInEnglish else { return date.formatted(date: .long, time: .omitted) }
+        guard !InitialGenres.displaysInEnglish else {
+            return date.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: AppLocale.locale))
+        }
         return japanese("y年M月d日", date)
     }
 
     /// 「10月20日」（範囲の選択の補足。英語表示は「Oct 20」）
     static func shortDay(_ date: Date) -> String {
-        guard !InitialGenres.displaysInEnglish else { return date.formatted(.dateTime.month(.abbreviated).day()) }
+        guard !InitialGenres.displaysInEnglish else {
+            return date.formatted(.dateTime.month(.abbreviated).day().locale(AppLocale.locale))
+        }
         return japanese("M月d日", date)
     }
 

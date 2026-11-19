@@ -33,9 +33,9 @@ struct ShareOption: Identifiable, Hashable {
         let count = content.total
         switch content.scope {
         case .day(let date):
-            return String(localized: "\(ShareText.shortDay(date))・\(count)冊")
+            return String(appLocalized: "\(ShareText.shortDay(date))・\(count)冊")
         default:
-            return String(localized: "\(ShareText.period(of: content.scope))・\(count)冊")
+            return String(appLocalized: "\(ShareText.period(of: content.scope))・\(count)冊")
         }
     }
 
@@ -51,7 +51,7 @@ struct ShareOption: Identifiable, Hashable {
 
     /// 共有先のシートの補足（K-2「哲学・思想・9冊（購入済みの本だけ）」）
     var summary: String {
-        String(localized: "\(ShareText.period(of: content.scope))・\(content.total)冊（購入済みの本だけ）")
+        String(appLocalized: "\(ShareText.period(of: content.scope))・\(content.total)冊（購入済みの本だけ）")
     }
 }
 

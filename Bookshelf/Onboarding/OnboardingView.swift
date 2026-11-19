@@ -300,7 +300,7 @@ private struct WelcomePage: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             PageDots(index: 0)
-            PrimaryButton(title: String(localized: "最初の1冊を登録する"), id: "onboarding.start", action: onStart)
+            PrimaryButton(title: String(appLocalized: "最初の1冊を登録する"), id: "onboarding.start", action: onStart)
                 .padding(.top, 46)
             Text("データはこの iPhone の中だけに保存されます")
                 .font(BookshelfStyle.sans(11))
@@ -427,8 +427,8 @@ private struct FirstShelfPage: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, 8)
             PrimaryButton(
-                title: selection.map { String(localized: "\($0.displayName) で撮影する") }
-                    ?? String(localized: "棚を選んでください"),
+                title: selection.map { String(appLocalized: "\($0.displayName) で撮影する") }
+                    ?? String(appLocalized: "棚を選んでください"),
                 id: "onboarding.shelf.confirm",
                 enabled: selection != nil, action: onConfirm
             )
@@ -539,7 +539,7 @@ private struct CameraPermissionPage: View {
                     .padding(.top, 26)
             }
             PageDots(index: 2)
-            PrimaryButton(title: String(localized: "カメラを許可する"), id: "onboarding.permission.allow", action: onAllow)
+            PrimaryButton(title: String(appLocalized: "カメラを許可する"), id: "onboarding.permission.allow", action: onAllow)
                 .padding(.top, 46)
             Button(action: onLibrary) {
                 Text("写真ライブラリから選ぶ")
@@ -583,7 +583,7 @@ private struct FirstBookSheet: View {
                 .multilineTextAlignment(.center)
                 .lineSpacing(7)
                 .padding(.top, 14)
-            PrimaryButton(title: String(localized: "続けて登録する"), id: "firstBook.continue", action: onContinue)
+            PrimaryButton(title: String(appLocalized: "続けて登録する"), id: "firstBook.continue", action: onContinue)
                 .padding(.top, 26)
             Button(action: onBrowse) {
                 Text("本棚を見る")

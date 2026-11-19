@@ -63,8 +63,8 @@ struct BookEditView: View {
                         .padding(.top, 14)
                     TitleEditField(
                         title: $title, candidates: recognition.candidates, isRecognizing: recognition.isRecognizing,
-                        label: String(localized: "題名"),
-                        note: String(localized: "必須"), focus: $titleFocused, idPrefix: "edit"
+                        label: String(appLocalized: "題名"),
+                        note: String(appLocalized: "必須"), focus: $titleFocused, idPrefix: "edit"
                     )
                     .padding(.horizontal, 20)
                     .padding(.top, 26)
@@ -387,7 +387,7 @@ struct BookEditView: View {
                 recent: environment.recent, screen: .camera, purpose: .reshoot)
         } catch {
             Self.logger.error("撮影を始められない: \(error.localizedDescription, privacy: .public)")
-            errorMessage = String(localized: "撮影を始められませんでした")
+            errorMessage = String(appLocalized: "撮影を始められませんでした")
         }
     }
 
@@ -404,10 +404,10 @@ struct BookEditView: View {
         } catch LibraryError.coverNotReplaced {
             Self.logger.error("表紙を入れ替えられない")
             closesAfterError = true
-            errorMessage = String(localized: "表紙を入れ替えられませんでした。ほかの変更は保存しました")
+            errorMessage = String(appLocalized: "表紙を入れ替えられませんでした。ほかの変更は保存しました")
         } catch {
             Self.logger.error("本を保存できない: \(error.localizedDescription, privacy: .public)")
-            errorMessage = String(localized: "保存できませんでした。もう一度お試しください")
+            errorMessage = String(appLocalized: "保存できませんでした。もう一度お試しください")
         }
     }
 }
@@ -474,8 +474,8 @@ struct TitleEditField: View {
     }
 
     private var recognitionNote: String {
-        if isRecognizing { return String(localized: "表紙から読み取り中…") }
-        return candidates.isEmpty ? String(localized: "文字認識の候補なし") : String(localized: "文字認識の候補あり")
+        if isRecognizing { return String(appLocalized: "表紙から読み取り中…") }
+        return candidates.isEmpty ? String(appLocalized: "文字認識の候補なし") : String(appLocalized: "文字認識の候補あり")
     }
 
     /// 文字認識の候補（題名らしい順に最大3つ）。タップで題名欄に入れる
@@ -538,8 +538,8 @@ struct OwnershipSwitch: View {
     var body: some View {
         let layout = isVertical ? AnyLayout(VStackLayout(spacing: 0)) : AnyLayout(HStackLayout(spacing: 0))
         layout {
-            segment(String(localized: "購入済み"), .owned, id: "edit.ownership.owned")
-            segment(String(localized: "買いたい"), .wanted, id: "edit.ownership.wanted")
+            segment(String(appLocalized: "購入済み"), .owned, id: "edit.ownership.owned")
+            segment(String(appLocalized: "買いたい"), .wanted, id: "edit.ownership.wanted")
         }
         .padding(3)
         .background(RoundedRectangle(cornerRadius: 18).fill(BookshelfStyle.surface))

@@ -66,6 +66,25 @@ struct ShelfScreen: View {
     /// 共有（T11。F8）: 右上の共有マークで開く
     @State private var shareRequest: ShareRequest?
 
+    init(environment: AppEnvironment) {
+        self.environment = environment
+        // 設定で言語を変えて画面を作り直したときは、見ていた棚・見え方・まとめ方に戻し、設定を開いたままにする
+        let language = environment.language
+        if language.restoresBrowse, let snapshot = language.browse {
+            language.restoresBrowse = false
+            _currentID = State(initialValue: snapshot.shelfID)
+            _mode = State(initialValue: snapshot.mode)
+            _grouping = State(initialValue: snapshot.grouping)
+            _monthPeriod = State(initialValue: snapshot.monthPeriod)
+            _showsSettings = State(initialValue: true)
+        }
+    }
+
+    /// 言語を変えて作り直すときに戻す状態
+    private var browseSnapshot: BrowseSnapshot {
+        BrowseSnapshot(shelfID: currentID, mode: mode, grouping: grouping, monthPeriod: monthPeriod)
+    }
+
     var body: some View {
         let all = browseShelves
         let current = all.first { $0.id == currentID } ?? all.first
@@ -188,7 +207,7 @@ struct ShelfScreen: View {
                         images: environment.store.images,
                         onOpen: { book in
                             // 戻ると検索の結果に戻る（戻る先の名前は「検索」）
-                            path.append(DetailRoute(bookID: book.id, backTitle: String(localized: "検索")))
+                            path.append(DetailRoute(bookID: book.id, backTitle: String(appLocalized: "検索")))
                         },
                         onCancel: { showsSearch = false }
                     )
@@ -219,6 +238,8 @@ struct ShelfScreen: View {
             let unsorted = shelves.first { $0.kind == .unsorted }?.persistentModelID
             self.currentID = browseShelves.contains { $0.id == unsorted } ? unsorted : nil
         }
+        .onAppear { environment.language.browse = browseSnapshot }
+        .onChange(of: browseSnapshot) { _, snapshot in environment.language.browse = snapshot }
         .animation(.easeOut(duration: 0.2), value: editing.toast?.id)
         .animation(.easeOut(duration: 0.15), value: editing.gridMenu)
         .animation(.easeOut(duration: 0.15), value: editing.deleting?.id)
@@ -380,7 +401,7 @@ struct ShelfScreen: View {
                             .foregroundStyle(BookshelfStyle.sub)
                     }
                     .frame(minHeight: 32)
-                    Text("\(current.books.count)冊")
+                    Text(String(appLocalized: "\(current.books.count)冊"))
                         .font(BookshelfStyle.sans(12))
                         .tracking(0.5)
                         .foregroundStyle(BookshelfStyle.sub)
@@ -392,7 +413,7 @@ struct ShelfScreen: View {
             .buttonStyle(.plain)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(current.shelf.displayName)
-            .accessibilityValue("\(current.books.count)冊")
+            .accessibilityValue(String(appLocalized: "\(current.books.count)冊"))
             .accessibilityHint("棚の一覧を開きます")
             .accessibilityAddTraits(.isButton)
             .pageIdentifier("shelf.title")

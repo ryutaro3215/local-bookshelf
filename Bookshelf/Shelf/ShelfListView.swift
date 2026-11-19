@@ -33,7 +33,7 @@ struct ShelfListView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
-                            LargeTitle(text: String(localized: "ジャンル管理"), id: "genres.title")
+                            LargeTitle(text: String(appLocalized: "ジャンル管理"), id: "genres.title")
                             subtitle
                                 .padding(.top, 4)
                             addCard
@@ -104,8 +104,8 @@ struct ShelfListView: View {
 
     private var header: some View {
         NavigationHeader(
-            backTitle: isEditing ? nil : String(localized: "設定"), backID: "genres.back", onBack: { dismiss() },
-            inlineTitle: isScrolled ? String(localized: "ジャンル管理") : nil, showsDivider: isScrolled
+            backTitle: isEditing ? nil : String(appLocalized: "設定"), backID: "genres.back", onBack: { dismiss() },
+            inlineTitle: isScrolled ? String(appLocalized: "ジャンル管理") : nil, showsDivider: isScrolled
         ) {
             Button {
                 withAnimation(.easeOut(duration: 0.2)) {
@@ -296,7 +296,7 @@ struct ShelfListView: View {
             try store.moveGenre(shelf, toIndex: index)
         } catch {
             Self.logger.error("ジャンルを並び替えられない: \(error.localizedDescription, privacy: .public)")
-            errorMessage = String(localized: "並び替えを保存できませんでした")
+            errorMessage = String(appLocalized: "並び替えを保存できませんでした")
         }
     }
 
@@ -318,7 +318,7 @@ struct ShelfListView: View {
         } catch {
             Self.logger.error("ジャンルを追加できない: \(error.localizedDescription, privacy: .public)")
             showsAdd = false
-            errorMessage = String(localized: "ジャンルを追加できませんでした")
+            errorMessage = String(appLocalized: "ジャンルを追加できませんでした")
         }
     }
 
@@ -328,7 +328,7 @@ struct ShelfListView: View {
             try store.renameShelf(shelf, to: name)
         } catch {
             Self.logger.error("ジャンル名を変えられない: \(error.localizedDescription, privacy: .public)")
-            errorMessage = String(localized: "名前を変更できませんでした")
+            errorMessage = String(appLocalized: "名前を変更できませんでした")
         }
     }
 
@@ -338,7 +338,7 @@ struct ShelfListView: View {
             try store.deleteShelf(shelf)
         } catch {
             Self.logger.error("ジャンルを削除できない: \(error.localizedDescription, privacy: .public)")
-            errorMessage = String(localized: "ジャンルを削除できませんでした")
+            errorMessage = String(appLocalized: "ジャンルを削除できませんでした")
         }
     }
 }
@@ -435,7 +435,7 @@ struct GenreRow: View {
                     .overlay(Capsule().stroke(BookshelfStyle.adaptive(0xD0D0D0, 0x3A3A3A)))
                     .padding(.trailing, 10)
             }
-            Text("\(count)冊")
+            Text(String(appLocalized: "\(count)冊"))
                 .font(BookshelfStyle.sans(12))
                 .foregroundStyle(isHidden ? BookshelfStyle.faint : BookshelfStyle.sub)
             if isEditing && !shelf.isSystem {
@@ -466,10 +466,10 @@ struct GenreRow: View {
 
     /// 読み上げの値（「3冊」・閲覧画面に出ないときは「0冊、本棚に非表示」・システム棚は「変更できません」）
     private var accessibilityValue: String {
-        var parts = [String(localized: "\(count)冊")]
-        if isHidden { parts.append(String(localized: "本棚に非表示")) }
-        if shelf.isSystem { parts.append(String(localized: "変更できません")) }
-        return parts.joined(separator: String(localized: "、", comment: "読み上げの値の区切り"))
+        var parts = [String(appLocalized: "\(count)冊")]
+        if isHidden { parts.append(String(appLocalized: "本棚に非表示")) }
+        if shelf.isSystem { parts.append(String(appLocalized: "変更できません")) }
+        return parts.joined(separator: String(appLocalized: LocalizedStringResource("、", comment: "読み上げの値の区切り")))
     }
 
     private var name: some View {
