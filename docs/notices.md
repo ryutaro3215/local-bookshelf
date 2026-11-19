@@ -624,6 +624,14 @@
   - 担当 / 期限: オーナー（実機）／ リリース前
   - 結果: -
 
+- [ ] **N-094 データ保護（ロック中は読めない）を実機で確かめる**
+  - 発生: 2026-11-18 ／ 出どころ: セキュリティ監査（.dev/security-report.md の high）の修正
+  - 内容: Bookshelf.entitlements に `com.apple.developer.default-data-protection` = `NSFileProtectionComplete` を入れ、表紙の書き込みにも `.completeFileProtection` を付けた。シミュレータはデータ保護を強制せず、ファイルの保護クラスも返さない（nil）ため、自動テストでは確かめられない。実機へのビルドでは、自動署名で App ID に Data Protection の capability が足される（初回は Xcode で署名を通す必要がある）
+  - 影響: 実機で保護クラスが付いていないと、要件 S5 を満たさない
+  - 対応: 実機にインストールして本を登録し、①Xcode の Devices でアプリのコンテナを取り出すか、デバッガで `FileManager.default.attributesOfItem(atPath:)[.protectionKey]` が `NSFileProtectionComplete` になること ②ロック中にアプリの動作（通知・バックグラウンド）で困ることが無いこと を確かめ、結果を .dev/security-report.md の再監査で記録する
+  - 担当 / 期限: オーナー（実機）／ リリース前
+  - 結果: -
+
 ### 運用・環境
 
 - [ ] **N-012 エージェントの作業中は Xcode を閉じておく**
@@ -829,3 +837,4 @@
 - 2026-11-18 T11 ビルド記録から N-086〜N-089 を追加
 - 2026-11-18 N-088 に、ジャンルの多い月を1つの格子にまとめる判断（T11 レビュー must）を追記
 - 2026-11-18 T12 ビルド記録から N-090〜N-093 を追加。N-083 を T12 で対応して完了へ移動
+- 2026-11-18 セキュリティ監査の修正から N-094 を追加

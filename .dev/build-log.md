@@ -513,3 +513,21 @@
   - LocalizationUITests の testLargestTextKeepsDetailOnScreen のコメント（閲覧画面は AX5 で崩れるので見ない）は古くなったが、テストの中身は正しいので変えていない（DynamicTypeUITests で閲覧画面を見ている）
   - 長い題名・棚の名前は1行で「…」になるところが残る（閲覧の題名、月の見出し、ジャンル管理のバッジ）。読み上げでは全文が読まれる
   - 依存の追加なし。通信のコードなし。空の catch なし。実写の表紙はシミュレータの一時フォルダにだけ置き、リポジトリには入れていない
+
+## セキュリティ監査の修正（high: データ保護・medium: プライバシーマニフェスト） — done（実機での保護クラスの確認はオーナー待ち） (2026-11-18)
+- changed:
+  - Bookshelf.entitlements（新規・リポジトリ直下。Bookshelf/ の中に置くとリソースとして同梱されるため外に置いた）: `com.apple.developer.default-data-protection` = `NSFileProtectionComplete`（requirements S5。アプリが作るファイル〔SwiftData のストア・表紙・UserDefaults〕の既定の保護クラスを「ロック中は読めない」にする）
+  - Bookshelf.xcodeproj/project.xcproj: アプリのターゲットに `CODE_SIGN_ENTITLEMENTS = Bookshelf.entitlements`
+  - Bookshelf/Storage/ImageStore.swift: 原寸・サムネイルの書き込みに `.completeFileProtection` を足した（既定と同じ保護を明示）
+  - Bookshelf/PrivacyInfo.xcprivacy（新規）: NSPrivacyTracking=false、追跡ドメイン・収集データ=なし、UserDefaults（理由 CA92.1。最近使った棚とチュートリアルを終えたかを、アプリ自身だけが読み書き）。DTD の行（http://www.apple.com/…）は check-no-network に掛かるので入れていない（plist として有効。plutil -lint OK）
+  - docs/notices.md: N-094（実機での保護クラスの確認）を追加
+  - **計画とのズレ**: plan.md のタスクではなく、セキュリティ監査（.dev/security-report.md 2026-11-18 NO-GO）の high・medium の修正（オーナー判断 2026-11-18「1で進めて」）。low の3件（Release の `-UITestReset`・ペーストボードの localOnly・ログ）は指示の範囲外なので直していない
+- verify:
+  - `xcodebuild build -project Bookshelf.xcodeproj -scheme Bookshelf -configuration Release -destination "generic/platform=iOS Simulator"` → BUILD SUCCEEDED。ビルドログに `ProcessProductPackaging …/Bookshelf.entitlements`、処理済みの `Bookshelf.app-Simulated.xcent` に `com.apple.developer.default-data-protection => NSFileProtectionComplete`。アプリの中に `PrivacyInfo.xcprivacy` があり、`plutil -p` で上の内容
+  - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"` → `** TEST SUCCEEDED **`。ユニット `✔ Test run with 87 tests in 13 suites passed`、UI `Executed 64 tests, with 0 failures`（entitlements を足しても起動・保存・共有の流れが通る）
+  - `scripts/check-no-network.sh` → 最初は xcprivacy の DTD の行で終了コード1 → DTD の行を外して `OK`、終了コード0 / `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし exit 0 / `plutil -lint Bookshelf.entitlements Bookshelf/PrivacyInfo.xcprivacy` → OK
+  - 一時テストで、シミュレータでは `attributesOfItem[.protectionKey]` が `.completeFileProtection` を付けたファイルでも nil になることを確かめた（シミュレータはデータ保護を強制しない）。このため保護クラスの自動テストは足していない。実機での確認は N-094
+- notes:
+  - 実機向けの署名では、自動署名が App ID に Data Protection の capability を足す（チーム P45Y47YJDM）。初回の実機ビルドで Xcode が署名を更新する必要がある
+  - アプリはバックグラウンドでファイルに触らないので、Complete にしても動作は変わらない見込み（N-094 で実機で確かめる）。まだ配布していないので、既存のファイルの保護クラスの移行は要らない
+  - 依存の追加なし。通信のコードなし

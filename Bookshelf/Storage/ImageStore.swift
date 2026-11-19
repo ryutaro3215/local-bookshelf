@@ -24,11 +24,12 @@ struct ImageStore: Sendable {
         directory.appendingPathComponent("\(id.uuidString)_thumb.jpg")
     }
 
-    /// 原寸とサムネイルを保存する（同じ ID があれば上書き）
+    /// 原寸とサムネイルを保存する（同じ ID があれば上書き）。
+    /// 端末のロック中は読めない保護クラスで書く（requirements S5。アプリ全体の既定も Bookshelf.entitlements で同じにしている）
     func save(original: Data, thumbnail: Data, for id: UUID) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try original.write(to: originalURL(for: id), options: .atomic)
-        try thumbnail.write(to: thumbnailURL(for: id), options: .atomic)
+        try original.write(to: originalURL(for: id), options: [.atomic, .completeFileProtection])
+        try thumbnail.write(to: thumbnailURL(for: id), options: [.atomic, .completeFileProtection])
     }
 
     func loadOriginal(for id: UUID) -> Data? {
