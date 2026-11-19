@@ -5164,6 +5164,114 @@
           }
         }
       }
+    },
+    "ジャンルに分ける" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort into Genres"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンルに分ける"
+          }
+        }
+      }
+    },
+    "本ごとにジャンルを選んで、まとめて保存します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a genre for each book, then save them all at once."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本ごとにジャンルを選んで、まとめて保存します"
+          }
+        }
+      }
+    },
+    "%lld冊のうち%lld冊のジャンルを選びました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genres chosen: %2$lld of %1$lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld冊のうち%2$lld冊のジャンルを選びました"
+          }
+        }
+      }
+    },
+    "ジャンルを選びます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chooses a genre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンルを選びます"
+          }
+        }
+      }
+    },
+    "ジャンルに分けられませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't sort into genres"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンルに分けられませんでした"
+          }
+        }
+      }
+    },
+    "%lld冊をジャンルに分けました" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sorted %lld book into genres"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sorted %lld books into genres"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld冊をジャンルに分けました"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

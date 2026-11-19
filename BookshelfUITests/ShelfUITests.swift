@@ -182,6 +182,53 @@ final class ShelfUITests: XCTestCase {
         XCTAssertEqual(cell.label, center)
     }
 
+    // MARK: - 題名の下の横スワイプ（2026-11-20 オーナー指示）
+
+    /// 書影の下（題名・購入日・位置）を横にスワイプしても本をめくれる。左 = 次、右 = 前、末尾は空き枠まで。
+    /// 同じ場所の縦スワイプは今までどおり棚をかえる
+    func testHorizontalSwipeBelowCoversFlipsBooks() {
+        let app = launch(seed: "小説:5,哲学・思想:1")
+        let position = element(app, "shelf.position")
+        XCTAssertEqual(position.label, "1 / 5")
+        let info = element(app, "shelf.bookTitle")
+        info.swipeLeft()
+        wait(position, "label == '2 / 5'")
+        // 書影の並びも同じ本まで動く（中央の本を押すとその本の詳細が開く位置にある）
+        wait(app.collectionViews["shelf.carousel"].cells["shelf.book.1"], "isHittable == true")
+        info.swipeRight()
+        wait(position, "label == '1 / 5'")
+        // 先頭より前へはめくらない
+        info.swipeRight()
+        XCTAssertFalse(
+            XCTWaiter().wait(
+                for: [
+                    XCTNSPredicateExpectation(predicate: NSPredicate(format: "label != '1 / 5'"), object: position)
+                ], timeout: 1) == .completed)
+        // 末尾の本の次は空き枠（「棚の末尾」）
+        for expected in 2...5 {
+            info.swipeLeft()
+            wait(position, "label == '\(expected) / 5'")
+        }
+        info.swipeLeft()
+        wait(position, "label == '棚の末尾'")
+        info.swipeLeft()
+        wait(position, "label == '棚の末尾'")
+
+        // 題名の下の縦スワイプで棚がかわる（外側の縦のスクロールを邪魔しない）
+        // （swipeUp は小さな要素では動きが短く棚がかわらないので、題名から 300pt 縦にドラッグする）
+        dragVertically(element(app, "shelf.bookTitle"), by: -300)
+        wait(app.buttons["shelf.title"], "label == '哲学・思想'")
+        dragVertically(element(app, "shelf.bookTitle"), by: 300)
+        wait(app.buttons["shelf.title"], "label == '小説'")
+    }
+
+    private func dragVertically(_ element: XCUIElement, by distance: CGFloat) {
+        let start = element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(
+            forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: distance)), withVelocity: .fast,
+            thenHoldForDuration: 0)
+    }
+
     // MARK: - F6-9 スクラバー
 
     func testScrubberAppearsOnShelvesWithAHundredBooks() {

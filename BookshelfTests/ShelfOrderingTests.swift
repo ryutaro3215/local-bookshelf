@@ -115,6 +115,31 @@ struct ShelfOrderingTests {
         #expect(titles(religion) == ["眠る標本箱"])
     }
 
+    @Test("未分類をジャンルに分ける: 本ごとに選んだジャンルの末尾へ、選んだ順にまとめて移る。選ばない本は未分類のまま")
+    func sortUnsortedIntoGenres() throws {
+        let unsorted = try store.unsortedShelf()
+        let philosophy = try genre("哲学・思想")
+        let history = try genre("歴史")
+        try store.addBook(title: "古い地図について", shelf: history)
+        let a = try store.addBook(title: "灰色の観測所", shelf: unsorted)
+        let b = try store.addBook(title: "遠い温室", shelf: unsorted)
+        let c = try store.addBook(title: "白い灯台の記録", shelf: unsorted)
+        try store.addBook(title: "冬の回廊", shelf: unsorted)
+
+        try store.moveBooks([(a, history), (b, philosophy), (c, history)])
+        #expect(titles(history) == ["古い地図について", "灰色の観測所", "白い灯台の記録"])
+        #expect(titles(philosophy) == ["遠い温室"])
+        #expect(titles(unsorted) == ["冬の回廊"])
+
+        // 買いたい本の棚が混じっていたら何も変えない
+        let wishlist = try #require(try store.wishlistShelf())
+        let d = try #require(store.books(in: unsorted).first)
+        #expect(throws: LibraryError.invalidShelfForBook) {
+            try store.moveBooks([(d, philosophy), (d, wishlist)])
+        }
+        #expect(titles(unsorted) == ["冬の回廊"])
+    }
+
     @Test("棚間移動の取り消し: その間に同じ位置の値の本が入っても、元の位置に戻る")
     func undoAfterAnotherBookWasAdded() throws {
         let philosophy = try genre("哲学・思想")

@@ -150,6 +150,21 @@ extension LibraryStore {
         return record
     }
 
+    /// 何冊かの本を、それぞれ選んだ棚の末尾へまとめて移し、1回で保存する（未分類をジャンルに分ける。F5-4）。
+    /// 並びは `moves` の順。今と同じ棚の本は動かさない。買いたい本の棚が1つでもあれば何も変えずに投げる
+    func moveBooks(_ moves: [(book: Book, shelf: Shelf)]) throws {
+        guard !moves.contains(where: { $0.shelf.kind == .wishlist }) else { throw LibraryError.invalidShelfForBook }
+        var next: [PersistentIdentifier: Int] = [:]
+        for (book, shelf) in moves where book.shelf?.persistentModelID != shelf.persistentModelID {
+            let id = shelf.persistentModelID
+            let value = next[id] ?? ((shelf.books.map(\.sortOrder).max() ?? -1) + 1)
+            book.shelf = shelf
+            book.sortOrder = value
+            next[id] = value + 1
+        }
+        try commit()
+    }
+
     /// 棚間移動を取り消す。元の棚の、元の位置（並び順の値）へ戻す。
     /// その間に同じ値の本が入っていたら、その本から後ろを1つずつずらして元の位置を空ける
     /// 本・元の棚が削除されていたら何も変えずに投げる（N-060。移した本をトーストが出ている間に削除したとき）

@@ -622,3 +622,37 @@
   - iOS が出す部品（スクロールバーの読み上げ・写真の選択・共有シートなど）は、開き直すまで端末の言語のまま
   - 本の題名などユーザーのデータは翻訳しない（今までどおり）
 
+
+## 未分類をジャンルにまとめて分ける（F5-4。2026-11-20 オーナー指示） — done (2026-11-20)
+- changed:
+  - Shelf/SortIntoGenresView.swift（新規）: 未分類の本を1冊ずつ並べ、行ごとのメニュー（区分ごとの見出しつき）でジャンルを選び、「保存」でまとめて移す。選ぶまで保存できない。選んだ数を上に出す
+  - Model/ShelfOrdering.swift: LibraryStore.moveBooks（本ごとに選んだ棚の末尾へ、選んだ順に移して1回で保存。買いたい本の棚が混じれば何も変えない）
+  - Shelf/ShelfScreen.swift: 未分類の棚の左上（共有マークと左右対称）に「ジャンルに分ける」のマーク、シート、保存後のトースト「N冊をジャンルに分けました」。未分類が空になったら最初に移した先の棚を見せる。縦の棚のページは、棚の並びが変わったら作り直して今の棚から見せる
+  - Shelf/DisplayMenu.swift: 未分類の棚（ジャンル別）を見ているときだけ「ジャンルに分ける」を出す
+  - Localizable.xcstrings: 新しい文言6件（英語つき。冊数は単数・複数）
+  - テスト: ShelfOrderingTests（まとめて移す・選ばない本は残る・買いたい本の棚なら変えない）、SortIntoGenresUITests（未分類で開いて2冊を分ける→未分類に1冊残る→「表示」メニューから残りを分けると未分類が消えて移した先の棚）
+- verify:
+  - ShelfOrderingTests 14件通過・SortIntoGenresUITests 通過（スクリーンショットで、メニュー・選んだ状態・保存後の未分類の棚とトーストを確認）
+  - `swift format lint` → 出力なし / `scripts/check-no-network.sh` → OK
+- notes:
+  - 作る途中で見つけたバグ: 保存で未分類より前に棚（詩歌・漫画）が増えると、縦のページのスクロール位置だけが残り、別の棚がずれた位置で見えた。棚の並び（ID の列）で ScrollView を作り直すようにした（登録で新しい棚が出たときにも同じことが起きうる）
+  - 取り消し（元に戻す）は付けていない。何冊もまとめて戻す取り消しが要るかはオーナー判断
+  - Figma にはこの画面のデザインがない（既存の移動先のシート D-2・ジャンルの追加 F-3 の見た目に合わせた）。必要なら Figma に追加する
+  - requirements.md に F5-4 はまだ無い（dev-architect で追記が必要）
+
+## 題名の下の横スワイプで本をめくる（2026-11-20 オーナー指示） — done (2026-11-20)
+- changed:
+  - Bookshelf/Shelf/BookSwipeGesture.swift（新規）: 横向きに動き出したときだけ始まる UIKit のパン（UIGestureRecognizerRepresentable）。指を離したとき 40pt 以上か勢い 300pt/秒以上で ±1 を返す。`.bookSwipe(isEnabled:onStep:)`
+  - Bookshelf/Shelf/ShelfScreen.swift: 棚表示の bookInfo に `.bookSwipe` を付け、`flip(_:on:)` で positions を ±1（0〜末尾、空き枠あり）。長押しで選択中・スクラバー操作中は止める
+  - Bookshelf/Month/MonthBrowseView.swift: 購入月別の本の情報にも同じ横スワイプ（選択中は止める。空き枠なし）
+  - BookshelfUITests/ShelfUITests.swift: testHorizontalSwipeBelowCoversFlipsBooks（1/5→2/5→1/5、先頭で止まる、末尾の次は「棚の末尾」で止まる、題名からの縦ドラッグで棚がかわる・戻る）
+  - BookshelfUITests/MonthModeUITests.swift: testHorizontalSwipeBelowCoversFlipsBooks（1/2→2/2→1/2、月はかわらない）
+- verify:
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし / `scripts/check-no-network.sh` → OK
+  - 新しい iPhone 17 Pro（iOS 26.5）シミュレーターで ShelfUITests 9件・MonthModeUITests 8件・ReorderUITests 6件 → 23件すべて通過
+  - ユニットテスト 96件（14 suites）通過
+- notes:
+  - SwiftUI の DragGesture は simultaneousGesture にしても外側の縦の ScrollView（棚の縦ページ送り）を止めてしまった（題名からの縦ドラッグで棚がかわらなくなるのを UI テストで確認）。そのため UIKit のパンを gestureRecognizerShouldBegin で横向きのときだけ始めるようにした
+  - めくると centerIndex が変わり、ShelfCollectionView が setContentOffset(animated: true) で書影の並びを動かす（書影の上のスワイプと同じ見え方。ただし指に追従はせず、離したときに1冊だけめくる）
+  - XCUITest の swipeUp() は題名のような小さい要素では動きが短く、変更前から棚がかわらない。テストでは 300pt の縦ドラッグを使った
+  - 購入月別にも同じ動きを入れた（題名まわりの作りが同じで変更が数行のため）

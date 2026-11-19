@@ -46,6 +46,11 @@ struct MonthBrowseView: View {
                 VStack(spacing: 0) {
                     carousel(group, selection: selection)
                     info(group, selection: selection)
+                        // 題名の下でも、横スワイプで前後の本へめくる（ジャンル別の棚表示と同じ）
+                        .bookSwipe(isEnabled: selection == nil) { delta in
+                            let next = min(max(index + delta, 0), max(group.books.count - 1, 0))
+                            if next != index { onCenterChange(next) }
+                        }
                     Spacer(minLength: 0)
                 }
                 .id(group.id)

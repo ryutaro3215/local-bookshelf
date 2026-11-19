@@ -65,6 +65,8 @@ struct ShelfScreen: View {
     @State private var monthEdge: Edge = .bottom
     /// 共有（T11。F8）: 右上の共有マークで開く
     @State private var shareRequest: ShareRequest?
+    /// 未分類をジャンルに分ける（F5-4）: 未分類の棚の左上のマーク・「表示」メニューから開く
+    @State private var showsSortIntoGenres = false
 
     init(environment: AppEnvironment) {
         self.environment = environment
@@ -197,6 +199,7 @@ struct ShelfScreen: View {
                             }
                             showsMenu = false
                         },
+                        onSortIntoGenres: sortIntoGenresAction(current),
                         onOpenSettings: openSettings,
                         onClose: { showsMenu = false }
                     )
@@ -269,6 +272,7 @@ struct ShelfScreen: View {
                 },
                 onCancel: { methodRequest = nil })
         }
+        .sheet(isPresented: $showsSortIntoGenres) { sortIntoGenresSheet(all) }
         .sheet(item: $shareRequest) { request in
             ShareFlowView(request: request, images: environment.store.images) { shareRequest = nil }
         }
@@ -321,6 +325,15 @@ struct ShelfScreen: View {
     private func position(of shelf: BrowseShelf) -> Int {
         let last = max(shelf.books.count - (shelf.showsSlot ? 0 : 1), 0)
         return min(max(positions[shelf.id] ?? 0, 0), last)
+    }
+
+    /// 中央の本を前後へ1冊めくる（題名の下の横スワイプ）。末尾は空き枠まで
+    private func flip(_ delta: Int, on shelf: BrowseShelf) {
+        let last = max(shelf.books.count - (shelf.showsSlot ? 0 : 1), 0)
+        let next = min(max(position(of: shelf) + delta, 0), last)
+        if next != position(of: shelf) {
+            positions[shelf.id] = next
+        }
     }
 
     /// 棚をかえる（縦スワイプ・グリッドの左右スワイプ）。開いた棚は「直前に使った棚」として記録する（N-031・F1-5）
@@ -420,6 +433,20 @@ struct ShelfScreen: View {
             .accessibilityAction(named: "次の棚") { move(by: 1, from: current, in: all) }
             .accessibilityAction(named: "前の棚") { move(by: -1, from: current, in: all) }
             HStack {
+                // 未分類をジャンルに分ける（F5-4）。未分類の棚だけ、共有マークと左右対称に出す
+                if current.shelf.kind == .unsorted {
+                    Button(action: openSortIntoGenres) {
+                        Image(systemName: "folder.badge.plus")
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundStyle(BookshelfStyle.ink)
+                            .frame(width: 40, height: 40)
+                            .background(Circle().fill(BookshelfStyle.fill))
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("ジャンルに分ける")
+                    .pageIdentifier("shelf.sortIntoGenres")
+                }
                 Spacer()
                 // 共有（F8・T11）。買いたい本の棚では出さない（共有画像に「買いたい」の本を含めないため）
                 if !current.isWishlist {
@@ -438,7 +465,7 @@ struct ShelfScreen: View {
                     .pageIdentifier("shelf.share")
                 }
             }
-            .padding(.trailing, 22)
+            .padding(.horizontal, 22)
             .offset(y: -4)
         }
         .padding(.top, 44)
@@ -456,6 +483,9 @@ struct ShelfScreen: View {
                 // （scrollPosition だけでは先頭のページのまま開くことがあった）
                 .onAppear { proxy.scrollTo(current.id, anchor: .top) }
         }
+        // 棚が増えたり消えたりしたら（未分類をジャンルに分けた・登録した・最後の1冊を移したなど）、作り直して今の棚から見せる
+        // （そのままだとスクロールの位置だけが残り、前に棚が増えた分だけ別の棚がずれた位置で見えた）
+        .id(all.map(\.id))
     }
 
     private func pagerScroll(_ current: BrowseShelf, all: [BrowseShelf]) -> some View {
@@ -602,6 +632,8 @@ struct ShelfScreen: View {
             .animation(.easeOut(duration: 0.15), value: selection)
             bookInfo(current, index: index, selection: selection)
                 .opacity(isScrubbing ? 0 : 1)
+                // 題名の下でも、横スワイプで前後の本へめくる（書影の並びがその本までアニメーションで動く）
+                .bookSwipe(isEnabled: selection == nil && !isScrubbing) { flip($0, on: current) }
             if selection == nil, current.books.count >= Scrubber.threshold, index < current.books.count {
                 Scrubber(
                     items: current.items,
@@ -1080,6 +1112,55 @@ struct ShelfScreen: View {
         editing.gridMenu = nil
         editing.toast = nil
         showsSettings = true
+    }
+
+    /// 「表示」メニューの「ジャンルに分ける」（ジャンル別で未分類の棚を見ているときだけ）
+    private func sortIntoGenresAction(_ current: BrowseShelf?) -> (() -> Void)? {
+        guard grouping == .genre, current?.shelf.kind == .unsorted else { return nil }
+        return { openSortIntoGenres() }
+    }
+
+    /// 未分類をジャンルに分ける画面（F5-4）。未分類の棚に並んでいる本（購入済み）を、ジャンルに分ける
+    private func sortIntoGenresSheet(_ all: [BrowseShelf]) -> some View {
+        let unsorted: [Book] = all.first { $0.shelf.kind == .unsorted }?.books ?? []
+        return SortIntoGenresView(
+            books: unsorted,
+            genres: shelves.filter { $0.kind == .genre },
+            images: environment.store.images,
+            onCancel: { showsSortIntoGenres = false },
+            onSave: { sortIntoGenres($0) }
+        )
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+    }
+
+    /// 未分類をジャンルに分ける画面を開く（F5-4）。選択中・メニュー・取り消しのトーストは閉じる
+    private func openSortIntoGenres() {
+        showsMenu = false
+        editing.clearSelection()
+        editing.gridMenu = nil
+        editing.toast = nil
+        showsSortIntoGenres = true
+    }
+
+    /// 選んだジャンルへまとめて移す（F5-4）。未分類に残った本があれば未分類のまま見せる
+    private func sortIntoGenres(_ moves: [(book: Book, shelf: Shelf)]) {
+        showsSortIntoGenres = false
+        guard !moves.isEmpty else { return }
+        do {
+            try environment.store.moveBooks(moves)
+            // 未分類が空になったら（未分類の棚は出なくなる）、最初に移した本のジャンルを見せる
+            let remaining = books.contains { $0.ownership == .owned && $0.shelf?.kind == .unsorted }
+            if !remaining, let first = moves.first {
+                positions[first.shelf.persistentModelID] = 0
+                currentID = first.shelf.persistentModelID
+            }
+            editing.toast = ShelfEditing.Toast(
+                message: String(appLocalized: "\(moves.count)冊をジャンルに分けました"), undo: nil, fromIndex: nil)
+        } catch {
+            editing.toast = ShelfEditing.Toast(
+                message: String(appLocalized: "ジャンルに分けられませんでした"), undo: nil, fromIndex: nil)
+        }
     }
 
     /// グリッドの長押しメニュー（I-2）

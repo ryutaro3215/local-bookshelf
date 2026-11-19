@@ -24,6 +24,8 @@ struct DisplayMenu: View {
     let onSelectMode: (DisplayMode) -> Void
     var onSelectGrouping: (BrowseGrouping) -> Void = { _ in }
     var onSelectSort: (ShelfSortKey) -> Void = { _ in }
+    /// 「ジャンルに分ける」（F5-4。未分類の棚を見ているときだけ。nil なら出さない）
+    var onSortIntoGenres: (() -> Void)?
     /// 「設定」（F-1 へ）
     var onOpenSettings: () -> Void = {}
     let onClose: () -> Void
@@ -85,6 +87,25 @@ struct DisplayMenu: View {
                         }
                     }
                 }
+            }
+            if let onSortIntoGenres {
+                divider
+                Button(action: onSortIntoGenres) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "folder.badge.plus")
+                            .font(.system(size: 16, weight: .regular))
+                        Text("ジャンルに分ける")
+                            .font(BookshelfStyle.sans(16))
+                            .tracking(0.5)
+                        Spacer()
+                    }
+                    .foregroundStyle(BookshelfStyle.ink)
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 52)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("menu.sortIntoGenres")
             }
             divider
             Button(action: onOpenSettings) {

@@ -210,4 +210,19 @@ final class MonthModeUITests: XCTestCase {
         element(app, "menu.group.month").tap()
         XCTAssertTrue(element(app, "monthGrid").waitForExistence(timeout: 5))
     }
+
+    // MARK: - 題名の下の横スワイプ（2026-11-20 オーナー指示）
+
+    /// 購入月別でも、書影の下を横にスワイプすると本をめくれる（ジャンル別の棚表示と同じ）
+    func testHorizontalSwipeBelowCoversFlipsBooks() {
+        let app = launch()
+        switchToMonth(app)
+        let position = element(app, "shelf.position")
+        XCTAssertEqual(position.label, "1 / 2")
+        element(app, "shelf.bookTitle").swipeLeft()
+        wait(position, "label == '2 / 2'")
+        element(app, "shelf.bookTitle").swipeRight()
+        wait(position, "label == '1 / 2'")
+        XCTAssertEqual(monthTitle(app).label, "2026年11月")
+    }
 }
