@@ -5,7 +5,7 @@ import Testing
 @testable import Bookshelf
 
 /// plan.md T10 の acceptance（SearchTests ①〜④）と、検索の文字のそろえ方・強調の範囲・500冊での速さ。
-/// 題名はすべて架空（plan の例「存在と時間」は実在の書名なので、同じ性質の架空の題名「灰色の時間割」に置き換えた）
+/// 題名はすべて架空
 @MainActor
 struct SearchTests {
     let store: LibraryStore
@@ -53,7 +53,7 @@ struct SearchTests {
         #expect(SearchText.matchRanges(of: "じかん", in: book.title).isEmpty)
     }
 
-    @Test("③ ひらがな・カタカナ、英字の大文字・小文字（全角・半角も）を区別しない")
+    @Test("③ ひらがな・カタカナ、英字の大文字・小文字（全角・半角も）、濁点・半濁点を区別しない")
     func kanaAndCaseInsensitive() throws {
         try store.addBook(title: "ガラス瓶の手帖", shelf: genre("小説"))
         try store.addBook(title: "PAPER COMETS", shelf: genre("小説"))
@@ -65,8 +65,15 @@ struct SearchTests {
         #expect(try titles("paper") == ["PAPER COMETS"])
         #expect(try titles("Comets") == ["PAPER COMETS"])
         #expect(try titles("ＣＯＭＥＴ") == ["PAPER COMETS"])  // 全角英字
-        // 濁点は区別する
-        #expect(try titles("からす").isEmpty)
+        // 濁点・半濁点は区別しない（N-073。2026-11-19 オーナー判断）
+        #expect(try titles("からす") == ["ガラス瓶の手帖"])
+        #expect(try titles("ｶﾗｽ") == ["ガラス瓶の手帖"])
+        try store.addBook(title: "パンの森", shelf: genre("エッセイ"))
+        #expect(try titles("はん") == ["パンの森"])
+        #expect(try titles("ばん") == ["パンの森"])
+        // 強調表示の範囲も、濁点のある元の文字を指す
+        let ranges = SearchText.matchRanges(of: "から", in: "ガラス瓶の手帖")
+        #expect(ranges.map { String("ガラス瓶の手帖"[$0]) } == ["ガラ"])
     }
 
     @Test("④ 「買いたい」の本は結果に含まれない")

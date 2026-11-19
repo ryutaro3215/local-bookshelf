@@ -133,9 +133,10 @@ private struct SettingsRow: View {
 }
 
 /// ライセンス（設定の「このアプリについて」）。同梱の書体のライセンスを示す。
-/// Figma に画面が無いため最小限の一覧にした。ライセンス文そのものの同梱は N-033 で決める
+/// Figma に画面が無いため最小限の一覧にした。行を押すと、著作権表示とライセンス文の全文を出す（N-033）
 struct LicenseView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var shownFont: LicensedFont?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -146,9 +147,9 @@ struct LicenseView: View {
                     SectionLabel(text: String(localized: "書体"))
                         .padding(.top, 22)
                     VStack(spacing: 0) {
-                        entry("Noto Sans JP")
+                        entry(.sans)
                         CardSeparator()
-                        entry("Noto Serif JP")
+                        entry(.serif)
                     }
                     .background(RoundedRectangle(cornerRadius: 16).fill(BookshelfStyle.fill))
                     Footnote(text: String(localized: "どちらも SIL Open Font License, Version 1.1 で提供されています。"))
@@ -159,21 +160,81 @@ struct LicenseView: View {
         }
         .background(Color.white)
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(item: $shownFont) { font in
+            LicenseTextView(font: font)
+        }
     }
 
-    private func entry(_ name: String) -> some View {
-        HStack {
-            Text(name)
-                .font(BookshelfStyle.sans(16))
-                .foregroundStyle(BookshelfStyle.ink)
-            Spacer()
-            Text("SIL OFL 1.1")
-                .font(BookshelfStyle.sans(13))
-                .foregroundStyle(BookshelfStyle.sub)
+    private func entry(_ font: LicensedFont) -> some View {
+        Button {
+            shownFont = font
+        } label: {
+            HStack {
+                Text(verbatim: font.name)
+                    .font(BookshelfStyle.sans(16))
+                    .foregroundStyle(BookshelfStyle.ink)
+                Spacer()
+                Text("SIL OFL 1.1")
+                    .font(BookshelfStyle.sans(13))
+                    .foregroundStyle(BookshelfStyle.sub)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(BookshelfStyle.faint)
+            }
+            .padding(.horizontal, 16)
+            .frame(minHeight: 48)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 16)
-        .frame(minHeight: 48)
+        .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("license.\(font.rawValue)")
+    }
+}
+
+/// 同梱の書体（ライセンス文は Bookshelf/Resources/Licenses/ のテキスト）
+enum LicensedFont: String, Identifiable, Hashable {
+    case sans = "NotoSansJP"
+    case serif = "NotoSerifJP"
+
+    var id: String { rawValue }
+    var name: String { self == .sans ? "Noto Sans JP" : "Noto Serif JP" }
+
+    /// 著作権表示とライセンス文の全文（英語の原文のまま）
+    func licenseText() -> String? {
+        guard let url = Bundle.main.url(forResource: "\(rawValue)-OFL", withExtension: "txt") else { return nil }
+        do {
+            return try String(contentsOf: url, encoding: .utf8)
+        } catch {
+            return nil
+        }
+    }
+}
+
+/// 書体1つのライセンス文の全文
+struct LicenseTextView: View {
+    let font: LicensedFont
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            NavigationHeader(
+                backTitle: String(localized: "ライセンス"), backID: "licenseText.back", onBack: { dismiss() })
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    LargeTitle(text: font.name, id: "licenseText.title")
+                    Text(verbatim: font.licenseText() ?? "SIL Open Font License, Version 1.1")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(BookshelfStyle.ink)
+                        .textSelection(.enabled)
+                        .accessibilityIdentifier("licenseText.body")
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
+            }
+        }
+        .background(Color.white)
+        .toolbar(.hidden, for: .navigationBar)
     }
 }
 

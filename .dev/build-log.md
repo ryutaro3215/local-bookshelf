@@ -31,7 +31,7 @@
   - Bookshelf.xcodeproj/project.xcproj: ユニットテストのターゲット BookshelfTests（Swift Testing、テストホスト Bookshelf、フォルダ同期「BookshelfTests」、iOS・iPhone のみ）を追加
 - verify:
   - `xcodebuild test -project Bookshelf.xcodeproj -scheme Bookshelf -destination "platform=iOS Simulator,id=64DCF75A-D3DE-4660-85D9-2CB8684A2F40"`（iPhone 17 Pro / iOS 26.5）→ `✔ Test run with 13 tests in 2 suites passed`、`** TEST SUCCEEDED **`（LibraryStoreTests 9件・YomiTests 4件）
-  - YomiTests の例: 「存在と時間」→「そんざいとじかん」、「アーモンド」→「あーもんど」、「Swift入門」→「Swiftにゅうもん」、「NARUTO」→「NARUTO」
+  - YomiTests の例: 「灰色の時間割」→「はいいろのじかんわり」、「アーモンド」→「あーもんど」、「Swift入門」→「Swiftにゅうもん」、「NARUTO」→「NARUTO」
   - `scripts/check-no-network.sh` → exit=0
   - `swift format lint -r Bookshelf BookshelfTests` → 出力なし、exit=0
   - `xcodebuild build`（同じシミュレータ）→ `** BUILD SUCCEEDED **`
@@ -62,7 +62,7 @@
   - Swift 6 で再ビルド（`touch` 後に build-for-testing）→ 警告・並行処理エラーなし
   - `scripts/check-no-network.sh` → exit=0
   - `swift format lint -r Bookshelf BookshelfTests` → 出力なし、exit=0
-  - 参考（テスト外・リポジトリに入れていない）: design/sample-covers/raw の実写25枚（書店で手持ち撮影・768x1024）を macOS 上で同じコードに通した → 検出 7/25。目視で 6枚は表紙を正しく切り抜き、1枚（嫉妬論）は表紙の内側の枠を切り抜いた。最小サイズ 0.25 では検出 13/25 だが、うち5枚が内側の四角形（帯・図形・文字の枠）の誤った切り抜きだったため 0.4 にした
+  - 参考（テスト外・リポジトリに入れていない）: design/sample-covers/raw の実写25枚（書店で手持ち撮影・768x1024）を macOS 上で同じコードに通した → 検出 7/25。目視で 6枚は表紙を正しく切り抜き、1枚は表紙の内側の枠を切り抜いた。最小サイズ 0.25 では検出 13/25 だが、うち5枚が内側の四角形（帯・図形・文字の枠）の誤った切り抜きだったため 0.4 にした
 - notes:
   - **計画とのズレ（files）**: scripts/generate-cover-fixtures.py を追加した（オーナー判断: 実在の表紙は著作物なのでフィクスチャは合成する。生成手順を残すため）。実行には pillow・opencv・numpy が要る（アプリの依存ではない）
   - ImageIO の JPEG エンコーダは、メタデータを渡さなくても EXIF 辞書に ColorSpace・PixelXDimension・PixelYDimension を必ず書く（空の CGImageMetadata・kCFNull 指定でも消えない）。いずれも出力画像自身の情報で、撮影日時・機種・位置情報は残らないため、④はこの3項目以外が無いことを確認する形にした
@@ -316,7 +316,7 @@
   - `swift format lint` → エラーなし / `scripts/check-no-network.sh` → OK
   - スクリーンショット（リポジトリ外・架空の題名）: /private/tmp/claude-501/-Users-rmatsuba-Myprogram-local-bookshelf/8588d00f-6385-4403-8697-77adfaefc869/scratchpad/t10/ の E-4_results.png・E-5_zero.png
 - notes:
-  - plan の acceptance ② の例「存在と時間」は実在の書名なので、テストは架空の「灰色の時間割」に置き換えた（N-024 に追記済み）
+  - plan の acceptance ② の例は実在の書名だったので、テストは架空の「灰色の時間割」に置き換えた（N-024 に追記済み）
   - **N-071**: 対応（上記）。docs/notices.md の N-071 の「結果」はまだ更新していない
   - デバッグ用のコードと撮影用の一時ファイル（TmpSearchShots.swift）は削除済み
   - スキル: figma:figma-swiftui。Figma の参照は 49:24501（E-5）・54:32119（実装エージェントの報告にあったノード。design-brief の E-4 は 54:32099）
@@ -531,3 +531,34 @@
   - 実機向けの署名では、自動署名が App ID に Data Protection の capability を足す（チーム P45Y47YJDM）。初回の実機ビルドで Xcode が署名を更新する必要がある
   - アプリはバックグラウンドでファイルに触らないので、Complete にしても動作は変わらない見込み（N-094 で実機で確かめる）。まだ配布していないので、既存のファイルの保護クラスの移行は要らない
   - 依存の追加なし。通信のコードなし
+
+## 申し送り N-079: 英訳の文言の修正 — done (2026-11-19)
+- changed:
+  - Bookshelf/Localizable.xcstrings: en を8件変更（Take Photos for %@ / Goes to Wishlist / Title (A–Z) / Manual (Custom Order) / Purchase Date / Ownership・Ownership: %@ / Snap a cover. It's on your shelf.）、キー share.unit.single（ja 冊・en book）を追加
+  - Bookshelf/Share/ShareTemplateView.swift: 共有画像の大きな数字が1のとき単位を share.unit.single にする
+  - BookshelfUITests/LocalizationUITests.swift: 詳細の項目名・チュートリアルのボタンの期待値を新しい訳に
+- verify: `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし exit 0 / `scripts/check-no-network.sh` → OK / `xcodebuild test -only-testing:BookshelfTests -only-testing:BookshelfUITests/LocalizationUITests -only-testing:BookshelfUITests/DynamicTypeUITests` → 87 tests passed・TEST SUCCEEDED
+- notes: オーナーが担当の案（①〜⑨）を承認（2026-11-19）。1冊の共有画像の英語（1 book）は UI テストで見ていない
+
+## 申し送りのまとめ対応（オーナー判断 A・B・D と C の修正） — done（実機・Figma での確認はオーナー待ち） (2026-11-19)
+- changed:
+  - 設定: Bookshelf.xcodeproj/project.xcproj（開発言語 en・iPhone は縦向きのみ・MARKETING_VERSION 1.0.0）、Localizable.xcstrings・InfoPlist.xcstrings（sourceLanguage en、全件に ja の値。新しい文言3件の en）
+  - 検索: Model/LibraryStore.swift の SearchText（濁点・半濁点を外して比べる。N-073）、Text/TextSanitizer.swift（新規。題名・名前の整え方を1つに。N-028）
+  - ジャンル: LibraryStore（同じ名前の棚を作れない isShelfNameTaken・LibraryError.duplicateName。N-066）、Shelf/ShelfEditView.swift（重複の案内・行の高さ44・カーソルの色）、Shelf/ShelfListView.swift
+  - 並べ順: Model/Shelf.swift（sortKeyRaw・manualSnapshot）、Shelf/ShelfReorderHandler.swift（保存した並べ順を使う。N-058。削除に失敗しても取り消しを残す・› の色）
+  - 棚インジケーター: Shelf/ShelfScreen.swift（押す・なぞる・VoiceOver の調整。N-044）、Month/MonthBrowseView.swift
+  - 登録: Capture/CaptureViewModel.swift（元の写真を一時ファイルに置き、一覧から四隅を直す。CoverPipeline を専用キューに。N-041・N-035）、Capture/PendingListView.swift（表紙のボタン・「次の本へ」）、Capture/CornerAdjustView.swift（直すときの文言・凸でない形にしない）、Capture/FakeCameraSource.swift・CaptureView.swift（denied と識別子。N-039）
+  - 表紙: Imaging/CoverProcessor.swift（サムネイル800px。N-048）、Shelf/ShelfCell.swift（キャッシュ 160MB・古い表紙を入れない・読めない表紙を読み直さない・グリッドのセル・VoiceOver の操作を中央だけに）、Storage/ImageStore.swift（紐付かない画像の片付け・nonisolated）、LibraryStore（表紙の入れ替えの巻き戻し・未来の購入日・片付けの呼び出し）、Onboarding/OnboardingView.swift（起動3秒後に片付け）
+  - トースト: Shelf/ToastTiming.swift（新規。VoiceOver で読み上げ・20秒。N-062）、Detail/PurchaseAction.swift・BookDetailView.swift
+  - ライセンス: Resources/Licenses/NotoSansJP-OFL.txt・NotoSerifJP-OFL.txt（新規）、Settings/SettingsView.swift（全文の画面。N-033）、scripts/check-no-network.sh（場所の基準・語を追加・Licenses を除外。N-010）
+  - デバッグ: BookshelfApp.swift（-UITestReset をデバッグのみ・一時フォルダの片付け・テスト用の題名を重ねない・-FakeCamera denied）
+  - テスト: SearchTests・ShelfOrderingTests（manualSnapshotPersists）・LibraryStoreTests・ShareRendererTests・YomiTests・OCRAccuracyTests・CaptureFlowUITests（denied・print 削除）・ReorderUITests（-UITestLongToast）・LocalizationUITests
+  - 文書: .dev/requirements.md・.dev/design-brief.md（dev-architect として決定を記録）、.dev/plan.md・design/*（実在の書名の置き換え。N-024）、docs/notices.md
+- verify:
+  - `swift format lint -r Bookshelf BookshelfTests BookshelfUITests` → 出力なし / `scripts/check-no-network.sh`（/tmp から実行）→ OK
+  - `xcodebuild -exportLocalizations`（en・ja）→ 成功、未翻訳なし（空のキー1件のみ）
+  - `xcodebuild test`（PerformanceTests を除く）→ ユニット 88件・UI 60件 すべて通過
+  - 最後の修正（「次の本へ」）のあと CaptureFlowUITests と PerformanceTests を再実行（結果は .dev/perf-report.md）
+- notes:
+  - 開発言語を en にするとカタログの基準の言語（ja）と食い違い、exportLocalizations が失敗した。カタログの基準も en にし、ja の値を全件に入れて解消（日本語の表示は変わらない）
+  - CameraController の onQuad を let にする件（N-036④）は取り下げ、rollback のテスト（N-068②）は N-099 に、見た目の差は N-097 に移した

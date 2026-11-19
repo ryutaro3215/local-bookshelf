@@ -10,10 +10,16 @@ import os
 @Observable
 final class PendingBook: Identifiable {
     let id = UUID()
-    /// 補正済みの表紙（JPEG・メタデータなし）とサムネイル
-    let image: Data
-    let thumbnail: Data
-    let thumbnailImage: UIImage?
+    /// 補正済みの表紙（JPEG・メタデータなし）とサムネイル。四隅を直すと入れ替わる（N-041）
+    private(set) var image: Data
+    private(set) var thumbnail: Data
+    private(set) var thumbnailImage: UIImage?
+    /// 補正に使った四隅（N 画面で直すときの初期位置。手で合わせた・検出した四隅）
+    private(set) var corners: CoverQuad?
+    /// 表紙を入れ替えた回数（古い表紙の題名の読み取り結果を捨てるのに使う）
+    private(set) var coverRevision = 0
+    /// 四隅を直すための元の写真（上向きに縮小した JPEG）。メモリに持たず一時フォルダのファイルに置く（N-034・N-041）
+    let sourceFile: PendingSourceFile?
     /// 題名（OCR の先頭の候補が初期値。ユーザーが確認・修正する。F2-1）
     var title = ""
     /// OCR の題名の候補（登録確定までの一時的な値。§10.1）
@@ -26,17 +32,28 @@ final class PendingBook: Identifiable {
     /// ジャンル（登録先の棚。買いたい本の棚は選べない）
     var shelf: Shelf
 
-    init(cover: ProcessedCover, shelf: Shelf) {
+    init(cover: ProcessedCover, shelf: Shelf, source: PendingSourceFile? = nil, corners: CoverQuad? = nil) {
         image = cover.image
         thumbnail = cover.thumbnail
         thumbnailImage = UIImage(data: cover.thumbnail)
+        self.corners = cover.corners ?? corners
+        sourceFile = source
         self.shelf = shelf
+    }
+
+    /// 四隅を直した表紙に入れ替える（N-041）
+    func replaceCover(_ cover: ProcessedCover, corners: CoverQuad) {
+        image = cover.image
+        thumbnail = cover.thumbnail
+        thumbnailImage = UIImage(data: cover.thumbnail)
+        self.corners = corners
+        coverRevision += 1
     }
 
     var hasTitle: Bool { !LibraryStore.sanitize(title).isEmpty }
 }
 
-/// 四隅を検出できなかった1枚（N 画面で手動調整する）。
+/// 四隅を検出できなかった1枚、または登録待ちの一覧で四隅を直す1冊（N 画面で手動調整する）。
 /// 原寸のデータや展開済みの画像は持たず、上向きに縮小した JPEG だけを持つ（N-034: 30枚選んだときのメモリ）
 struct ManualAdjustment: Identifiable {
     let id = UUID()
@@ -45,25 +62,81 @@ struct ManualAdjustment: Identifiable {
     let source: Data
     /// 画面に出す画像。`UIImage(data:)` なので、N 画面に出るまで展開しない
     let preview: UIImage
+    /// 登録待ちの一覧から四隅を直すときの、その本の ID（nil なら検出できなかった新しい1枚。N-041）
+    let replacing: PendingBook.ID?
+    /// N 画面の四隅の初期位置（nil なら各辺から内側に置く）
+    let initialCorners: CoverQuad?
 
-    init?(source: Data) {
+    init?(source: Data, replacing: PendingBook.ID? = nil, initialCorners: CoverQuad? = nil) {
         guard let preview = UIImage(data: source) else { return nil }
         self.source = source
         self.preview = preview
+        self.replacing = replacing
+        self.initialCorners = initialCorners
+    }
+
+    var isRecrop: Bool { replacing != nil }
+}
+
+/// 登録待ちの本の元の写真（上向きに縮小した JPEG）を置く一時ファイル。使い終わると（本を外す・登録する・閉じる）消える
+nonisolated final class PendingSourceFile: Sendable {
+    let url: URL
+    private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "Capture")
+
+    init?(data: Data) {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "PendingSource-\(UUID().uuidString).jpg")
+        do {
+            try data.write(to: url, options: [.atomic, .completeFileProtection])
+        } catch {
+            Self.logger.error("元の写真を一時ファイルに書けない: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+        self.url = url
+    }
+
+    func read() -> Data? {
+        do {
+            return try Data(contentsOf: url)
+        } catch {
+            Self.logger.error("元の写真の一時ファイルを読めない: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    deinit {
+        do {
+            try FileManager.default.removeItem(at: url)
+        } catch {
+            Self.logger.error("元の写真の一時ファイルを消せない: \(error.localizedDescription, privacy: .public)")
+        }
     }
 }
 
 /// 撮影画像の処理（四隅検出・台形補正・縮小・再エンコード）をメインスレッドの外で順に行う。
-/// CoverProcessor（＝CIContext）を1つだけ持ち、撮影のたびに作り直さない（N-009・plan T5）
-actor CoverPipeline {
+/// CoverProcessor（＝CIContext）を1つだけ持ち、撮影のたびに作り直さない（N-009・plan T5）。
+/// Vision・Core Image は同期で時間がかかるので、Swift の並行処理用のスレッドをふさがないよう専用のキューで動かす（N-035）
+nonisolated final class CoverPipeline: @unchecked Sendable {
+    // processor は queue の上だけで使う（直列のキューで1枚ずつ処理する）
     private let processor = CoverProcessor()
-    func process(_ data: Data, corners: CoverQuad? = nil) throws -> ProcessedCover {
-        try processor.process(data, corners: corners)
+    private let queue = DispatchQueue(label: "com.ryutaro3215.bookshelf.cover", qos: .userInitiated)
+
+    func process(_ data: Data, corners: CoverQuad? = nil) async throws -> ProcessedCover {
+        try await withCheckedThrowingContinuation { continuation in
+            queue.async { [processor] in
+                continuation.resume(with: Result { try processor.process(data, corners: corners) })
+            }
+        }
     }
 
     /// 手動調整を待つ間に持っておく、上向きの縮小 JPEG（N 画面の表示と、手動の四隅での補正に使う。N-034）
-    func adjustmentSource(_ data: Data) -> Data? {
-        PhotoImportHandler.downscaledJPEG(data, longSide: PhotoImportHandler.adjustmentLongSide)
+    func adjustmentSource(_ data: Data) async -> Data? {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                continuation.resume(
+                    returning: PhotoImportHandler.downscaledJPEG(data, longSide: PhotoImportHandler.adjustmentLongSide))
+            }
+        }
     }
 }
 
@@ -163,8 +236,8 @@ final class CaptureViewModel {
 
     /// 一度に扱える冊数（登録は30冊。表紙の撮り直しは1枚）
     var capacity: Int { purpose == .reshoot ? 1 : Self.limit }
-    /// 上限に数える冊数（登録待ち＋処理中＋手動調整待ち）
-    var reservedCount: Int { items.count + processingCount + adjustments.count }
+    /// 上限に数える冊数（登録待ち＋処理中＋手動調整待ち。一覧から四隅を直している本は登録待ちの方で数える）
+    var reservedCount: Int { items.count + processingCount + adjustments.filter { !$0.isRecrop }.count }
     var remaining: Int { max(0, capacity - reservedCount) }
     var isAtLimit: Bool { reservedCount >= capacity }
     var canShoot: Bool { !isAtLimit && !isShutterBusy && adjustments.isEmpty }
@@ -219,12 +292,15 @@ final class CaptureViewModel {
     func ingest(_ data: Data) async {
         do {
             let result = try await pipeline.process(data)
-            processingCount -= 1
             if result.isDetected {
+                // あとで一覧から四隅を直せるよう、元の写真を縮小して一時ファイルに置く（N-041）
+                let source = await pipeline.adjustmentSource(data).flatMap(PendingSourceFile.init(data:))
+                processingCount -= 1
                 lastCaptureDetected = true
                 flashDetected()
-                append(result)
+                append(result, source: source)
             } else {
+                processingCount -= 1
                 lastCaptureDetected = false
                 guard let source = await pipeline.adjustmentSource(data),
                     let adjustment = ManualAdjustment(source: source)
@@ -251,21 +327,35 @@ final class CaptureViewModel {
         }
     }
 
-    /// N 画面: 手動の四隅で補正して登録待ちへ入れる
+    /// N 画面: 手動の四隅で補正して登録待ちへ入れる（一覧から直したときは、その本の表紙を入れ替える）
     func confirmAdjustment(_ adjustment: ManualAdjustment, corners: CoverQuad) async {
         do {
             let result = try await pipeline.process(adjustment.source, corners: corners)
             adjustments.removeAll { $0.id == adjustment.id }
-            append(result)
+            if let id = adjustment.replacing {
+                guard let item = items.first(where: { $0.id == id }) else { return }
+                item.replaceCover(result, corners: corners)
+                recognizeTitle(of: item)
+            } else {
+                append(result, source: PendingSourceFile(data: adjustment.source), corners: corners)
+            }
         } catch {
             Self.logger.error("手動の四隅で補正できない: \(error.localizedDescription, privacy: .public)")
             errorMessage = String(localized: "この範囲では補正できませんでした。角を動かしてもう一度お試しください")
         }
     }
 
-    /// N 画面: 撮り直す（この1枚は捨てる）
+    /// N 画面: 撮り直す（この1枚は捨てる）。一覧から直していたときは、表紙を変えずに閉じる
     func discardAdjustment(_ adjustment: ManualAdjustment) {
         adjustments.removeAll { $0.id == adjustment.id }
+    }
+
+    /// 登録待ちの一覧で、本の表紙の四隅を直す（N 画面を開く。N-041）。元の写真が無ければ何もしない
+    func beginRecrop(_ item: PendingBook) {
+        guard adjustments.isEmpty, let data = item.sourceFile?.read(),
+            let adjustment = ManualAdjustment(source: data, replacing: item.id, initialCorners: item.corners)
+        else { return }
+        adjustments.append(adjustment)
     }
 
     /// 写真ライブラリで選んだ写真を、撮影と同じ流れで登録待ちへ入れる（F1-4。処理は PhotoImportHandler）
@@ -285,14 +375,23 @@ final class CaptureViewModel {
         processingCount = max(processingCount - 1, 0)
     }
 
-    private func append(_ cover: ProcessedCover) {
-        let item = PendingBook(cover: cover, shelf: destination)
+    private func append(_ cover: ProcessedCover, source: PendingSourceFile? = nil, corners: CoverQuad? = nil) {
+        let item = PendingBook(cover: cover, shelf: destination, source: source, corners: corners)
         items.append(item)
+        recognizeTitle(of: item)
+    }
+
+    /// 表紙から題名の候補を読む。題名欄を触っていなければ先頭の候補を入れる。
+    /// 四隅を直して読み直したときは、古い表紙の結果が後から届いても使わない
+    private func recognizeTitle(of item: PendingBook) {
         let recognizer = recognizer
-        let image = cover.image
+        let image = item.image
+        let revision = item.coverRevision
+        item.isRecognizing = true
         // 題名の候補は非同期（F2-2）。@concurrent なのでメインスレッドでは動かない（N-025）
         Task {
             let candidates = await recognizer.candidates(in: image)
+            guard item.coverRevision == revision else { return }
             item.candidates = candidates
             if !item.titleEdited, let first = candidates.first {
                 item.title = first

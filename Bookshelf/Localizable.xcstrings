@@ -1,5 +1,5 @@
 {
-  "sourceLanguage" : "ja",
+  "sourceLanguage" : "en",
   "strings" : {
     "" : {
       "shouldTranslate" : false
@@ -12,6 +12,12 @@
             "state" : "translated",
             "value" : ", "
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "、"
+          }
         }
       }
     },
@@ -21,6 +27,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : " (+%lld more)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（ほか%lld冊）"
           }
         }
       }
@@ -32,6 +44,12 @@
             "state" : "translated",
             "value" : "No books match “%@”"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」に一致する本はありません"
+          }
         }
       }
     },
@@ -41,6 +59,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "New name for “%@”"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」の新しい名前"
           }
         }
       }
@@ -52,6 +76,12 @@
             "state" : "translated",
             "value" : "Delete\n“%@”?"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」を\n削除しますか？"
+          }
         }
       }
     },
@@ -61,6 +91,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete “%@”?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」を削除しますか？"
           }
         }
       }
@@ -72,6 +108,12 @@
             "state" : "translated",
             "value" : "%1$@ · Current shelf: %2$@"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ・現在の棚 %@"
+          }
         }
       }
     },
@@ -80,7 +122,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Start with %@"
+            "value" : "Take Photos for %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ で撮影する"
           }
         }
       }
@@ -92,6 +140,12 @@
             "state" : "translated",
             "value" : "Moved to %@"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ に移しました"
+          }
         }
       }
     },
@@ -102,6 +156,12 @@
             "state" : "translated",
             "value" : "Move to %@"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ へ移動"
+          }
         }
       }
     },
@@ -111,6 +171,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Purchased %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 購入"
           }
         }
       }
@@ -214,6 +280,12 @@
             "state" : "translated",
             "value" : "%1$@ · Adding to %2$@"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@・登録先 %@"
+          }
         }
       }
     },
@@ -223,6 +295,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ · Purchased %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@・購入日 %@"
           }
         }
       }
@@ -234,6 +312,12 @@
             "state" : "translated",
             "value" : "Back to %@"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@に戻る"
+          }
         }
       }
     },
@@ -243,6 +327,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bought in %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@に買った本"
           }
         }
       }
@@ -292,6 +382,12 @@
             "state" : "translated",
             "value" : "Rename %@"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@の名前を変更"
+          }
         }
       }
     },
@@ -301,6 +397,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reorder %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を並び替え"
           }
         }
       }
@@ -312,6 +414,12 @@
             "state" : "translated",
             "value" : "Delete %@"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を削除"
+          }
         }
       }
     },
@@ -321,6 +429,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld / %2$lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld / %lld"
           }
         }
       }
@@ -332,12 +446,24 @@
             "state" : "translated",
             "value" : "%1$lld / %2$lld captured"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld / %lld冊 撮影済み"
+          }
         }
       }
     },
     "%lld / 3" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld / 3"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld / 3"
@@ -352,6 +478,12 @@
             "state" : "translated",
             "value" : "%1$lld → %2$lld / %3$lld"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld → %lld / %lld"
+          }
         }
       }
     },
@@ -362,6 +494,12 @@
             "state" : "translated",
             "value" : "%1$lld/%2$lld"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/%lld"
+          }
         }
       }
     },
@@ -371,6 +509,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld件"
           }
         }
       }
@@ -394,6 +538,12 @@
               }
             }
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld件（題名・よみの一部に一致）"
+          }
         }
       }
     },
@@ -415,6 +565,12 @@
                 }
               }
             }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld冊"
           }
         }
       }
@@ -438,6 +594,12 @@
               }
             }
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld冊を登録"
+          }
         }
       }
     },
@@ -447,6 +609,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Book %lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld冊目"
           }
         }
       }
@@ -470,6 +638,12 @@
               }
             }
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld枚の写真を読み込めませんでした"
+          }
         }
       }
     },
@@ -479,6 +653,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Swipe ← → to flip books and ↑ ↓ to change shelves.\nAdd your next book with “+” at the bottom right."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "← → で本をめくり、↑ ↓ で棚をかえます。\n次の本は、右下の「＋」から登録できます。"
           }
         }
       }
@@ -490,6 +670,12 @@
             "state" : "translated",
             "value" : "←→ Flip books   ↑↓ Change year   Pinch out for months"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "←→ 本をめくる　↑↓ 年をかえる　ピンチアウトで月に戻る"
+          }
         }
       }
     },
@@ -499,6 +685,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "←→ Flip books   ↑↓ Change month   Pinch in for years"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "←→ 本をめくる　↑↓ 月をかえる　ピンチインで年"
           }
         }
       }
@@ -510,6 +702,12 @@
             "state" : "translated",
             "value" : "←→ Flip books   ↑↓ Change shelf"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "←→ 本をめくる　↑↓ 棚をかえる"
+          }
         }
       }
     },
@@ -519,6 +717,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "↑↓ Scroll   ←→ Change shelf   Long-press for menu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑↓ スクロール　←→ 棚をかえる　長押しでメニュー"
           }
         }
       }
@@ -530,6 +734,12 @@
             "state" : "translated",
             "value" : "↑↓ Scroll years   Pinch out for months"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑↓ 年をスクロール　ピンチアウトで月に戻る"
+          }
         }
       }
     },
@@ -539,6 +749,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "↑↓ Scroll months   Pinch in for years   Long-press for menu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑↓ 月をスクロール　ピンチインで年　長押しでメニュー"
           }
         }
       }
@@ -550,6 +766,12 @@
             "state" : "translated",
             "value" : "Instagram\nStories"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instagram\nストーリーズ"
+          }
         }
       }
     },
@@ -559,6 +781,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Instagram\nFeed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instagram\nフィード"
           }
         }
       }
@@ -570,12 +798,24 @@
             "state" : "translated",
             "value" : "Couldn't open Instagram directly, so the share sheet was opened."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instagram へ直接渡せないため、共有シートを開きました"
+          }
         }
       }
     },
     "local-bookshelf" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "local-bookshelf"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "local-bookshelf"
@@ -590,12 +830,42 @@
             "state" : "translated",
             "value" : "OK"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "share.unit.single" : {
+      "comment" : "共有画像の冊数が1のときの単位",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "book"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "冊"
+          }
         }
       }
     },
     "SIL OFL 1.1" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SIL OFL 1.1"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "SIL OFL 1.1"
@@ -610,6 +880,12 @@
             "state" : "translated",
             "value" : "Post to X"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "X に投稿"
+          }
         }
       }
     },
@@ -619,6 +895,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "X\nPost"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "X の\nポスト"
           }
         }
       }
@@ -630,6 +912,12 @@
             "state" : "translated",
             "value" : "X Post (4:5)"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "X のポスト（4:5）"
+          }
         }
       }
     },
@@ -640,6 +928,12 @@
             "state" : "translated",
             "value" : "You can change it later. If you're not sure, “Unsorted” is fine."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あとから変えられます。迷ったら「未分類」でも大丈夫です"
+          }
         }
       }
     },
@@ -649,6 +943,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add these books first, then continue"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いったん登録してから続けてください"
           }
         }
       }
@@ -672,6 +972,12 @@
               }
             }
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "うち%lld冊は読み取り中。候補が届くと自動で入ります"
+          }
         }
       }
     },
@@ -681,6 +987,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Something Went Wrong"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "うまくいきませんでした"
           }
         }
       }
@@ -692,6 +1004,12 @@
             "state" : "translated",
             "value" : "Off"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ"
+          }
         }
       }
     },
@@ -701,6 +1019,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "On"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン"
           }
         }
       }
@@ -712,6 +1036,12 @@
             "state" : "translated",
             "value" : "Camera access is turned off"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラへのアクセスがオフになっています"
+          }
         }
       }
     },
@@ -721,6 +1051,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Allow Camera"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラを許可する"
           }
         }
       }
@@ -732,6 +1068,12 @@
             "state" : "translated",
             "value" : "Cancel"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
+          }
         }
       }
     },
@@ -741,6 +1083,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Grid"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グリッド"
           }
         }
       }
@@ -752,6 +1100,12 @@
             "state" : "translated",
             "value" : "Tap here to take a photo"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ここを押して撮影"
+          }
         }
       }
     },
@@ -761,6 +1115,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "About This App"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリについて"
           }
         }
       }
@@ -772,6 +1132,12 @@
             "state" : "translated",
             "value" : "This app never connects to the internet, and there's no account to create. Your cover photos and book data are stored only on this iPhone."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリはインターネットに接続しません。\nアカウント登録もありません。表紙の写真と本の\nデータは、この iPhone の中だけに保存されます。"
+          }
         }
       }
     },
@@ -781,6 +1147,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "There are no books in this genre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このジャンルに本は入っていません。"
           }
         }
       }
@@ -792,6 +1164,12 @@
             "state" : "translated",
             "value" : "Discard This Photo"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この写真を使わない"
+          }
         }
       }
     },
@@ -801,6 +1179,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This Year"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この年"
           }
         }
       }
@@ -812,6 +1196,12 @@
             "state" : "translated",
             "value" : "Share This Year"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この年を共有"
+          }
         }
       }
     },
@@ -821,6 +1211,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This Day"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この日"
           }
         }
       }
@@ -832,6 +1228,12 @@
             "state" : "translated",
             "value" : "Share This Day"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この日を共有"
+          }
         }
       }
     },
@@ -841,6 +1243,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This Month"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この月"
           }
         }
       }
@@ -852,6 +1260,12 @@
             "state" : "translated",
             "value" : "Share This Month"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この月を共有"
+          }
         }
       }
     },
@@ -861,6 +1275,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This book couldn't be found"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この本は見つかりませんでした"
           }
         }
       }
@@ -872,6 +1292,12 @@
             "state" : "translated",
             "value" : "This Shelf"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この棚"
+          }
         }
       }
     },
@@ -881,6 +1307,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add a book to this shelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この棚に本を追加"
           }
         }
       }
@@ -892,6 +1324,12 @@
             "state" : "translated",
             "value" : "Sort This Shelf"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この棚の並べ順"
+          }
         }
       }
     },
@@ -901,6 +1339,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Share This Shelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この棚を共有"
           }
         }
       }
@@ -912,6 +1356,12 @@
             "state" : "translated",
             "value" : "Couldn't straighten the cover with these corners. Move the corners and try again."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この範囲では補正できませんでした。角を動かしてもう一度お試しください"
+          }
         }
       }
     },
@@ -921,6 +1371,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Use This Area"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この範囲で使う"
           }
         }
       }
@@ -932,6 +1388,12 @@
             "state" : "translated",
             "value" : "Genre"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンル"
+          }
         }
       }
     },
@@ -941,6 +1403,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add, rename, reorder, or delete genres (shelves)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンル（棚）の追加・名前の変更・並び替え・削除"
           }
         }
       }
@@ -952,6 +1420,12 @@
             "state" : "translated",
             "value" : "Couldn't delete the genre"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンルを削除できませんでした"
+          }
         }
       }
     },
@@ -961,6 +1435,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add Genre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンルを追加"
           }
         }
       }
@@ -972,6 +1452,12 @@
             "state" : "translated",
             "value" : "Couldn't add the genre"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンルを追加できませんでした"
+          }
         }
       }
     },
@@ -981,6 +1467,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose a Genre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンルを選ぶ"
           }
         }
       }
@@ -992,6 +1484,12 @@
             "state" : "translated",
             "value" : "By Genre"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンル別"
+          }
         }
       }
     },
@@ -1001,6 +1499,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rename Genre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンル名を変更"
           }
         }
       }
@@ -1012,6 +1516,12 @@
             "state" : "translated",
             "value" : "Manage Genres"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンル管理"
+          }
         }
       }
     },
@@ -1021,6 +1531,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scrubber"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スクラバー"
           }
         }
       }
@@ -1032,6 +1548,12 @@
             "state" : "translated",
             "value" : "Stories (9:16)"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ストーリーズ（9:16）"
+          }
         }
       }
     },
@@ -1041,6 +1563,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Post to Stories"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ストーリーズに投稿"
           }
         }
       }
@@ -1052,6 +1580,12 @@
             "state" : "translated",
             "value" : "All books have titles"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての本に題名が入りました"
+          }
         }
       }
     },
@@ -1061,6 +1595,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deselect All"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて解除"
           }
         }
       }
@@ -1072,6 +1612,12 @@
             "state" : "translated",
             "value" : "Select All"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて選択"
+          }
         }
       }
     },
@@ -1081,6 +1627,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Drag to reorder"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "そのままドラッグで並べ替え"
           }
         }
       }
@@ -1092,6 +1644,12 @@
             "state" : "translated",
             "value" : "Tap to take photos · Adding to %@"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップして撮影・登録先  %@"
+          }
         }
       }
     },
@@ -1101,6 +1659,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Checked = Owned   Unchecked = Wishlist"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チェックあり＝購入済み　チェックなし＝買いたい本"
           }
         }
       }
@@ -1112,6 +1676,12 @@
             "state" : "translated",
             "value" : "Your data is stored only on this iPhone"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データはこの iPhone の中だけに保存されます"
+          }
         }
       }
     },
@@ -1121,6 +1691,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't open your data (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データを開けませんでした（%@）"
           }
         }
       }
@@ -1132,6 +1708,12 @@
             "state" : "translated",
             "value" : "Date Added (Oldest First)"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データ追加日が古い順"
+          }
         }
       }
     },
@@ -1141,6 +1723,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Date Added (Newest First)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データ追加日が新しい順"
           }
         }
       }
@@ -1152,6 +1740,12 @@
             "state" : "translated",
             "value" : "Both are available under the SIL Open Font License, Version 1.1."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "どちらも SIL Open Font License, Version 1.1 で提供されています。"
+          }
         }
       }
     },
@@ -1161,6 +1755,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Version"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バージョン"
           }
         }
       }
@@ -1172,6 +1772,12 @@
             "state" : "translated",
             "value" : "Feed, X, and Photos use 4:5 (1080×1350)"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィード・X・保存は 4:5（1080×1350）"
+          }
         }
       }
     },
@@ -1181,6 +1787,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Feed (4:5)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィード（4:5）"
           }
         }
       }
@@ -1192,6 +1804,12 @@
             "state" : "translated",
             "value" : "Post to Feed"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィードに投稿"
+          }
         }
       }
     },
@@ -1201,6 +1819,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Privacy"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プライバシー"
           }
         }
       }
@@ -1212,6 +1836,12 @@
             "state" : "translated",
             "value" : "Page"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページ"
+          }
         }
       }
     },
@@ -1221,6 +1851,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No books yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ本がありません"
           }
         }
       }
@@ -1232,6 +1868,12 @@
             "state" : "translated",
             "value" : "Group By"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まとめ方"
+          }
         }
       }
     },
@@ -1241,6 +1883,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Menu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メニュー"
           }
         }
       }
@@ -1252,6 +1900,12 @@
             "state" : "translated",
             "value" : "Licenses"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライセンス"
+          }
         }
       }
     },
@@ -1261,6 +1915,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add from Library"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブラリから追加"
           }
         }
       }
@@ -1272,6 +1932,12 @@
             "state" : "translated",
             "value" : "Choose from Library"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブラリから選ぶ"
+          }
         }
       }
     },
@@ -1281,6 +1947,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Use the loupe to line up the corner with the edge of the cover"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ルーペを見ながら、角を表紙のふちに合わせます"
           }
         }
       }
@@ -1292,6 +1964,12 @@
             "state" : "translated",
             "value" : "Drag to reorder"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "をドラッグして並び替え"
+          }
         }
       }
     },
@@ -1301,6 +1979,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You can add up to 30 books at a time"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一度に登録できるのは30冊までです"
           }
         }
       }
@@ -1312,6 +1996,12 @@
             "state" : "translated",
             "value" : "List"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一覧"
+          }
         }
       }
     },
@@ -1321,6 +2011,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Back to List"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一覧に戻る"
           }
         }
       }
@@ -1332,6 +2028,12 @@
             "state" : "translated",
             "value" : "Top 14%: covered by Stories controls"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上 14%：ストーリーズの表示と重なる"
+          }
         }
       }
     },
@@ -1341,6 +2043,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Move Up"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上へ移動"
           }
         }
       }
@@ -1352,6 +2060,12 @@
             "state" : "translated",
             "value" : "Bottom 20%: covered by the reply bar"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下 20%：返信欄と重なる"
+          }
         }
       }
     },
@@ -1361,6 +2075,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Move Down"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下へ移動"
           }
         }
       }
@@ -1372,6 +2092,12 @@
             "state" : "translated",
             "value" : "Couldn't save the new order"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並び替えを保存できませんでした"
+          }
         }
       }
     },
@@ -1381,6 +2107,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reorder"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並べ替え"
           }
         }
       }
@@ -1392,6 +2124,12 @@
             "state" : "translated",
             "value" : "Couldn't save the new order"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並べ替えを保存できませんでした"
+          }
         }
       }
     },
@@ -1401,6 +2139,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't change the sort order"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並べ順を変えられませんでした"
           }
         }
       }
@@ -1424,6 +2168,12 @@
               }
             }
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中の%lld冊は未分類に移動します。\n本は削除されません。"
+          }
         }
       }
     },
@@ -1433,6 +2183,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Creating"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作成中"
           }
         }
       }
@@ -1444,6 +2200,12 @@
             "state" : "translated",
             "value" : "Save"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
         }
       }
     },
@@ -1453,6 +2215,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't save. Please try again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存できませんでした。もう一度お試しください"
           }
         }
       }
@@ -1464,6 +2232,12 @@
             "state" : "translated",
             "value" : "Suggestions"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候補"
+          }
         }
       }
     },
@@ -1473,6 +2247,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Suggestion: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候補 %@"
           }
         }
       }
@@ -1484,6 +2264,12 @@
             "state" : "translated",
             "value" : "Share"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共有"
+          }
         }
       }
     },
@@ -1493,6 +2279,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Image to share"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共有する画像"
           }
         }
       }
@@ -1504,6 +2296,12 @@
             "state" : "translated",
             "value" : "What to Share"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共有する範囲"
+          }
         }
       }
     },
@@ -1513,6 +2311,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Share To"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共有先"
           }
         }
       }
@@ -1524,6 +2328,12 @@
             "state" : "translated",
             "value" : "books"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "冊"
+          }
         }
       }
     },
@@ -1533,6 +2343,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your first book is on the shelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の1冊が棚に並びました"
           }
         }
       }
@@ -1544,6 +2360,12 @@
             "state" : "translated",
             "value" : "Add Your First Book"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の1冊を登録する"
+          }
         }
       }
     },
@@ -1553,6 +2375,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose a shelf for your first book"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の本を置く棚を選んでください"
           }
         }
       }
@@ -1564,6 +2392,12 @@
             "state" : "translated",
             "value" : "Save to\nPhotos"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真に\n保存"
+          }
         }
       }
     },
@@ -1573,6 +2407,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Save to Photos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真に保存"
           }
         }
       }
@@ -1584,6 +2424,12 @@
             "state" : "translated",
             "value" : "Save to Photos (4:5)"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真に保存（4:5）"
+          }
         }
       }
     },
@@ -1593,6 +2439,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saved to Photos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真に保存しました"
           }
         }
       }
@@ -1604,6 +2456,12 @@
             "state" : "translated",
             "value" : "Couldn't save to Photos"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真に保存できませんでした"
+          }
         }
       }
     },
@@ -1613,6 +2471,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Adding to Photos isn't allowed. You can allow it in the Settings app."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真への追加が許可されていません。設定アプリで許可できます"
           }
         }
       }
@@ -1624,6 +2488,12 @@
             "state" : "translated",
             "value" : "Choose from Photo Library"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真ライブラリから選ぶ"
+          }
         }
       }
     },
@@ -1633,6 +2503,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Take Photos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を撮る"
           }
         }
       }
@@ -1644,6 +2520,12 @@
             "state" : "translated",
             "value" : "Move"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別の棚へ"
+          }
         }
       }
     },
@@ -1653,6 +2535,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Move to Another Shelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別の棚へ移動"
           }
         }
       }
@@ -1664,6 +2552,12 @@
             "state" : "translated",
             "value" : "Delete"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
+          }
         }
       }
     },
@@ -1673,6 +2567,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't delete"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除できませんでした"
           }
         }
       }
@@ -1684,6 +2584,12 @@
             "state" : "translated",
             "value" : "Previous Year"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の年"
+          }
         }
       }
     },
@@ -1693,6 +2599,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previous Month"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の月"
           }
         }
       }
@@ -1704,6 +2616,12 @@
             "state" : "translated",
             "value" : "Previous"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の本"
+          }
         }
       }
     },
@@ -1713,6 +2631,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previous Shelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の棚"
           }
         }
       }
@@ -1724,6 +2648,12 @@
             "state" : "translated",
             "value" : "Move Earlier"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前へ並べ替え"
+          }
         }
       }
     },
@@ -1733,6 +2663,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Undo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り消す"
           }
         }
       }
@@ -1744,6 +2680,12 @@
             "state" : "translated",
             "value" : "Couldn't undo"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り消せませんでした"
+          }
         }
       }
     },
@@ -1753,6 +2695,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Top-right corner"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右上の角"
           }
         }
       }
@@ -1764,6 +2712,28 @@
             "state" : "translated",
             "value" : "Bottom-right corner"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右下の角"
+          }
+        }
+      }
+    },
+    "同じ名前のジャンルがすでにあります" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同じ名前のジャンルがすでにあります"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A genre with this name already exists"
+          }
         }
       }
     },
@@ -1773,6 +2743,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Name"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前"
           }
         }
       }
@@ -1784,6 +2760,12 @@
             "state" : "translated",
             "value" : "Tap a name to rename"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前をタップして変更"
+          }
         }
       }
     },
@@ -1793,6 +2775,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap a name to rename it; drag the handle to reorder"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前をタップして変更、並び替えのつまみをドラッグして並び替え"
           }
         }
       }
@@ -1804,6 +2792,12 @@
             "state" : "translated",
             "value" : "Couldn't rename the genre"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前を変更できませんでした"
+          }
         }
       }
     },
@@ -1813,6 +2807,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Can't be changed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更できません"
           }
         }
       }
@@ -1824,6 +2824,12 @@
             "state" : "translated",
             "value" : "Remove"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外す"
+          }
         }
       }
     },
@@ -1833,6 +2839,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You can also make shelves for favorite authors or series"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好きな作家やシリーズの棚も作れます"
           }
         }
       }
@@ -1844,6 +2856,12 @@
             "state" : "translated",
             "value" : "Done"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
+          }
         }
       }
     },
@@ -1853,6 +2871,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Top-left corner"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左上の角"
           }
         }
       }
@@ -1864,6 +2888,12 @@
             "state" : "translated",
             "value" : "Bottom-left corner"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左下の角"
+          }
         }
       }
     },
@@ -1873,6 +2903,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Swipe left or right to move one spot · Release to confirm"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左右にスワイプで1冊ずつ入れ替え・指を離して確定"
           }
         }
       }
@@ -1884,6 +2920,12 @@
             "state" : "translated",
             "value" : "Group by Year"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年にまとめる"
+          }
         }
       }
     },
@@ -1893,6 +2935,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Year position"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年の位置"
           }
         }
       }
@@ -1904,6 +2952,12 @@
             "state" : "translated",
             "value" : "Move Later"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "後ろへ並べ替え"
+          }
         }
       }
     },
@@ -1913,6 +2967,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Required"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "必須"
           }
         }
       }
@@ -1924,6 +2984,12 @@
             "state" : "translated",
             "value" : "Back"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "戻る"
+          }
         }
       }
     },
@@ -1932,7 +2998,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Status"
+            "value" : "Ownership"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所持状況"
           }
         }
       }
@@ -1942,7 +3014,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Status: %@"
+            "value" : "Ownership: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所持状況 %@"
           }
         }
       }
@@ -1952,7 +3030,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manual (Your Own Order)"
+            "value" : "Manual (Custom Order)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手動（自分で並べた順）"
           }
         }
       }
@@ -1964,6 +3048,12 @@
             "state" : "translated",
             "value" : "Release to jump to this book"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指を離すと、この本へ移動します"
+          }
         }
       }
     },
@@ -1973,6 +3063,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your photos are stored only on this iPhone\nand are never sent anywhere."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮った写真は、この iPhone の中だけに保存され、\nどこにも送信されません。"
           }
         }
       }
@@ -1984,6 +3080,12 @@
             "state" : "translated",
             "value" : "Retaken cover"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮り直した表紙"
+          }
         }
       }
     },
@@ -1994,6 +3096,12 @@
             "state" : "translated",
             "value" : "Retake"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮り直す"
+          }
         }
       }
     },
@@ -2002,7 +3110,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Just snap it onto your shelf."
+            "value" : "Snap a cover. It's on your shelf."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮るだけで、自分の本棚に。"
           }
         }
       }
@@ -2014,6 +3128,12 @@
             "state" : "translated",
             "value" : "Take Photo"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮影"
+          }
         }
       }
     },
@@ -2023,6 +3143,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Framing guide"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮影ガイドの枠"
           }
         }
       }
@@ -2034,6 +3160,12 @@
             "state" : "translated",
             "value" : "Couldn't take the photo. Please try again."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮影できませんでした。もう一度お試しください"
+          }
         }
       }
     },
@@ -2043,6 +3175,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't start the camera"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮影を始められませんでした"
           }
         }
       }
@@ -2054,6 +3192,12 @@
             "state" : "translated",
             "value" : "Take More"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮影を追加"
+          }
         }
       }
     },
@@ -2063,6 +3207,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add from photos you've taken (choose several)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮影済みの写真から登録（複数選択可）"
           }
         }
       }
@@ -2074,6 +3224,12 @@
             "state" : "translated",
             "value" : "Text suggestions found"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字認識の候補あり"
+          }
         }
       }
     },
@@ -2083,6 +3239,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No text suggestions"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字認識の候補なし"
           }
         }
       }
@@ -2094,6 +3256,12 @@
             "state" : "translated",
             "value" : "New name"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい名前"
+          }
         }
       }
     },
@@ -2103,6 +3271,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fonts"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書体"
           }
         }
       }
@@ -2114,6 +3288,12 @@
             "state" : "translated",
             "value" : "Back to Months"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月に戻す"
+          }
         }
       }
     },
@@ -2123,6 +3303,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Month position"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月の位置"
           }
         }
       }
@@ -2146,6 +3332,12 @@
               }
             }
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未入力はあと%lld冊"
+          }
         }
       }
     },
@@ -2168,6 +3360,12 @@
               }
             }
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未入力はこの本を含めてあと%lld冊"
+          }
         }
       }
     },
@@ -2177,6 +3375,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Only genres with books appear on the shelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本が入っているジャンルだけが本棚に表示されます"
           }
         }
       }
@@ -2188,6 +3392,12 @@
             "state" : "translated",
             "value" : "Shelves with books only"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本が入っている棚だけ"
+          }
         }
       }
     },
@@ -2197,6 +3407,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "To delete a book, long-press it on the shelf → swipe down"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本の削除は、棚で長押し → 下スワイプ"
           }
         }
       }
@@ -2208,6 +3424,12 @@
             "state" : "translated",
             "value" : "Add Books"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本を登録"
+          }
         }
       }
     },
@@ -2217,6 +3439,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Book"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本を編集"
           }
         }
       }
@@ -2228,6 +3456,12 @@
             "state" : "translated",
             "value" : "Add Book"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本を追加"
+          }
         }
       }
     },
@@ -2237,6 +3471,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bookshelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本棚"
           }
         }
       }
@@ -2248,6 +3488,12 @@
             "state" : "translated",
             "value" : "Hidden"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本棚に非表示"
+          }
         }
       }
     },
@@ -2257,6 +3503,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "View Bookshelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本棚を見る"
           }
         }
       }
@@ -2268,6 +3520,12 @@
             "state" : "translated",
             "value" : "Shelf"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棚"
+          }
         }
       }
     },
@@ -2277,6 +3535,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opens the list of shelves"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棚の一覧を開きます"
           }
         }
       }
@@ -2288,6 +3552,12 @@
             "state" : "translated",
             "value" : "Shelf position"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棚の位置"
+          }
         }
       }
     },
@@ -2297,6 +3567,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "End of shelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棚の末尾"
           }
         }
       }
@@ -2308,6 +3584,12 @@
             "state" : "translated",
             "value" : "Choose a Shelf"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棚を選ぶ"
+          }
         }
       }
     },
@@ -2317,6 +3599,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose a shelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棚を選んでください"
           }
         }
       }
@@ -2328,6 +3616,12 @@
             "state" : "translated",
             "value" : "Search"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索"
+          }
         }
       }
     },
@@ -2337,6 +3631,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Clear search"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索語を消す"
           }
         }
       }
@@ -2348,6 +3648,12 @@
             "state" : "translated",
             "value" : "Next Year"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の年"
+          }
         }
       }
     },
@@ -2357,6 +3663,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Next Month"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の月"
           }
         }
       }
@@ -2368,6 +3680,12 @@
             "state" : "translated",
             "value" : "Next Untitled Book"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の未入力の本へ"
+          }
         }
       }
     },
@@ -2377,6 +3695,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Next"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の本へ"
           }
         }
       }
@@ -2388,6 +3712,12 @@
             "state" : "translated",
             "value" : "Next Shelf"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の棚"
+          }
         }
       }
     },
@@ -2397,6 +3727,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Next"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次へ"
           }
         }
       }
@@ -2420,6 +3756,12 @@
               }
             }
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "残り%lld冊まで選べます"
+          }
         }
       }
     },
@@ -2429,6 +3771,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current shelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の棚"
           }
         }
       }
@@ -2440,6 +3788,12 @@
             "state" : "translated",
             "value" : "Couldn't create the image"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を作れませんでした"
+          }
         }
       }
     },
@@ -2449,6 +3803,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't load the image"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を読み込めませんでした"
           }
         }
       }
@@ -2460,6 +3820,12 @@
             "state" : "translated",
             "value" : "Uncheck “Owned” when adding books,\nand they'll appear here."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登録するときに「購入済み」のチェックを外すと、\nここに並びます。"
+          }
         }
       }
     },
@@ -2469,6 +3835,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Close without adding?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登録せずに閉じますか？"
           }
         }
       }
@@ -2480,6 +3852,12 @@
             "state" : "translated",
             "value" : "Close Without Adding"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登録せずに閉じる"
+          }
         }
       }
     },
@@ -2489,6 +3867,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't add the books. Please try again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登録できませんでした。もう一度お試しください"
           }
         }
       }
@@ -2500,6 +3884,12 @@
             "state" : "translated",
             "value" : "Add to"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登録先"
+          }
         }
       }
     },
@@ -2510,6 +3900,12 @@
             "state" : "translated",
             "value" : "Pending %1$lld / %2$lld"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登録待ち %lld / %lld冊"
+          }
         }
       }
     },
@@ -2519,6 +3915,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remove from Pending"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登録待ちから外す"
           }
         }
       }
@@ -2542,6 +3944,12 @@
               }
             }
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登録待ちの%lld冊は保存されません"
+          }
         }
       }
     },
@@ -2551,6 +3959,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't move the book"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移動できませんでした"
           }
         }
       }
@@ -2562,6 +3976,12 @@
             "state" : "translated",
             "value" : "Move to Which Shelf?"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移動先の棚を選ぶ"
+          }
         }
       }
     },
@@ -2571,6 +3991,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose a shelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移動先を選んでください"
           }
         }
       }
@@ -2582,6 +4008,12 @@
             "state" : "translated",
             "value" : "Add Another Book"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "続けて登録する"
+          }
         }
       }
     },
@@ -2591,6 +4023,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編集"
           }
         }
       }
@@ -2602,6 +4040,12 @@
             "state" : "translated",
             "value" : "Category"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置き場所（区分）"
+          }
         }
       }
     },
@@ -2611,6 +4055,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Covers are easier to find against a background of a different color"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景と色の違う所で撮ると、表紙を見つけやすくなります"
           }
         }
       }
@@ -2622,6 +4072,12 @@
             "state" : "translated",
             "value" : "View"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示"
+          }
         }
       }
     },
@@ -2631,6 +4087,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cover"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙"
           }
         }
       }
@@ -2642,6 +4104,12 @@
             "state" : "translated",
             "value" : "Reading the cover…"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙から読み取り中…"
+          }
         }
       }
     },
@@ -2651,6 +4119,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reading title suggestions from the cover…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙から題名の候補を読み取り中…"
           }
         }
       }
@@ -2662,6 +4136,28 @@
             "state" : "translated",
             "value" : "The cover photo and book data will be deleted.\nThis can't be undone."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙の写真と本のデータが削除されます。\nこの操作は取り消せません。"
+          }
+        }
+      }
+    },
+    "表紙の四隅を直す" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙の四隅を直す"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjust Cover Corners"
+          }
         }
       }
     },
@@ -2671,6 +4167,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't find the corners of the cover\nDrag the corners to the edges of the cover"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙の四隅を見つけられませんでした\n角を動かして、表紙のふちに合わせてください"
           }
         }
       }
@@ -2682,6 +4184,12 @@
             "state" : "translated",
             "value" : "Couldn't replace the cover. Your other changes were saved."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙を入れ替えられませんでした。ほかの変更は保存しました"
+          }
         }
       }
     },
@@ -2691,6 +4199,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Photograph covers one after another"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙を撮って、続けて登録"
           }
         }
       }
@@ -2702,6 +4216,12 @@
             "state" : "translated",
             "value" : "Retake Cover"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙を撮り直す"
+          }
         }
       }
     },
@@ -2711,6 +4231,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The camera is used\nto photograph covers"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙を撮るために\nカメラを使います"
           }
         }
       }
@@ -2722,6 +4248,12 @@
             "state" : "translated",
             "value" : "Photograph a cover and it will appear here."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙を撮ると、ここに並びます。"
+          }
         }
       }
     },
@@ -2731,6 +4263,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Photograph a cover and it goes on your shelf.\nSearch by title, or look back by the month you bought it."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙を撮ると、本棚に並びます。\n題名で探せて、買った月ごとにも見返せます。"
           }
         }
       }
@@ -2742,6 +4280,12 @@
             "state" : "translated",
             "value" : "Cover detected"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙を検出しました"
+          }
         }
       }
     },
@@ -2751,6 +4295,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Straightening the cover…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙を補正しています…"
           }
         }
       }
@@ -2762,6 +4312,12 @@
             "state" : "translated",
             "value" : "Fit the whole cover inside the frame"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙全体が枠に入るように合わせてください"
+          }
         }
       }
     },
@@ -2771,6 +4327,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "View As"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見え方"
+          }
+        }
+      }
+    },
+    "角を動かして、表紙のふちに合わせてください" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "角を動かして、表紙のふちに合わせてください"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag the corners to the edges of the cover"
           }
         }
       }
@@ -2782,6 +4360,12 @@
             "state" : "translated",
             "value" : "Settings"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定"
+          }
         }
       }
     },
@@ -2791,6 +4375,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Turn on camera access for local-bookshelf\nin the Settings app to photograph covers."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定アプリで local-bookshelf のカメラを\nオンにすると、表紙を撮影できます。"
           }
         }
       }
@@ -2802,6 +4392,12 @@
             "state" : "translated",
             "value" : "Open Settings"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を開く"
+          }
         }
       }
     },
@@ -2811,6 +4407,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "View Details"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詳細を見る"
           }
         }
       }
@@ -2822,6 +4424,12 @@
             "state" : "translated",
             "value" : "Wishlist"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "買いたい"
+          }
         }
       }
     },
@@ -2831,6 +4439,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wishlist"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "買いたい本"
           }
         }
       }
@@ -2842,6 +4456,12 @@
             "state" : "translated",
             "value" : "Wishlist gathers the books you mark as “Wishlist.”\nWishlist and Unsorted can't be renamed, deleted,\nor moved. Deleting a genre moves its books to Unsorted."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "買いたい本は「買いたい」にした本を集めて見せる棚です。\n買いたい本と未分類は、名前の変更・削除・移動が\nできません。ジャンルを削除すると、中の本は未分類に移ります。"
+          }
         }
       }
     },
@@ -2851,6 +4471,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your wishlist is empty"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "買いたい本はまだありません"
           }
         }
       }
@@ -2862,6 +4488,12 @@
             "state" : "translated",
             "value" : "Wishlist books stay in the order added"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "買いたい本は登録した順に並びます"
+          }
         }
       }
     },
@@ -2870,7 +4502,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To Wishlist"
+            "value" : "Goes to Wishlist"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "買いたい本へ"
           }
         }
       }
@@ -2882,6 +4520,12 @@
             "state" : "translated",
             "value" : "Mark as Purchased"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入した"
+          }
         }
       }
     },
@@ -2892,6 +4536,12 @@
             "state" : "translated",
             "value" : "No purchased books yet"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入した本はまだありません"
+          }
         }
       }
     },
@@ -2900,7 +4550,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Purchased"
+            "value" : "Purchase Date"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入日"
           }
         }
       }
@@ -2912,6 +4568,12 @@
             "state" : "translated",
             "value" : "Purchase Date (Oldest First)"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入日が古い順"
+          }
         }
       }
     },
@@ -2921,6 +4583,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Purchase Date (Newest First)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入日が新しい順"
           }
         }
       }
@@ -2932,6 +4600,12 @@
             "state" : "translated",
             "value" : "Sorted by purchase date"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入日の順に並びます"
+          }
         }
       }
     },
@@ -2941,6 +4615,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "By Purchase Month"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入月別"
           }
         }
       }
@@ -2952,6 +4632,12 @@
             "state" : "translated",
             "value" : "Owned"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入済み"
+          }
         }
       }
     },
@@ -2961,6 +4647,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Owned %1$lld / %2$lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入済み %lld / %lld冊"
           }
         }
       }
@@ -2972,6 +4664,12 @@
             "state" : "translated",
             "value" : "Owned %1$lld · Wishlist %2$lld"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入済み %lld冊・買いたい本 %lld冊"
+          }
         }
       }
     },
@@ -2981,6 +4679,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Owned (purchased today)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入済み（購入日 今日）"
           }
         }
       }
@@ -2992,6 +4696,12 @@
             "state" : "translated",
             "value" : "Marked as purchased"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入済みにしました"
+          }
         }
       }
     },
@@ -3001,6 +4711,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Switch to Owned to set today's date"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入済みにすると今日の日付が入ります"
           }
         }
       }
@@ -3012,6 +4728,12 @@
             "state" : "translated",
             "value" : "Couldn't mark as purchased"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入済みにできませんでした"
+          }
         }
       }
     },
@@ -3021,6 +4743,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "It will be marked Owned and placed on the %@ shelf (purchased today)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入済みになり %@ の棚に並びます（購入日は今日）"
           }
         }
       }
@@ -3032,6 +4760,12 @@
             "state" : "translated",
             "value" : "Owned books are arranged by the month you bought them."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入済みの本が、買った月ごとに並びます。"
+          }
         }
       }
     },
@@ -3041,6 +4775,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Only owned books go into one image"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入済みの本だけを1枚の画像にします"
           }
         }
       }
@@ -3052,6 +4792,12 @@
             "state" : "translated",
             "value" : "Add"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加"
+          }
         }
       }
     },
@@ -3061,6 +4807,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No network · Data stays on this device"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通信なし・データは端末内のみ"
           }
         }
       }
@@ -3072,6 +4824,12 @@
             "state" : "translated",
             "value" : "Added to the end of the chosen category. It appears on the shelf once it has books."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだ区分の末尾に追加。本を入れると本棚に表示されます"
+          }
         }
       }
     },
@@ -3081,6 +4839,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Select to reorder, move, or delete"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択して並べ替え・移動・削除"
           }
         }
       }
@@ -3092,6 +4856,12 @@
             "state" : "translated",
             "value" : "Selected (tap to deselect)"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択中（タップで解除）"
+          }
         }
       }
     },
@@ -3101,6 +4871,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Close"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じる"
           }
         }
       }
@@ -3112,6 +4888,12 @@
             "state" : "translated",
             "value" : "Enter Titles"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "順に入力する"
+          }
         }
       }
     },
@@ -3121,6 +4903,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Title"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "題名"
           }
         }
       }
@@ -3132,6 +4920,12 @@
             "state" : "translated",
             "value" : "Search title or reading"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "題名・よみで検索"
+          }
         }
       }
     },
@@ -3141,6 +4935,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Title (required)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "題名（必須）"
           }
         }
       }
@@ -3164,6 +4964,12 @@
               }
             }
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "題名が未入力の本が%lld冊あります"
+          }
         }
       }
     },
@@ -3173,6 +4979,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uses this as the title"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "題名に入れます"
           }
         }
       }
@@ -3184,6 +4996,12 @@
             "state" : "translated",
             "value" : "You can search with just part of a title or reading"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "題名やよみの一部だけでも検索できます"
+          }
         }
       }
     },
@@ -3193,6 +5011,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter title"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "題名を入力"
           }
         }
       }
@@ -3204,6 +5028,12 @@
             "state" : "translated",
             "value" : "Enter a title"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "題名を入力してください"
+          }
         }
       }
     },
@@ -3213,6 +5043,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter titles to add"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "題名を入力すると登録できます"
           }
         }
       }
@@ -3224,6 +5060,12 @@
             "state" : "translated",
             "value" : "Reading the title…"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "題名を読み取り中…"
+          }
         }
       }
     },
@@ -3232,7 +5074,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Title"
+            "value" : "Title (A–Z)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "題名順"
           }
         }
       }

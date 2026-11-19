@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UIKit
 
 /// 閲覧画面に出す棚1つ分（棚と、そこに並べる本）
 struct BrowseShelf: Identifiable {
@@ -115,8 +116,9 @@ struct ShelfScreen: View {
                     }
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                     .task(id: toast.id) {
+                        ToastTiming.announce(toast.message, canUndo: toast.undo != nil)
                         do {
-                            try await Task.sleep(for: .seconds(5))
+                            try await Task.sleep(for: ToastTiming.duration)
                         } catch {
                             return
                         }
@@ -440,9 +442,12 @@ struct ShelfScreen: View {
         .clipped()
         .overlay(alignment: .topTrailing) {
             if mode == .shelf || (current.isWishlist && current.books.isEmpty) {
-                ShelfIndicator(count: all.count, index: all.firstIndex { $0.id == current.id } ?? 0)
-                    .padding(.trailing, 26)
-                    .padding(.top, indicatorTop)
+                ShelfIndicator(
+                    count: all.count, index: all.firstIndex { $0.id == current.id } ?? 0,
+                    onStep: { move(by: $0, from: current, in: all) }
+                )
+                .padding(.trailing, 26)
+                .padding(.top, indicatorTop)
             }
         }
     }
@@ -478,7 +483,8 @@ struct ShelfScreen: View {
                     selectedIndex: selection?.to,
                     onReorderEvent: { handleReorder($0, in: base) },
                     onTapWhileSelected: { editing.clearSelection() })
-                if let selection {
+                // 上下にドラッグしている間（H-2）は矢印を消す（Figma H-2。N-064）
+                if let selection, selection.axis != .vertical {
                     SelectionArrows(
                         selection: selection, allowsReorder: base.allowsReorder, count: base.books.count,
                         onStep: { step($0, in: base) },
@@ -523,6 +529,8 @@ struct ShelfScreen: View {
                     .accessibilityIdentifier("shelf.bookTitle")
                 SelectionInfo(selection: selection, allowsReorder: current.allowsReorder, count: current.books.count)
                     .padding(.top, 6)
+                    // 上下にドラッグしている間（H-2）は案内を消す（Figma H-2。N-064）
+                    .opacity(selection.axis == .vertical ? 0 : 1)
             } else if index < current.books.count {
                 let book = current.books[index]
                 Text(book.title)
@@ -817,7 +825,8 @@ struct ShelfScreen: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 20)
             .accessibilityHidden(true)
-            .opacity(books.isEmpty ? 0 : 1)
+            // 長押しで本を選んでいる間は出さない（Figma D-1・H-1・H-2 に無い。N-064）
+            .opacity(books.isEmpty || editing.selection != nil ? 0 : 1)
     }
 
     private var bottomBar: some View {
@@ -1040,12 +1049,20 @@ struct ShelfScreen: View {
 
 // MARK: - 棚インジケーター
 
-/// 画面右の縦に5つの点（中央が今の棚で大きく黒、外側ほど小さく薄い）。表示は5つで、棚の数だけ動く（design-brief §3）
+/// 画面右の縦に5つの点（中央が今の棚で大きく黒、外側ほど小さく薄い）。表示は5つで、棚の数だけ動く（design-brief §3）。
+/// 点を押すとその棚へ、点の上を上下になぞると1点分（14pt）ごとに棚が変わる（N-044。2026-11-19 オーナー判断）
 struct ShelfIndicator: View {
     let count: Int
     let index: Int
     /// 読み上げの名前（購入月別では「月の位置」「年の位置」。T13）
     var label: LocalizedStringKey = "棚の位置"
+    /// 棚を `delta` 個動かす（負は前の棚）。nil なら表示だけ
+    var onStep: ((Int) -> Void)?
+
+    /// 点1つ分の高さ（なぞったときの1段の量）
+    static let dotHeight: CGFloat = 14
+    /// なぞっている間に、すでに動かした段の数
+    @State private var draggedSteps = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1055,13 +1072,53 @@ struct ShelfIndicator: View {
                     .fill(offset == 0 ? BookshelfStyle.ink : BookshelfStyle.faint)
                     .frame(width: dotSize(offset), height: dotSize(offset))
                     .opacity(exists ? (abs(offset) == 2 ? 0.6 : 1) : 0)
-                    .frame(width: 12, height: 14)
+                    .frame(width: 12, height: Self.dotHeight)
             }
         }
+        // 押せる範囲を広げる（幅 44。点の並びの上下にも少し）
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .gesture(onStep == nil ? nil : dragGesture)
+        .padding(.horizontal, -16)
+        .padding(.vertical, -8)
         .accessibilityElement()
         .accessibilityLabel(label)
         .accessibilityValue("\(index + 1) / \(count)")
         .accessibilityIdentifier("shelf.indicator")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: step(1)
+            case .decrement: step(-1)
+            @unknown default: break
+            }
+        }
+    }
+
+    /// 押した点・なぞった量で棚を変える。指を動かさずに離したら、押した点の棚へ
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let steps = Int((value.translation.height / Self.dotHeight).rounded(.towardZero))
+                if steps != draggedSteps {
+                    step(steps - draggedSteps)
+                    draggedSteps = steps
+                }
+            }
+            .onEnded { value in
+                defer { draggedSteps = 0 }
+                guard draggedSteps == 0, abs(value.translation.height) < Self.dotHeight / 2 else { return }
+                // 点の並びの中での位置（上の余白 8 を引く）→ 中央の点からいくつ離れているか
+                let offset = Int(((value.location.y - 8) / Self.dotHeight).rounded(.down)) - 2
+                if offset != 0, (-2...2).contains(offset) { step(offset) }
+            }
+    }
+
+    private func step(_ delta: Int) {
+        let target = min(max(index + delta, 0), count - 1)
+        guard target != index, let onStep else { return }
+        UISelectionFeedbackGenerator().selectionChanged()
+        onStep(target - index)
     }
 
     private func dotSize(_ offset: Int) -> CGFloat {

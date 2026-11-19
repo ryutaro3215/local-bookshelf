@@ -28,7 +28,7 @@ nonisolated struct TitleRecognizer: Sendable {
     /// 認識に使う画像の長辺の上限（処理時間とメモリを抑える）
     static let workingLongSide = 2048
     /// 候補の文字数の上限（requirements S6 の題名の上限と同じ）
-    static let maxLength = 200
+    static let maxLength = TextSanitizer.maxLength
 
     private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "TitleRecognizer")
 
@@ -159,11 +159,9 @@ nonisolated struct TitleRecognizer: Sendable {
         return gap <= maxGap && overlap > 0
     }
 
-    /// 制御文字を除き、前後の空白を落として、200文字までに切り詰める（S6）
+    /// 制御文字を除き、前後の空白を落として、200文字までに切り詰める（S6。TextSanitizer と同じ）
     static func clean(_ text: String) -> String {
-        let scalars = text.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) }
-        let cleaned = String(String.UnicodeScalarView(scalars)).trimmingCharacters(in: .whitespacesAndNewlines)
-        return String(cleaned.prefix(maxLength))
+        TextSanitizer.clean(text)
     }
 
     /// 題名になりうる文字列か（文字を含む。数字・記号だけの行〔価格・番号〕は除く）

@@ -24,8 +24,8 @@ enum CoverProcessorError: Error {
 nonisolated struct CoverProcessor {
     /// 保存する表紙の長辺の上限（N2）
     static let maxLongSide = 1600
-    /// 一覧用サムネイルの長辺
-    static let thumbnailLongSide = 400
+    /// 一覧用サムネイルの長辺（棚の中央の表紙は約 552×792px で表示するので、引き伸ばさない大きさにする。N-048）
+    static let thumbnailLongSide = 800
     /// 検出・補正に使う作業画像の長辺の上限（処理時間とメモリを抑える）
     static let workingLongSide = 3200
     static let jpegQuality = 0.85

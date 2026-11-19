@@ -28,7 +28,7 @@ external_skills:
 ## T2: データモデルと画像ストア
 - goal: Book（題名・よみ・ジャンル・所持状況・購入日・データ追加日）と Shelf（ジャンル: 区分・並び順。システム棚「買いたい本」「未分類」）、初期ジャンル（ja/en）、よみの自動生成、画像ファイルの保存・読込・削除を実装する（requirements §10・F7-1。2026-11-10 更新）
 - files: Bookshelf/Model/Book.swift, Bookshelf/Model/Shelf.swift, Bookshelf/Model/InitialGenres.swift, Bookshelf/Model/LibraryStore.swift, Bookshelf/Text/Yomi.swift, Bookshelf/Storage/ImageStore.swift, BookshelfTests/LibraryStoreTests.swift, BookshelfTests/YomiTests.swift
-- acceptance: テスト実行で LibraryStoreTests の次のケースが全て通る — ①本の追加でジャンルの末尾に並ぶ ②ジャンルの削除で中の本が未分類へ移り、本数と所持状況が変わらない ③買いたい本・未分類は削除も名前変更もできない ④本の削除で画像ファイル（原寸・サムネ）も消える ⑤題名・ジャンル名が200文字に切り詰められ制御文字が除去される（S6）⑥新しいModelContainer（再起動相当）後もデータと並び順が保たれる ⑦所持状況を「買いたい」にすると購入日が消え、「購入済み」にすると購入日が今日になる（ジャンルは変わらない）⑧ジャンル別の一覧に「買いたい」の本が含まれず、買いたい本の一覧にだけ含まれる ⑨初回起動で初期ジャンルが区分付き・ja/en 名付きで作られる / YomiTests で題名からひらがなのよみが生成される（例:「存在と時間」→「そんざいとじかん」、英字はそのまま）
+- acceptance: テスト実行で LibraryStoreTests の次のケースが全て通る — ①本の追加でジャンルの末尾に並ぶ ②ジャンルの削除で中の本が未分類へ移り、本数と所持状況が変わらない ③買いたい本・未分類は削除も名前変更もできない ④本の削除で画像ファイル（原寸・サムネ）も消える ⑤題名・ジャンル名が200文字に切り詰められ制御文字が除去される（S6）⑥新しいModelContainer（再起動相当）後もデータと並び順が保たれる ⑦所持状況を「買いたい」にすると購入日が消え、「購入済み」にすると購入日が今日になる（ジャンルは変わらない）⑧ジャンル別の一覧に「買いたい」の本が含まれず、買いたい本の一覧にだけ含まれる ⑨初回起動で初期ジャンルが区分付き・ja/en 名付きで作られる / YomiTests で題名からひらがなのよみが生成される（例:「灰色の時間割」→「はいいろのじかんわり」、英字はそのまま）
 - depends: T1
 - skills: なし
 
@@ -85,7 +85,7 @@ external_skills:
 ## T10: 検索（題名・よみ）
 - goal: 下部バーの検索欄から、全ジャンルの購入済みの本を題名とよみの部分一致で検索できるようにする（F7。2026-11-10 更新）
 - files: Bookshelf/Search/SearchView.swift, Bookshelf/Model/LibraryStore.swift（検索クエリ追加）, BookshelfTests/SearchTests.swift
-- acceptance: テスト実行で SearchTests が通る — ①題名の部分一致 ②よみの部分一致（「じかん」で「存在と時間」が見つかる）③ひらがな・カタカナ、英字の大文字・小文字を区別しない ④「買いたい」の本は結果に含まれない / 0件時に「題名やよみの一部だけでも検索できます」の案内が出る（UIテストまたはスクリーンショットで確認）/ 見た目が Figma の E-4・E-5 と一致 / 見た目・文言・画面構成が .dev/design-brief.md と Figma の詳細デザイン（E-4・E-5）に一致
+- acceptance: テスト実行で SearchTests が通る — ①題名の部分一致 ②よみの部分一致（「じかん」で「灰色の時間割」が見つかる）③ひらがな・カタカナ、英字の大文字・小文字を区別しない ④「買いたい」の本は結果に含まれない / 0件時に「題名やよみの一部だけでも検索できます」の案内が出る（UIテストまたはスクリーンショットで確認）/ 見た目が Figma の E-4・E-5 と一致 / 見た目・文言・画面構成が .dev/design-brief.md と Figma の詳細デザイン（E-4・E-5）に一致
 - depends: T2
 - skills: figma:figma-swiftui
 

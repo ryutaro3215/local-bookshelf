@@ -130,6 +130,19 @@ final class CaptureFlowUITests: XCTestCase {
 
     // MARK: - ①
 
+    /// カメラを許可しなかったとき（O-3）: 撮影の代わりに案内・設定を開く・写真ライブラリから選ぶ が出る（N-039）
+    func testDeniedCameraShowsSettingsAndLibrary() {
+        let app = launch(scenario: "denied")
+        openMethodSheet(app)
+        app.buttons["register.camera"].tap()
+        XCTAssertTrue(element(app, "capture.denied").waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["capture.shutter"].exists)
+        XCTAssertTrue(app.buttons["capture.openSettings"].isHittable)
+        XCTAssertTrue(app.buttons["capture.deniedLibrary"].isHittable)
+        let notice = app.staticTexts.matching(NSPredicate(format: "label == %@", "カメラへのアクセスがオフになっています"))
+        XCTAssertTrue(notice.firstMatch.exists)
+    }
+
     func testContinuousCaptureListsThreeBooksWithoutClosingCamera() {
         let app = launch(scenario: covers)
         openMethodSheet(app)
@@ -301,10 +314,7 @@ final class CaptureFlowUITests: XCTestCase {
         let cell = app.cells.containing(.button, identifier: "pending.row.0.check").firstMatch
         (cell.exists ? cell : firstRow).swipeLeft()
         let remove = app.buttons["外す"].firstMatch
-        if !remove.waitForExistence(timeout: 5) {
-            print(app.debugDescription)
-        }
-        XCTAssertTrue(remove.exists)
+        XCTAssertTrue(remove.waitForExistence(timeout: 5))
         remove.tap()
         wait(app.staticTexts["pending.heading"], "label == '登録待ち 29 / 30冊'")
         let addCamera = app.buttons["pending.addCamera"]

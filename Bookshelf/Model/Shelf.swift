@@ -23,6 +23,10 @@ final class Shelf {
     /// 棚どうしの並び順（小さいほど前）
     var sortOrder: Int
     var kindRaw: String
+    /// 最後に選んだ並べ順（`ShelfSortKey` の rawValue。nil は手動）。アプリを閉じても残す（N-058）
+    var sortKeyRaw: String?
+    /// 一括で整列する前の手動の並び（本の ID の順）。「手動」を選ぶとこの並びに戻す。アプリを閉じても残す（N-058）
+    var manualSnapshot: [UUID]?
 
     @Relationship(deleteRule: .nullify, inverse: \Book.shelf)
     var books: [Book] = []
@@ -37,6 +41,12 @@ final class Shelf {
 
     var kind: ShelfKind {
         ShelfKind(rawValue: kindRaw) ?? .genre
+    }
+
+    /// 最後に選んだ並べ順（無ければ手動）
+    var sortChoice: ShelfSortKey {
+        get { sortKeyRaw.flatMap(ShelfSortKey.init(rawValue:)) ?? .manual }
+        set { sortKeyRaw = newValue == .manual ? nil : newValue.rawValue }
     }
 
     /// 買いたい本・未分類（削除も名前変更もできない）

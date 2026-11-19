@@ -19,6 +19,8 @@ enum LibraryError: Error, Equatable {
     case invalidCategory
     /// 本のデータは保存できたが、新しい表紙の画像に入れ替えられなかった（古い表紙のまま）
     case coverNotReplaced
+    /// 同じ名前の棚がすでにある（N-066⑤。2026-11-19 オーナー判断）
+    case duplicateName
 }
 
 /// 編集画面（E-6・E-7）で確定した値（F6-4・§10.3）
@@ -36,7 +38,7 @@ struct BookEdit {
 final class LibraryStore {
     private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "LibraryStore")
     /// 題名・ジャンル名の上限（requirements S6）
-    static let maxNameLength = 200
+    static let maxNameLength = TextSanitizer.maxLength
 
     /// コンテナを保持し、使っている間に解放されないようにする
     let container: ModelContainer
@@ -68,9 +70,7 @@ final class LibraryStore {
 
     /// 制御文字を除き、前後の空白を落として、200文字までに切り詰める
     static func sanitize(_ text: String) -> String {
-        let scalars = text.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) }
-        let cleaned = String(String.UnicodeScalarView(scalars)).trimmingCharacters(in: .whitespacesAndNewlines)
-        return String(cleaned.prefix(maxNameLength))
+        TextSanitizer.clean(text)
     }
 
     // MARK: - 初期化
@@ -237,7 +237,9 @@ final class LibraryStore {
             book.shelf = edit.shelf
         }
         book.ownership = edit.ownership
-        book.purchaseDate = edit.ownership == .owned ? calendar.startOfDay(for: edit.purchaseDate ?? .now) : nil
+        // 購入日に今日より先の日付は入れない（画面でも選べない。N-072④）
+        let purchased = min(edit.purchaseDate ?? .now, .now)
+        book.purchaseDate = edit.ownership == .owned ? calendar.startOfDay(for: purchased) : nil
         do {
             try commit()
         } catch {
@@ -246,12 +248,62 @@ final class LibraryStore {
         }
 
         guard newCover != nil else { return }
+        try swapCover(of: book.id, with: stagingID)
+    }
+
+    /// 本の表紙（原寸・サムネイル）を仮に書き出した表紙に入れ替える。
+    /// 片方だけ入れ替わった状態（原寸＝新・サムネイル＝旧）を残さないよう、古い表紙を控えておき、
+    /// 途中で失敗したら古い表紙に戻してから投げる（N-072①）
+    private func swapCover(of id: UUID, with stagingID: UUID) throws {
+        let backupID = UUID()
+        let pairs = [
+            (images.originalURL(for: id), images.originalURL(for: stagingID), images.originalURL(for: backupID)),
+            (images.thumbnailURL(for: id), images.thumbnailURL(for: stagingID), images.thumbnailURL(for: backupID)),
+        ]
+        var replaced: [(target: URL, backup: URL?)] = []
         do {
-            try replaceFile(images.originalURL(for: book.id), with: images.originalURL(for: stagingID))
-            try replaceFile(images.thumbnailURL(for: book.id), with: images.thumbnailURL(for: stagingID))
+            for (target, staged, backup) in pairs {
+                let hadOld = FileManager.default.fileExists(atPath: target.path)
+                if hadOld { try FileManager.default.copyItem(at: target, to: backup) }
+                try replaceFile(target, with: staged)
+                replaced.append((target, hadOld ? backup : nil))
+            }
         } catch {
+            for item in replaced.reversed() {
+                do {
+                    if let backup = item.backup {
+                        try replaceFile(item.target, with: backup)
+                    } else {
+                        try FileManager.default.removeItem(at: item.target)
+                    }
+                } catch let restore {
+                    Self.logger.error("古い表紙に戻せない: \(restore.localizedDescription, privacy: .public)")
+                }
+            }
             discardStaged(stagingID)
+            discardStaged(backupID)
             throw LibraryError.coverNotReplaced
+        }
+        discardStaged(backupID)
+    }
+
+    /// どの本にも紐付かない表紙の画像を消す（起動のあと、画面を出してから呼ぶ。N-072②）
+    func removeOrphanCovers() async {
+        let started = Date()
+        let ids: Set<UUID>
+        do {
+            ids = Set(try context.fetch(FetchDescriptor<Book>()).map(\.id))
+        } catch {
+            Self.logger.error("本の一覧を読めないので表紙の片付けをしない: \(error.localizedDescription, privacy: .public)")
+            return
+        }
+        let images = images
+        let task = Task.detached(priority: .utility) { try images.removeFiles(except: ids, modifiedBefore: started) }
+        do {
+            let removed = try await task.value
+            if removed > 0 { Self.logger.info("紐付かない表紙を片付けた: \(removed)") }
+        } catch {
+            Self.logger.error("紐付かない表紙を片付けられない: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -281,6 +333,7 @@ final class LibraryStore {
     func addGenre(name: String, categoryID: String = InitialGenres.myGenres.id) throws -> Shelf {
         let cleanName = Self.sanitize(name)
         guard !cleanName.isEmpty else { throw LibraryError.emptyName }
+        guard try !isShelfNameTaken(cleanName) else { throw LibraryError.duplicateName }
         guard let rank = Self.categoryRank(categoryID), categoryID != InitialGenres.system.id else {
             throw LibraryError.invalidCategory
         }
@@ -320,9 +373,26 @@ final class LibraryStore {
         guard !cleanName.isEmpty else { throw LibraryError.emptyName }
         // 今の名前（日本語名・英語名。表示名はどちらか）のままなら何もしない。初期ジャンルの両方の名前を残す（T15）
         guard cleanName != shelf.name, cleanName != shelf.nameEn else { return }
+        guard try !isShelfNameTaken(cleanName, excluding: shelf) else { throw LibraryError.duplicateName }
         shelf.name = cleanName
         shelf.nameEn = nil
         try commit()
+    }
+
+    /// 同じ名前の棚がほかにあるか（N-066⑤）。日本語名・英語名の両方と比べ、全角・半角と英字の大文字・小文字はそろえる。
+    /// `excluding` の棚（名前を変えている棚）とは比べない
+    func isShelfNameTaken(_ name: String, excluding shelf: Shelf? = nil) throws -> Bool {
+        let key = Self.nameKey(name)
+        guard !key.isEmpty else { return false }
+        return try shelves().contains { other in
+            other.persistentModelID != shelf?.persistentModelID
+                && ([other.name, other.nameEn].compactMap { $0 }.contains { Self.nameKey($0) == key })
+        }
+    }
+
+    /// 名前の比べ方（整えたあと、NFKC・小文字）
+    static func nameKey(_ name: String) -> String {
+        sanitize(name).precomposedStringWithCompatibilityMapping.lowercased()
     }
 
     /// ジャンルを消す。中の本は未分類の末尾へ移す（所持状況は変えない）
@@ -363,11 +433,18 @@ final class LibraryStore {
 }
 
 /// 検索の文字の比べ方（F7-1）。
-/// NFKC（全角英数→半角、半角カナ→全角など）→ 小文字 → カタカナをひらがなに、の順にそろえてから部分一致で比べる。
-/// 濁点・半濁点は区別する（「はし」で「ばし」は出さない）
+/// NFKC（全角英数→半角、半角カナ→全角など）→ 小文字 → 濁点・半濁点を外す → カタカナをひらがなに、の順にそろえてから
+/// 部分一致で比べる。濁点・半濁点は区別しない（「はし」で「ばし」「ぱし」も出る。2026-11-19 オーナー判断 N-073）
 nonisolated enum SearchText {
     static func normalize(_ text: String) -> String {
-        hiragana(text.precomposedStringWithCompatibilityMapping.lowercased())
+        hiragana(withoutVoicedMarks(text.precomposedStringWithCompatibilityMapping.lowercased()))
+    }
+
+    /// 濁点・半濁点（結合文字 U+3099・U+309A と、単独の ゛゜ U+309B・U+309C）を外す（「が」→「か」「ぱ」→「は」）
+    static func withoutVoicedMarks(_ text: String) -> String {
+        let marks: Set<UInt32> = [0x3099, 0x309A, 0x309B, 0x309C]
+        let scalars = text.decomposedStringWithCanonicalMapping.unicodeScalars.filter { !marks.contains($0.value) }
+        return String(String.UnicodeScalarView(scalars)).precomposedStringWithCanonicalMapping
     }
 
     /// カタカナ（ァ〜ヶ）をひらがな（ぁ〜ゖ）にずらす。長音「ー」などはそのまま

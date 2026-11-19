@@ -570,6 +570,7 @@ struct CaptureView: View {
                         .frame(maxWidth: .infinity, minHeight: 52)
                         .background(Capsule().fill(Color.white))
                 }
+                .accessibilityIdentifier("capture.openSettings")
                 PhotosPicker(
                     selection: $photoItems, maxSelectionCount: max(model.remaining, 1), selectionBehavior: .ordered,
                     matching: .images
@@ -581,6 +582,7 @@ struct CaptureView: View {
                         .background(Capsule().fill(BookshelfStyle.cameraControl))
                 }
                 .disabled(model.remaining == 0)
+                .accessibilityIdentifier("capture.deniedLibrary")
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)

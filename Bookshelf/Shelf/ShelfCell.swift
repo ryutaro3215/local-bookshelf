@@ -20,12 +20,14 @@ final class CoverImageCache {
 
     @ObservationIgnored private let thumbnails = NSCache<NSUUID, UIImage>()
     @ObservationIgnored private var loading: [UUID: Task<UIImage?, Never>] = [:]
+    /// 読めなかったサムネイル（表紙を入れ替えるまで読み直さない。N-055）
+    @ObservationIgnored private var unreadable: Set<UUID> = []
     /// 表紙を入れ替えた本ごとの回数（画面はこれを見て描き直す）
     private(set) var revisions: [UUID: Int] = [:]
     private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "Shelf")
 
-    /// 展開後のサムネイルを置いておく量の上限（バイト。N-051: 長辺 400px で1枚約 0.4〜0.5MB → 約 160〜200 冊分）
-    static let byteLimit = 80 * 1024 * 1024
+    /// 展開後のサムネイルを置いておく量の上限（バイト。N-051: 長辺 800px で1枚約 1.8MB → 約 90 冊分。N-048）
+    static let byteLimit = 160 * 1024 * 1024
 
     init() {
         thumbnails.countLimit = 600
@@ -44,6 +46,7 @@ final class CoverImageCache {
     func invalidate(_ id: UUID) {
         thumbnails.removeObject(forKey: id as NSUUID)
         loading[id] = nil
+        unreadable.remove(id)
         revisions[id, default: 0] += 1
     }
 
@@ -59,15 +62,20 @@ final class CoverImageCache {
     /// サムネイルを読む。同じ本を同時に読まないよう、読み込み中のものは待ち合わせる
     func thumbnail(for id: UUID, in store: ImageStore) async -> UIImage? {
         if let image = cachedThumbnail(for: id) { return image }
+        if unreadable.contains(id) { return nil }
         if let task = loading[id] { return await task.value }
         let url = store.thumbnailURL(for: id)
+        let revision = revision(for: id)
         let task = Task { await Self.decode(url) }
         loading[id] = task
         let image = await task.value
+        // 読んでいる間に表紙が入れ替わったら、古い表紙はキャッシュに入れない（N-072③）
+        guard revision == self.revision(for: id) else { return image }
         loading[id] = nil
         if let image {
             thumbnails.setObject(image, forKey: id as NSUUID, cost: Self.decodedCost(of: image))
         } else {
+            unreadable.insert(id)
             Self.logger.error("表紙のサムネイルを読めない: \(id.uuidString, privacy: .public)")
         }
         return image
@@ -95,6 +103,14 @@ final class ShelfCell: UICollectionViewCell {
     private let coverView = UIImageView()
     private let shadeView = UIView()
     private(set) var bookID: UUID?
+    /// VoiceOver の「選択して並べ替え・移動・削除」。中央の本のときだけ出す（N-064）
+    var selectAction: UIAccessibilityCustomAction?
+    var isCentered: () -> Bool = { false }
+
+    override var accessibilityCustomActions: [UIAccessibilityCustomAction]? {
+        get { isCentered() ? selectAction.map { [$0] } : nil }
+        set { selectAction = newValue?.first }
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -250,6 +266,16 @@ struct EmptyCoverBox: View {
 /// グリッド表示の1冊（表紙＋題名1行）。VoiceOver は題名で読み上げる（N5）。
 /// 寸法は Figma I-1（51:29175）: 表紙の枠の高さ 146、表紙と題名の間 8、題名 Serif 13・高さ 18・中央ぞろえ
 struct GridCellContent: View {
+    private struct ItemKey: Hashable {
+        let id: UUID
+        let revision: Int
+    }
+
+    private struct LoadedCover {
+        let key: ItemKey
+        let image: UIImage
+    }
+
     static let coverHeight: CGFloat = 146
     static let titleHeight: CGFloat = 18
     static let spacing: CGFloat = 8
@@ -260,7 +286,15 @@ struct GridCellContent: View {
     let store: ImageStore
     /// VoiceOver の「メニュー」の操作（長押しの代わり。I-2）
     var onMenu: (() -> Void)?
-    @State private var image: UIImage?
+    @State private var loaded: LoadedCover?
+
+    private var key: ItemKey { ItemKey(id: item.id, revision: item.coverRevision) }
+
+    /// 今の本の表紙だけを出す（セルを使い回したとき、前の本の表紙を1フレームでも残さない。N-055）
+    private var image: UIImage? {
+        if let loaded, loaded.key == key { return loaded.image }
+        return CoverImageCache.shared.cachedThumbnail(for: item.id)
+    }
 
     var body: some View {
         VStack(spacing: Self.spacing) {
@@ -294,11 +328,12 @@ struct GridCellContent: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("grid.book.\(index)")
         .accessibilityAction(named: "メニュー") { onMenu?() }
-        .task(id: item.id) {
-            image = CoverImageCache.shared.cachedThumbnail(for: item.id)
-            if image == nil {
-                image = await CoverImageCache.shared.thumbnail(for: item.id, in: store)
+        .task(id: key) {
+            let key = key
+            guard image == nil, let image = await CoverImageCache.shared.thumbnail(for: item.id, in: store) else {
+                return
             }
+            loaded = LoadedCover(key: key, image: image)
         }
     }
 }

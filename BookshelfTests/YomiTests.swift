@@ -6,7 +6,7 @@ import Testing
 struct YomiTests {
     @Test("漢字・かなの題名からひらがなのよみを作る")
     func kanjiTitle() {
-        #expect(Yomi.make(from: "存在と時間") == "そんざいとじかん")
+        #expect(Yomi.make(from: "灰色の時間割") == "はいいろのじかんわり")
     }
 
     @Test("カタカナはひらがなにする")

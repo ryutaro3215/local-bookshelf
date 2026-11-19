@@ -37,10 +37,10 @@ struct LibraryStoreTests {
     func addAppendsToEnd() throws {
         let (store, _) = try makeStore()
         let philosophy = try genre("哲学・思想", store)
-        try store.addBook(title: "存在と時間", shelf: philosophy)
-        try store.addBook(title: "世界認識の技術", shelf: philosophy)
-        try store.addBook(title: "嫉妬論", shelf: philosophy)
-        #expect(store.books(in: philosophy).map(\.title) == ["存在と時間", "世界認識の技術", "嫉妬論"])
+        try store.addBook(title: "灯台の時間", shelf: philosophy)
+        try store.addBook(title: "夜更けの地図帳", shelf: philosophy)
+        try store.addBook(title: "青い温室論", shelf: philosophy)
+        #expect(store.books(in: philosophy).map(\.title) == ["灯台の時間", "夜更けの地図帳", "青い温室論"])
     }
 
     @Test("② ジャンルの削除で中の本が未分類へ移り、本数と所持状況が変わらない")
@@ -49,8 +49,8 @@ struct LibraryStoreTests {
         let history = try genre("歴史", store)
         let unsorted = try store.unsortedShelf()
         try store.addBook(title: "既存の未分類の本", shelf: unsorted)
-        try store.addBook(title: "帳簿の世界史", shelf: history)
-        try store.addBook(title: "ユダヤ人の歴史", shelf: history, ownership: .wanted)
+        try store.addBook(title: "古い郵便局の帳簿", shelf: history)
+        try store.addBook(title: "回廊の歴史", shelf: history, ownership: .wanted)
         let totalBefore = try store.context.fetchCount(FetchDescriptor<Book>())
 
         try store.deleteShelf(history)
@@ -58,9 +58,9 @@ struct LibraryStoreTests {
         #expect(try store.shelves().contains(where: { $0.name == "歴史" }) == false)
         #expect(try store.context.fetchCount(FetchDescriptor<Book>()) == totalBefore)
         let moved = unsorted.books.sorted { $0.sortOrder < $1.sortOrder }
-        #expect(moved.map(\.title) == ["既存の未分類の本", "帳簿の世界史", "ユダヤ人の歴史"])
-        #expect(moved.first(where: { $0.title == "帳簿の世界史" })?.ownership == .owned)
-        #expect(moved.first(where: { $0.title == "ユダヤ人の歴史" })?.ownership == .wanted)
+        #expect(moved.map(\.title) == ["既存の未分類の本", "古い郵便局の帳簿", "回廊の歴史"])
+        #expect(moved.first(where: { $0.title == "古い郵便局の帳簿" })?.ownership == .owned)
+        #expect(moved.first(where: { $0.title == "回廊の歴史" })?.ownership == .wanted)
     }
 
     @Test("③ 買いたい本・未分類は削除も名前変更もできない")
@@ -79,7 +79,7 @@ struct LibraryStoreTests {
     @Test("④ 本の削除で画像ファイル（原寸・サムネ）も消える")
     func deleteBookRemovesImages() throws {
         let (store, _) = try makeStore()
-        let book = try store.addBook(title: "嫉妬論", shelf: try genre("哲学・思想", store))
+        let book = try store.addBook(title: "青い温室論", shelf: try genre("哲学・思想", store))
         try images.save(original: Data([1, 2, 3]), thumbnail: Data([4, 5]), for: book.id)
         let original = images.originalURL(for: book.id)
         let thumbnail = images.thumbnailURL(for: book.id)
@@ -97,14 +97,14 @@ struct LibraryStoreTests {
     func namesAreSanitized() throws {
         let (store, _) = try makeStore()
         let longTitle = String(repeating: "あ", count: 250)
-        let book = try store.addBook(title: "存在\u{0007}と\n時間\u{0000}", shelf: try genre("哲学・思想", store))
-        #expect(book.title == "存在と時間")
+        let book = try store.addBook(title: "灯台\u{0007}の\n時間\u{0000}", shelf: try genre("哲学・思想", store))
+        #expect(book.title == "灯台の時間")
         let long = try store.addBook(title: longTitle, shelf: nil)
         #expect(long.title.count == 200)
 
-        let shelf = try store.addGenre(name: "村上\u{001B}春樹" + String(repeating: "x", count: 300))
+        let shelf = try store.addGenre(name: "遠い\u{001B}作家の棚" + String(repeating: "x", count: 300))
         #expect(shelf.name.count == 200)
-        #expect(shelf.name.hasPrefix("村上春樹"))
+        #expect(shelf.name.hasPrefix("遠い作家の棚"))
         #expect(throws: LibraryError.emptyName) { try store.addBook(title: "\u{0001}\n ", shelf: nil) }
     }
 
@@ -116,7 +116,7 @@ struct LibraryStoreTests {
             try store.addBook(title: "一", shelf: philosophy)
             try store.addBook(title: "二", shelf: philosophy)
             try store.addBook(title: "三", shelf: philosophy, ownership: .wanted)
-            try store.addGenre(name: "村上春樹")
+            try store.addGenre(name: "遠い作家の棚")
         }
         let (store, _) = try makeStore()
         let philosophy = try genre("哲学・思想", store)
@@ -124,7 +124,7 @@ struct LibraryStoreTests {
         #expect(try store.wishlistBooks().map(\.title) == ["三"])
         let names = try store.shelves().map(\.name)
         #expect(names.count == InitialGenres.genres.count + 3)
-        #expect(Array(names.suffix(3)) == ["村上春樹", "買いたい本", "未分類"])
+        #expect(Array(names.suffix(3)) == ["遠い作家の棚", "買いたい本", "未分類"])
     }
 
     @Test("⑦ 所持状況を「買いたい」にすると購入日が消え、「購入済み」にすると今日になる（ジャンルは変わらない）")
@@ -132,7 +132,7 @@ struct LibraryStoreTests {
         let (store, _) = try makeStore()
         let philosophy = try genre("哲学・思想", store)
         let past = Date(timeIntervalSince1970: 1_700_000_000)
-        let book = try store.addBook(title: "嫉妬論", shelf: philosophy, now: past)
+        let book = try store.addBook(title: "青い温室論", shelf: philosophy, now: past)
         #expect(book.purchaseDate == Calendar.current.startOfDay(for: past))
 
         try store.setOwnership(book, to: .wanted)

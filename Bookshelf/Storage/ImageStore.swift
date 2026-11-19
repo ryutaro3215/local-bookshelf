@@ -2,7 +2,7 @@ import Foundation
 
 /// 表紙画像（原寸・サムネイル）をファイルとして保存・読込・削除する（requirements N2）。
 /// 保存先は既定で Application Support/Covers。テストでは一時フォルダを渡す。
-struct ImageStore: Sendable {
+nonisolated struct ImageStore: Sendable {
     let directory: URL
 
     init(directory: URL) {
@@ -38,6 +38,26 @@ struct ImageStore: Sendable {
 
     func loadThumbnail(for id: UUID) -> Data? {
         try? Data(contentsOf: thumbnailURL(for: id))
+    }
+
+    /// 保存先にある表紙のうち、`keep` に無い ID のもの（どの本にも紐付かない画像）を消す。消した ID の数を返す。
+    /// 表紙の入れ替えの途中でアプリが落ちたときの仮のファイルなどを片付ける（N-072②）。
+    /// `before` より後に書いたファイルは消さない（片付けの間に登録・入れ替えで書いた表紙を消さないため）
+    @discardableResult
+    func removeFiles(except keep: Set<UUID>, modifiedBefore before: Date) throws -> Int {
+        guard FileManager.default.fileExists(atPath: directory.path) else { return 0 }
+        var removed = Set<UUID>()
+        for name in try FileManager.default.contentsOfDirectory(atPath: directory.path) where name.hasSuffix(".jpg") {
+            let stem = name.dropLast(4)
+            let idText = stem.hasSuffix("_thumb") ? String(stem.dropLast(6)) : String(stem)
+            guard let id = UUID(uuidString: idText), !keep.contains(id) else { continue }
+            let url = directory.appendingPathComponent(name)
+            let modified = try url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+            guard let modified, modified < before else { continue }
+            try FileManager.default.removeItem(at: url)
+            removed.insert(id)
+        }
+        return removed.count
     }
 
     /// 原寸とサムネイルを消す。もともと無いファイルは無視する

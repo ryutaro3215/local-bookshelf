@@ -147,7 +147,7 @@ final class LocalizationUITests: XCTestCase {
             wait(element(app, "select.state"), "exists == false")
         }
 
-        // 詳細（Q-2: Genre / Status / Purchased）
+        // 詳細（Q-2: Genre / Ownership / Purchase Date）
         element(app, "shelf.book.0").tap()
         XCTAssertTrue(element(app, "detail.title").waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons["detail.edit"].label, "Edit")
@@ -155,9 +155,9 @@ final class LocalizationUITests: XCTestCase {
         let genre = element(app, "detail.genre").label
         XCTAssertTrue(genre.contains("Genre") && genre.contains("Philosophy"), genre)
         let ownership = element(app, "detail.ownership").label
-        XCTAssertTrue(ownership.contains("Status") && ownership.contains("Owned"), ownership)
+        XCTAssertTrue(ownership.contains("Ownership") && ownership.contains("Owned"), ownership)
         let date = element(app, "detail.purchaseDate").label
-        XCTAssertTrue(date.contains("Purchased") && date.contains(todayInEnglish()), date)
+        XCTAssertTrue(date.contains("Purchase Date") && date.contains(todayInEnglish()), date)
         assertNoJapanese(app, "詳細")
 
         // 編集（E-6）。所持状況を「Wishlist」に切り替えた状態も見る。キャンセルで何も保存しない
@@ -362,11 +362,11 @@ final class LocalizationUITests: XCTestCase {
         app.buttons["onboarding.start"].tap()
         let confirm = app.buttons["onboarding.shelf.confirm"]
         XCTAssertTrue(confirm.waitForExistence(timeout: 5))
-        XCTAssertEqual(confirm.label, "Start with Unsorted")
+        XCTAssertEqual(confirm.label, "Take Photos for Unsorted")
         XCTAssertEqual(app.buttons["onboarding.shelf.row.歴史"].label, "History")
         assertNoJapanese(app, "最初の棚")
         app.buttons["onboarding.shelf.row.歴史"].tap()
-        wait(confirm, "label == 'Start with History'")
+        wait(confirm, "label == 'Take Photos for History'")
         confirm.tap()
         XCTAssertTrue(app.staticTexts["onboarding.permission.heading"].waitForExistence(timeout: 5))
         assertNoJapanese(app, "カメラの許可")

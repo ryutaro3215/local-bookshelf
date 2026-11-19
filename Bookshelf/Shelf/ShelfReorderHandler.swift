@@ -155,10 +155,7 @@ final class ShelfEditing {
     var deleting: Book?
     var toast: Toast?
     var gridMenu: GridMenu?
-    /// 棚ごとに最後に選んだ並べ順（今の並びがその順のときだけチェックを付ける）
-    var sortChoices: [PersistentIdentifier: ShelfSortKey] = [:]
-    /// 整列する前の手動の並び（「手動」を選ぶとこの並びに戻す。アプリを閉じるまで）
-    var manualSnapshots: [PersistentIdentifier: [UUID]] = [:]
+    // 棚ごとに最後に選んだ並べ順と、整列する前の手動の並びは Shelf に保存する（アプリを閉じても残す。N-058）
 
     // MARK: 棚表示の長押し・ドラッグ
 
@@ -235,11 +232,12 @@ final class ShelfEditing {
     /// 横の並べ替えを保存する（手動の並びになる）
     func commitReorder(_ book: Book, to index: Int, store: LibraryStore) {
         do {
-            try store.moveBook(book, toIndex: index)
+            // 自分で並べたので手動の並びになる（整列前の並びは要らなくなる。並べ替えと一緒に保存する）
             if let shelf = book.shelf {
-                sortChoices[shelf.persistentModelID] = .manual
-                manualSnapshots[shelf.persistentModelID] = nil
+                shelf.sortChoice = .manual
+                shelf.manualSnapshot = nil
             }
+            try store.moveBook(book, toIndex: index)
         } catch {
             Self.logger.error("並べ替えを保存できない: \(error.localizedDescription, privacy: .public)")
             toast = Toast(message: String(localized: "並べ替えを保存できませんでした"), undo: nil, fromIndex: nil)
@@ -285,7 +283,9 @@ final class ShelfEditing {
             }
         } catch {
             Self.logger.error("本を削除できない: \(error.localizedDescription, privacy: .public)")
-            toast = Toast(message: String(localized: "削除できませんでした"), undo: nil, fromIndex: nil)
+            // 削除できなかった（データは変わっていない）ので、出ていた移動の取り消しは残す（N-068⑤）
+            toast = Toast(
+                message: String(localized: "削除できませんでした"), undo: toast?.undo, fromIndex: toast?.fromIndex)
         }
     }
 
@@ -293,26 +293,29 @@ final class ShelfEditing {
 
     /// 今の棚にチェックを付ける並べ順（最後に選んだ順でも、その後に並びが変わっていれば手動）
     func sortKey(for shelf: Shelf, books: [Book]) -> ShelfSortKey {
-        let key = sortChoices[shelf.persistentModelID] ?? .manual
+        let key = shelf.sortChoice
         return ShelfOrdering.isOrdered(books, by: key) ? key : .manual
     }
 
     /// 並べ順を選ぶ。手動を選ぶと、整列する前の手動の並びに戻す
     func sort(_ shelf: Shelf, by key: ShelfSortKey, books: [Book], store: LibraryStore) {
-        let id = shelf.persistentModelID
         do {
             if key == .manual {
-                if let snapshot = manualSnapshots[id] {
+                let snapshot = shelf.manualSnapshot
+                shelf.manualSnapshot = nil
+                shelf.sortChoice = .manual
+                if let snapshot {
                     try store.restoreOrder(in: shelf, ids: snapshot)
+                } else {
+                    try store.commit()
                 }
-                manualSnapshots[id] = nil
             } else {
                 if sortKey(for: shelf, books: books) == .manual {
-                    manualSnapshots[id] = books.map(\.id)
+                    shelf.manualSnapshot = books.map(\.id)
                 }
+                shelf.sortChoice = key
                 try store.sortBooks(in: shelf, by: key)
             }
-            sortChoices[id] = key
         } catch {
             Self.logger.error("並べ順を変えられない: \(error.localizedDescription, privacy: .public)")
             toast = Toast(message: String(localized: "並べ順を変えられませんでした"), undo: nil, fromIndex: nil)
@@ -736,7 +739,9 @@ struct GridBookMenu: View {
 
     private var card: some View {
         VStack(spacing: 0) {
-            row("詳細を見る", symbol: "chevron.right", color: BookshelfStyle.ink, id: "gridMenu.detail", action: onDetail)
+            row(
+                "詳細を見る", symbol: "chevron.right", color: BookshelfStyle.ink, symbolColor: BookshelfStyle.faint,
+                id: "gridMenu.detail", action: onDetail)
             Rectangle().fill(Color(red: 0xE8 / 255, green: 0xE8 / 255, blue: 0xE8 / 255)).frame(height: 1)
             row("別の棚へ移動", symbol: "chevron.up", color: BookshelfStyle.ink, id: "gridMenu.move", action: onMove)
             Rectangle().fill(Color(red: 0xE8 / 255, green: 0xE8 / 255, blue: 0xE8 / 255)).frame(height: 1)
@@ -759,8 +764,10 @@ struct GridBookMenu: View {
         .accessibilityIdentifier("gridMenu")
     }
 
+    /// メニューの1行。`symbolColor` を渡すと記号だけその色にする（「詳細を見る」の › は薄い灰色。Figma I-2・N-064）
     private func row(
-        _ title: LocalizedStringKey, symbol: String, color: Color, id: String, action: @escaping () -> Void
+        _ title: LocalizedStringKey, symbol: String, color: Color, symbolColor: Color? = nil, id: String,
+        action: @escaping () -> Void
     )
         -> some View
     {
@@ -772,6 +779,7 @@ struct GridBookMenu: View {
                 Spacer()
                 Image(systemName: symbol)
                     .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(symbolColor ?? color)
             }
             .foregroundStyle(color)
             .padding(.horizontal, 16)

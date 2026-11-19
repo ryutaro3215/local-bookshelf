@@ -16,6 +16,14 @@ enum GenreName {
     static func isValid(_ text: String) -> Bool {
         !LibraryStore.sanitize(text).isEmpty
     }
+
+    /// 同じ名前の棚があるときの案内（N-066⑤）
+    static var duplicateNotice: some View {
+        Label("同じ名前のジャンルがすでにあります", systemImage: "exclamationmark.circle")
+            .font(BookshelfStyle.sans(12, .medium))
+            .foregroundStyle(BookshelfStyle.danger)
+            .accessibilityIdentifier("genre.duplicate")
+    }
 }
 
 // MARK: - ジャンルの追加（F-3）
@@ -23,6 +31,8 @@ enum GenreName {
 /// ジャンルの追加（F-3）。名前と置き場所（区分）を選ぶ。区分の初期値はマイジャンル。選んだ区分の末尾に追加する
 struct GenreAddView: View {
     let categories: [GenreCategory]
+    /// 同じ名前の棚がすでにあるか（あれば追加できない。N-066⑤）
+    var isTaken: (String) -> Bool = { _ in false }
     let onCancel: () -> Void
     let onAdd: (String, String) -> Void
     @State private var name = ""
@@ -53,12 +63,12 @@ struct GenreAddView: View {
                     } label: {
                         Text("追加")
                             .font(BookshelfStyle.sans(15, .medium))
-                            .foregroundStyle(GenreName.isValid(name) ? BookshelfStyle.ink : BookshelfStyle.faint)
+                            .foregroundStyle(canAdd ? BookshelfStyle.ink : BookshelfStyle.faint)
                             .frame(minWidth: 44, minHeight: 44)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .disabled(!GenreName.isValid(name))
+                    .disabled(!canAdd)
                     .accessibilityIdentifier("genreAdd.save")
                 }
             }
@@ -81,11 +91,16 @@ struct GenreAddView: View {
                     .background(
                         RoundedRectangle(cornerRadius: 14).stroke(BookshelfStyle.ink, lineWidth: 1.5)
                     )
-                    Text("好きな作家やシリーズの棚も作れます")
-                        .font(BookshelfStyle.sans(12))
-                        .tracking(0.3)
-                        .foregroundStyle(BookshelfStyle.faint)
-                        .padding(.top, 10)
+                    if isDuplicate {
+                        GenreName.duplicateNotice
+                            .padding(.top, 10)
+                    } else {
+                        Text("好きな作家やシリーズの棚も作れます")
+                            .font(BookshelfStyle.sans(12))
+                            .tracking(0.3)
+                            .foregroundStyle(BookshelfStyle.faint)
+                            .padding(.top, 10)
+                    }
                     fieldLabel("置き場所（区分）")
                         .padding(.top, 22)
                     VStack(spacing: 0) {
@@ -108,6 +123,9 @@ struct GenreAddView: View {
         }
         .background(Color.white)
     }
+
+    private var isDuplicate: Bool { isTaken(GenreName.limit(name)) }
+    private var canAdd: Bool { GenreName.isValid(name) && !isDuplicate }
 
     private func fieldLabel(_ text: LocalizedStringKey) -> some View {
         Text(text)
@@ -136,7 +154,8 @@ struct GenreAddView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .frame(minHeight: 38)
+            // 押せる範囲を 44 にそろえる（N-068⑥）
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -153,16 +172,25 @@ struct GenreAddView: View {
 /// ジャンル名の変更のダイアログ（F-4b。白・角 18・幅 290。キャンセル／保存）
 struct GenreRenameDialog: View {
     let currentName: String
+    /// ほかの棚に同じ名前があるか（あれば保存できない。N-066⑤）
+    let isTaken: (String) -> Bool
     let onCancel: () -> Void
     let onSave: (String) -> Void
     @State private var name: String
 
-    init(currentName: String, onCancel: @escaping () -> Void, onSave: @escaping (String) -> Void) {
+    init(
+        currentName: String, isTaken: @escaping (String) -> Bool = { _ in false }, onCancel: @escaping () -> Void,
+        onSave: @escaping (String) -> Void
+    ) {
         self.currentName = currentName
+        self.isTaken = isTaken
         self.onCancel = onCancel
         self.onSave = onSave
         _name = State(initialValue: currentName)
     }
+
+    private var isDuplicate: Bool { name != currentName && isTaken(savedName) }
+    private var canSave: Bool { GenreName.isValid(name) && !isDuplicate }
 
     /// 保存する名前。変えていなければ今の表示名のまま（上限で切らない。英語の初期ジャンル名は20文字を超えることがある。T15）
     private var savedName: String {
@@ -173,7 +201,7 @@ struct GenreRenameDialog: View {
         GenreDialog(
             onCancel: onCancel,
             confirmTitle: String(localized: "保存"), confirmID: "rename.save", isDestructive: false,
-            isConfirmEnabled: GenreName.isValid(name), onConfirm: { onSave(savedName) },
+            isConfirmEnabled: canSave, onConfirm: { onSave(savedName) },
             cancelID: "rename.cancel", dialogID: "rename.dialog"
         ) {
             VStack(spacing: 8) {
@@ -187,12 +215,15 @@ struct GenreRenameDialog: View {
                     .foregroundStyle(BookshelfStyle.sub)
                 LimitedTextField(
                     text: $name, size: 16, accessibilityLabel: String(localized: "新しい名前"), identifier: "rename.field",
-                    onReturn: { if GenreName.isValid(name) { onSave(savedName) } }
+                    onReturn: { if canSave { onSave(savedName) } }
                 )
                 .padding(.horizontal, 14)
                 .frame(height: 40)
                 .background(RoundedRectangle(cornerRadius: 12).stroke(BookshelfStyle.ink, lineWidth: 1.5))
                 .padding(.top, 8)
+                if isDuplicate {
+                    GenreName.duplicateNotice
+                }
             }
         }
     }
@@ -324,6 +355,8 @@ struct LimitedTextField: UIViewRepresentable {
         field.font = Self.font(size: size)
         field.adjustsFontForContentSizeCategory = true
         field.textColor = UIColor(red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255, alpha: 1)
+        // カーソルの色も文字と同じ黒（Figma F-3・F-4b。N-068⑥）
+        field.tintColor = field.textColor
         field.returnKeyType = .done
         field.clearButtonMode = .never
         field.accessibilityLabel = accessibilityLabel

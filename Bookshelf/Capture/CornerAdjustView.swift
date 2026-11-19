@@ -69,11 +69,15 @@ struct CornerAdjustView: View {
         }
         .background(BookshelfStyle.cameraBackground.ignoresSafeArea())
         .preferredColorScheme(.dark)
+        .onAppear {
+            // 一覧から直すときは、今の四隅から始める（N-041）
+            if let corners = adjustment.initialCorners { quad = corners }
+        }
     }
 
     private var topBar: some View {
         ZStack {
-            if model.purpose == .registration {
+            if model.purpose == .registration && !adjustment.isRecrop {
                 DestinationMenu(shelves: model.selectableShelves(), destination: $model.destination, dark: true)
             }
             HStack {
@@ -86,7 +90,7 @@ struct CornerAdjustView: View {
                         .frame(width: 36, height: 36)
                         .background(Circle().fill(BookshelfStyle.cameraControl))
                 }
-                .accessibilityLabel("この写真を使わない")
+                .accessibilityLabel(adjustment.isRecrop ? "キャンセル" : "この写真を使わない")
                 Spacer()
             }
             .padding(.horizontal, 20)
@@ -98,6 +102,8 @@ struct CornerAdjustView: View {
         Group {
             if dragging != nil {
                 Text("ルーペを見ながら、角を表紙のふちに合わせます")
+            } else if adjustment.isRecrop {
+                Text("角を動かして、表紙のふちに合わせてください")
             } else {
                 Text("表紙の四隅を見つけられませんでした\n角を動かして、表紙のふちに合わせてください")
             }
@@ -118,7 +124,7 @@ struct CornerAdjustView: View {
             Button {
                 model.discardAdjustment(adjustment)
             } label: {
-                Text("撮り直す")
+                Text(adjustment.isRecrop ? "キャンセル" : "撮り直す")
                     .font(BookshelfStyle.sans(15, .medium))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, minHeight: 52)
@@ -169,12 +175,34 @@ struct CornerAdjustView: View {
         let x = min(max((viewLocation.x - frame.minX) / frame.width, 0), 1)
         let y = min(max(1 - (viewLocation.y - frame.minY) / frame.height, 0), 1)
         let p = CGPoint(x: x, y: y)
+        var moved = quad
         switch corner {
-        case .topLeft: quad.topLeft = p
-        case .topRight: quad.topRight = p
-        case .bottomRight: quad.bottomRight = p
-        case .bottomLeft: quad.bottomLeft = p
+        case .topLeft: moved.topLeft = p
+        case .topRight: moved.topRight = p
+        case .bottomRight: moved.bottomRight = p
+        case .bottomLeft: moved.bottomLeft = p
         }
+        // 凹んだ形・辺が交差した形にはしない（その位置へは動かさず、直前の位置に止める。N-036）
+        if Self.isConvex(moved.points) { quad = moved }
+    }
+
+    /// 四角形が凸か（隣り合う辺の外積の向きがすべて同じで、0 に近すぎない）
+    static func isConvex(_ points: [CGPoint]) -> Bool {
+        guard points.count == 4 else { return false }
+        var sign: CGFloat = 0
+        for i in 0..<4 {
+            let a = points[i]
+            let b = points[(i + 1) % 4]
+            let c = points[(i + 2) % 4]
+            let cross = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x)
+            guard abs(cross) > 1e-4 else { return false }
+            if sign == 0 {
+                sign = cross > 0 ? 1 : -1
+            } else if (cross > 0 ? 1 : -1) != sign {
+                return false
+            }
+        }
+        return true
     }
 
     private func outline(in frame: CGRect) -> some View {

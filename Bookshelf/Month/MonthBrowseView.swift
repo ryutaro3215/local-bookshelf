@@ -59,7 +59,8 @@ struct MonthBrowseView: View {
             .overlay(alignment: .topTrailing) {
                 ShelfIndicator(
                     count: groups.count, index: groupIndex,
-                    label: group.period == .month ? "月の位置" : "年の位置"
+                    label: group.period == .month ? "月の位置" : "年の位置",
+                    onStep: onMoveGroup
                 )
                 .padding(.trailing, 26)
                 .padding(.top, 388)

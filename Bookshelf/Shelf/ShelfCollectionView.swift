@@ -245,15 +245,16 @@ struct ShelfCollectionView: UIViewRepresentable {
             if let cell = cell as? ShelfCell {
                 let index = indexPath.item
                 cell.configure(parent.items[index], index: index, count: parent.items.count, store: parent.store)
-                // VoiceOver では長押しの代わりに「選択」の操作で選ぶ（N5）
-                cell.accessibilityCustomActions = [
-                    UIAccessibilityCustomAction(name: String(localized: "選択して並べ替え・移動・削除")) { [weak self] _ in
-                        guard let self, index == self.reported else { return false }
-                        self.parent.onReorderEvent(.began(index))
-                        self.parent.onReorderEvent(.ended(.zero))
-                        return true
-                    }
-                ]
+                // VoiceOver では長押しの代わりに「選択」の操作で選ぶ（N5）。操作は中央の本にだけ出す（N-064）
+                cell.selectAction = UIAccessibilityCustomAction(
+                    name: String(localized: "選択して並べ替え・移動・削除")
+                ) { [weak self] _ in
+                    guard let self, index == self.reported else { return false }
+                    self.parent.onReorderEvent(.began(index))
+                    self.parent.onReorderEvent(.ended(.zero))
+                    return true
+                }
+                cell.isCentered = { [weak self] in self?.reported == index }
             }
             return cell
         }

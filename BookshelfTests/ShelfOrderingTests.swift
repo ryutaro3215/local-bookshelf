@@ -210,4 +210,27 @@ struct ShelfOrderingTests {
         let shelf2 = try #require(try reopened.shelves().first(where: { $0.name == "哲学・思想" }))
         #expect(reopened.books(in: shelf2).map(\.title) == ["白い灯台の記録", "灰色の観測所", "遠い温室", "冬の回廊"])
     }
+    @Test("手動に戻す: 整列の前の並びは、アプリを閉じても（新しいコンテナでも）戻せる（N-058）")
+    func manualSnapshotPersists() throws {
+        let shelf = try genre("哲学・思想")
+        let books = try seedFour(shelf)
+        try store.moveBook(books[3], toIndex: 0)
+        let manual = store.books(in: shelf).map(\.id)
+        let editing = ShelfEditing()
+        editing.sort(shelf, by: .title, books: store.books(in: shelf), store: store)
+        #expect(store.books(in: shelf).map(\.id) != manual)
+        #expect(editing.sortKey(for: shelf, books: store.books(in: shelf)) == .title)
+
+        // 再起動相当: 新しいコンテナと新しい画面の状態
+        let config = ModelConfiguration(url: folder.appendingPathComponent("library.store"))
+        let container = try ModelContainer(for: Book.self, Shelf.self, configurations: config)
+        let reopened = LibraryStore(container: container, images: images)
+        let shelf2 = try #require(try reopened.shelves().first(where: { $0.name == "哲学・思想" }))
+        let editing2 = ShelfEditing()
+        #expect(editing2.sortKey(for: shelf2, books: reopened.books(in: shelf2)) == .title)
+        editing2.sort(shelf2, by: .manual, books: reopened.books(in: shelf2), store: reopened)
+        #expect(reopened.books(in: shelf2).map(\.id) == manual)
+        #expect(shelf2.manualSnapshot == nil)
+        #expect(shelf2.sortChoice == .manual)
+    }
 }

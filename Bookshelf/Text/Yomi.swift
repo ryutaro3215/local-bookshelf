@@ -4,7 +4,7 @@ import Foundation
 /// 題名から「よみ」（ひらがな）を端末内で作る（requirements N7・F7-1）。
 /// 通信はしない。人名・難読語は誤ることがある（requirements の割り切り）。
 enum Yomi {
-    /// 例: 「存在と時間」→「そんざいとじかん」。英字・数字はそのまま残す。
+    /// 例: 「灰色の時間割」→「はいいろのじかんわり」。英字・数字はそのまま残す。
     static func make(from title: String) -> String {
         let text = title as CFString
         let length = CFStringGetLength(text)

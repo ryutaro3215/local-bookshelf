@@ -342,13 +342,13 @@ struct ShareRendererTests {
     func breaksTitlesAtNaturalPoints() {
         // 1文字の幅 = 文字の大きさ（全角）とする
         let measure: ShareLayoutEngine.Measure = { text, size in CGFloat(text.count) * size }
-        let fitted = ShareTitle.lines("グーテンベルクの銀河系", size: 30, width: 240, measure: measure)
-        #expect(fitted.lines == ["グーテンベルクの", "銀河系"])
+        let fitted = ShareTitle.lines("トワイライトの灯台", size: 30, width: 240, measure: measure)
+        #expect(fitted.lines == ["トワイライトの", "灯台"])
         let dot = ShareTitle.lines("イタリア・ルネサンスの世界", size: 30, width: 260, measure: measure)
         #expect(dot.lines.count == 2)
         #expect(dot.lines.joined() == "イタリア・ルネサンスの世界")
-        let short = ShareTitle.lines("嫉妬論", size: 30, width: 240, measure: measure)
-        #expect(short.lines == ["嫉妬論"])
+        let short = ShareTitle.lines("青い温室論", size: 30, width: 240, measure: measure)
+        #expect(short.lines == ["青い温室論"])
         #expect(short.size == 30)
         let long = ShareTitle.lines(String(repeating: "長", count: 40), size: 30, width: 240, measure: measure)
         #expect(long.lines.count == 2)

@@ -74,6 +74,7 @@ struct BookDetailView: View {
                     .padding(.bottom, 40)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                     .task(id: toast.id) {
+                        ToastTiming.announce(toast.message, canUndo: toast.record != nil)
                         do {
                             try await Task.sleep(for: PurchaseAction.toastDuration)
                         } catch {

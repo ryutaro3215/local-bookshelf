@@ -45,35 +45,51 @@ final class AppEnvironment {
     /// 起動引数 `-UITestReset` のときは、毎回まっさらなデータ（メモリ上）・一時フォルダの画像・専用の設定で起動する（UIテスト用）
     static func make(arguments: [String] = ProcessInfo.processInfo.arguments) throws -> AppEnvironment {
         let schema = Schema([Book.self, Shelf.self])
+        // UI テスト用の起動引数はデバッグビルドだけで受け付ける（リリース版では無視する。N-036・セキュリティ監査 low）
         #if DEBUG
             if arguments.contains("-UITestPersistentStore") {
                 return try makePersistentUITest(schema: schema, arguments: arguments)
             }
-        #endif
-        if arguments.contains("-UITestReset") {
-            let suite = "com.ryutaro3215.bookshelf.uitest"
-            UserDefaults().removePersistentDomain(forName: suite)
-            let defaults = UserDefaults(suiteName: suite) ?? .standard
-            let container = try ModelContainer(
-                for: schema, configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true))
-            let images = ImageStore(
-                directory: FileManager.default.temporaryDirectory.appendingPathComponent(
-                    "UITestCovers-\(UUID().uuidString)", isDirectory: true))
-            let environment = try AppEnvironment(
-                container: container, images: images, defaults: defaults, arguments: arguments)
-            #if DEBUG
+            if arguments.contains("-UITestReset") {
+                let suite = "com.ryutaro3215.bookshelf.uitest"
+                UserDefaults().removePersistentDomain(forName: suite)
+                let defaults = UserDefaults(suiteName: suite) ?? .standard
+                let container = try ModelContainer(
+                    for: schema, configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true))
+                removeOldUITestCovers()
+                let images = ImageStore(
+                    directory: FileManager.default.temporaryDirectory.appendingPathComponent(
+                        "\(uiTestCoversPrefix)\(UUID().uuidString)", isDirectory: true))
+                let environment = try AppEnvironment(
+                    container: container, images: images, defaults: defaults, arguments: arguments)
                 if let index = arguments.firstIndex(of: "-SeedBooks"), index + 1 < arguments.count {
                     try DebugSeed.apply(arguments[index + 1], to: environment.store)
                 }
-            #endif
-            return environment
-        }
+                return environment
+            }
+        #endif
         let container = try ModelContainer(for: schema)
         return try AppEnvironment(
             container: container, images: try ImageStore.standard(), defaults: .standard, arguments: arguments)
     }
 
     #if DEBUG
+        private static let uiTestCoversPrefix = "UITestCovers-"
+
+        /// 前回までの `-UITestReset` の表紙の一時フォルダを消す（起動ごとに新しいフォルダを作るため、残り続けないように。N-064）
+        private static func removeOldUITestCovers() {
+            let temporary = FileManager.default.temporaryDirectory
+            do {
+                for name in try FileManager.default.contentsOfDirectory(atPath: temporary.path)
+                where name.hasPrefix(uiTestCoversPrefix) {
+                    try FileManager.default.removeItem(at: temporary.appendingPathComponent(name, isDirectory: true))
+                }
+            } catch {
+                // 消せなくてもテストの動作には関係しない（一時フォルダが残るだけ）
+                print("UITestCovers の一時フォルダを消せない: \(error)")
+            }
+        }
+
         /// 起動引数 `-UITestPersistentStore` のとき（UIテストの「アプリ再起動後も保持される」の確認用・デバッグビルドのみ）:
         /// 一時フォルダの決まった場所のファイルにデータと画像を保存し、次の起動でも同じものを開く。
         /// `-UITestReset` も付けると、その場所を消してまっさらにしてから `-SeedBooks` を入れる
@@ -113,7 +129,10 @@ final class AppEnvironment {
     func makeCamera() -> any CameraSource {
         #if DEBUG
             if let index = arguments.firstIndex(of: "-FakeCamera"), index + 1 < arguments.count {
-                return FakeCameraSource(scenario: FakeCameraSource.parse(arguments[index + 1]))
+                let text = arguments[index + 1]
+                let denied = text.split(separator: ",").contains { $0.trimmingCharacters(in: .whitespaces) == "denied" }
+                return FakeCameraSource(
+                    scenario: FakeCameraSource.parse(text), authorization: denied ? .denied : .authorized)
             }
             #if targetEnvironment(simulator)
                 return FakeCameraSource()
@@ -176,16 +195,22 @@ final class AppEnvironment {
             "Specimen Box", "Observatory", "Lighthouse", "Clock", "Whale", "Greenhouse", "Atlas",
         ]
 
-        /// 架空の題名（番号ごとに決まる）。英語表示のとき（T15 の UI テスト・スクリーンショット）は英語の語で作る
+        /// 架空の題名（番号ごとに決まる）。英語表示のとき（T15 の UI テスト・スクリーンショット）は英語の語で作る。
+        /// 語の組み合わせは日本語は24冊、英語は56冊で一巡するので、2巡目からは「 2」「 3」…を付けて題名を重ねない（N-055）
         static func title(_ serial: Int) -> String {
             if InitialGenres.displaysInEnglish {
                 let head = headsEn[serial % headsEn.count]
-                return "The \(head) \(bodiesEn[(serial / headsEn.count + serial) % bodiesEn.count])"
+                let base = "The \(head) \(bodiesEn[(serial / headsEn.count + serial) % bodiesEn.count])"
+                return volume(base, serial: serial, cycle: 56)
             }
             let head = heads[serial % heads.count]
             let body = bodies[(serial / heads.count + serial) % bodies.count]
             let tail = tails[(serial * 7 / 3) % tails.count]
-            return "\(head)\(body)\(tail)"
+            return volume("\(head)\(body)\(tail)", serial: serial, cycle: 24)
+        }
+
+        private static func volume(_ base: String, serial: Int, cycle: Int) -> String {
+            serial < cycle ? base : "\(base) \(serial / cycle + 1)"
         }
 
         /// 合成の表紙（縦横比を少しずつ変える。色の地・帯・題名）

@@ -21,6 +21,16 @@ struct AppRootView: View {
     }
 
     var body: some View {
+        content
+            // 起動して画面を出したあと、少し待ってから、どの本にも紐付かない表紙の画像を片付ける（N-072②）
+            .task {
+                try? await Task.sleep(for: .seconds(3))
+                await environment.store.removeOrphanCovers()
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         if onboarding.isCompleted {
             ShelfScreen(environment: environment)
                 .sheet(isPresented: $showsFirstBook, onDismiss: beginContinuedFlow) {

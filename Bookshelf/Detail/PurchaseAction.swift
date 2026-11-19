@@ -70,8 +70,8 @@ final class PurchaseAction {
         let record: PurchaseRecord?
     }
 
-    /// 通知を出しておく時間（棚の移動の通知と同じ）
-    static let toastDuration: Duration = .seconds(5)
+    /// 通知を出しておく時間（棚の移動の通知と同じ。VoiceOver のときは長い。N-062・N-072⑦）
+    static var toastDuration: Duration { ToastTiming.duration }
     private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "Purchase")
 
     var toast: Toast?

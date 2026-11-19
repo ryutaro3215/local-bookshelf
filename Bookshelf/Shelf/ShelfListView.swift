@@ -69,6 +69,7 @@ struct ShelfListView: View {
             if let shelf = renaming {
                 GenreRenameDialog(
                     currentName: shelf.displayName,
+                    isTaken: { isNameTaken($0, excluding: shelf) },
                     onCancel: { renaming = nil },
                     onSave: { rename(shelf, to: $0) })
             }
@@ -87,6 +88,7 @@ struct ShelfListView: View {
         .fullScreenCover(isPresented: $showsAdd) {
             GenreAddView(
                 categories: InitialGenres.categories.filter { $0.id != InitialGenres.system.id },
+                isTaken: { isNameTaken($0) },
                 onCancel: { showsAdd = false },
                 onAdd: { name, categoryID in add(name: name, categoryID: categoryID) })
         }
@@ -295,6 +297,16 @@ struct ShelfListView: View {
         } catch {
             Self.logger.error("ジャンルを並び替えられない: \(error.localizedDescription, privacy: .public)")
             errorMessage = String(localized: "並び替えを保存できませんでした")
+        }
+    }
+
+    /// 同じ名前の棚があるか（N-066⑤。読めないときは重なっていないものとして扱い、保存のときに判定する）
+    private func isNameTaken(_ name: String, excluding shelf: Shelf? = nil) -> Bool {
+        do {
+            return try store.isShelfNameTaken(name, excluding: shelf)
+        } catch {
+            Self.logger.error("棚の名前を比べられない: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 

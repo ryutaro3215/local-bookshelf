@@ -84,7 +84,7 @@ nonisolated struct CoverDetector: Sendable {
 
         // 注意: 書類の輪郭の検出は内部で Swift Concurrency の協調スレッドを使う。協調スレッドから同期的に
         // 多数を同時に呼ぶとスレッドが尽きて止まる（シミュレータで、並列のテストから10件同時に呼んで再現）。
-        // アプリでは CoverPipeline（actor）で1枚ずつ呼び、ライブの検出は GCD のキューから呼ぶので起きない
+        // アプリでは CoverPipeline（専用の直列キュー）で1枚ずつ呼び、ライブの検出は GCD のキューから呼ぶので起きない
         try handler.perform([document, rectangles])
 
         let aspect = CGFloat(width) / CGFloat(max(height, 1))

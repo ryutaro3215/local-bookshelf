@@ -63,12 +63,11 @@ nonisolated struct OCRAccuracyTests {
     func croppedSamples() throws -> [OCRSample] {
         let entries = try #require(try json(OCRSamples.manifest) as? [[String: Any]])
         var flags: [Int: [String: Any]] = [:]
-        if let categories = try? json(OCRSamples.coverCategories) as? [String: Any],
-            let samples = categories["samples"] as? [[String: Any]]
-        {
-            for sample in samples {
-                if let index = sample["index"] as? Int { flags[index] = sample }
-            }
+        // カテゴリのファイルが読めない・形が違うときは、テストを失敗させる（黙ってカテゴリなしで測らない。N-027）
+        let categories = try #require(try json(OCRSamples.coverCategories) as? [String: Any])
+        let samples = try #require(categories["samples"] as? [[String: Any]])
+        for sample in samples {
+            if let index = sample["index"] as? Int { flags[index] = sample }
         }
         return try entries.map { entry in
             let index = try #require(entry["index"] as? Int)

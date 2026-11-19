@@ -1,5 +1,6 @@
 import PhotosUI
 import SwiftUI
+import UIKit
 import os
 
 /// 登録待ちの一覧（C-2・C-5・C-6）。題名・ジャンル・購入済みのチェックを確かめて登録する（F2-1・F3-4・F1-8）
@@ -33,14 +34,17 @@ struct PendingListView: View {
                         .listRowInsets(EdgeInsets())
                 }
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
-                    PendingRow(item: item, index: index, shelves: shelves, focusedItem: $focusedItem)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button("外す", role: .destructive) { model.remove(item) }
-                                .accessibilityIdentifier("pending.row.\(index).remove")
-                        }
-                        .accessibilityAction(named: "登録待ちから外す") { model.remove(item) }
+                    PendingRow(
+                        item: item, index: index, shelves: shelves, focusedItem: $focusedItem,
+                        onRecrop: { model.beginRecrop(item) }
+                    )
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button("外す", role: .destructive) { model.remove(item) }
+                            .accessibilityIdentifier("pending.row.\(index).remove")
+                    }
+                    .accessibilityAction(named: "登録待ちから外す") { model.remove(item) }
                 }
                 if model.processingCount > 0 {
                     HStack(spacing: 8) {
@@ -317,6 +321,8 @@ struct PendingRow: View {
     let index: Int
     let shelves: [Shelf]
     var focusedItem: FocusState<UUID?>.Binding
+    /// 表紙を押したとき: 四隅を直す画面（N 画面）を開く（N-041）
+    var onRecrop: () -> Void = {}
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// 最大の文字サイズでは、チェックと表紙の下に題名・ジャンル・状態を幅いっぱいに置く（N5）
     private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
@@ -373,8 +379,10 @@ struct PendingRow: View {
         .accessibilityAddTraits(item.owned ? .isSelected : [])
     }
 
+    /// 表紙。元の写真があるときは押すと四隅を直せる（自動の切り抜きが外れたとき。N-041）
+    @ViewBuilder
     private var thumbnail: some View {
-        Group {
+        let cover = Group {
             if let image = item.thumbnailImage {
                 Image(uiImage: image).resizable().scaledToFit()
             } else {
@@ -383,6 +391,26 @@ struct PendingRow: View {
         }
         .frame(width: 44, height: 62)
         .clipShape(RoundedRectangle(cornerRadius: 2))
+        if item.sourceFile != nil {
+            Button(action: onRecrop) {
+                cover
+                    .overlay(alignment: .bottomTrailing) {
+                        Image(systemName: "crop")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 18, height: 18)
+                            .background(Circle().fill(BookshelfStyle.ink.opacity(0.75)))
+                            .offset(x: 5, y: 5)
+                    }
+                    .frame(minWidth: 44, minHeight: 62)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("表紙の四隅を直す")
+            .accessibilityIdentifier("pending.row.\(index).cover")
+        } else {
+            cover
+        }
     }
 
     @ViewBuilder
@@ -706,17 +734,22 @@ struct PendingTitleEditor: View {
             ? String(localized: "未入力はあと\(untitled)冊") : String(localized: "未入力はこの本を含めてあと\(untitled)冊")
     }
 
-    /// 前後の本へ。最後の本で「次へ」を押したら、まだ未入力の本があればそこへ、無ければ一覧へ戻る
+    /// 前後の本へ。最後の本で「次へ」を押したら、まだ未入力の本があればそこへ、無ければ一覧へ戻る。
+    /// 未入力が今の本だけのときは、題名欄にとどまって入力を促す（何も起きないように見えないように。N-072⑥）
     private func step(_ delta: Int) {
         guard let index else { return }
         let next = index + delta
         if model.items.indices.contains(next) {
             currentID = model.items[next].id
         } else if delta > 0 {
-            if let untitled = model.items.first(where: { !$0.hasTitle }) {
+            if let untitled = model.items.first(where: { !$0.hasTitle && $0.id != currentID }) {
                 currentID = untitled.id
-            } else {
+            } else if model.items[index].hasTitle {
                 onClose()
+            } else {
+                titleFocused = true
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                AccessibilityNotification.Announcement(String(localized: "題名を入力してください")).post()
             }
         }
     }

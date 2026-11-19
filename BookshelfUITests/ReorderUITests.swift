@@ -10,11 +10,11 @@ final class ReorderUITests: XCTestCase {
 
     // MARK: - 手順
 
-    private func launch(seed: String, persistent: Bool = false) -> XCUIApplication {
+    private func launch(seed: String, persistent: Bool = false, longToast: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments =
             UITestLanguage.japanese + ["-UITestReset", "-SeedBooks", seed]
-            + (persistent ? ["-UITestPersistentStore"] : [])
+            + (persistent ? ["-UITestPersistentStore"] : []) + (longToast ? ["-UITestLongToast"] : [])
         app.launch()
         XCTAssertTrue(app.buttons["shelf.title"].waitForExistence(timeout: 20))
         return app
@@ -276,7 +276,8 @@ final class ReorderUITests: XCTestCase {
 
     /// 移した直後にその本を削除すると取り消しのトーストが消え、元の棚の並びは変わらない（N-060・N-063）
     func testMoveThenDeleteDismissesUndo() {
-        let app = launch(seed: "哲学・思想:3")
+        // トーストを時間で消さない（5秒で自然に消えて、修正が無くても通ってしまわないように。N-068①）
+        let app = launch(seed: "哲学・思想:3", longToast: true)
         wait(element(app, "shelf.book.2"), "exists == true")
         let before = shelfTitles(app, count: 3)
 

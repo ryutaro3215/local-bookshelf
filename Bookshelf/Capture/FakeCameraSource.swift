@@ -9,6 +9,7 @@
     /// - `cover:<題名>`: 机の上の、少し傾いた表紙（四隅を検出でき、題名を読める）
     /// - `blank`: 文字の無い表紙（四隅は検出できるが、題名の候補が出ない）
     /// - `nocover`: 表紙の無い画像（四隅を検出できない → N 画面）
+    /// - `denied`: カメラを許可しなかった状態にする（O-3 の UI テスト用。N-039）
     @Observable
     final class FakeCameraSource: CameraSource {
         enum Shot: Equatable {
@@ -24,18 +25,19 @@
         let scenario: [Shot]
         private(set) var index = 0
         private(set) var liveQuad: CoverQuad?
-        let authorization: CameraAuthorization = .authorized
+        let authorization: CameraAuthorization
         /// ファインダーに映す、次に撮る画像
         private(set) var preview: UIImage
 
-        init(scenario: [Shot] = FakeCameraSource.defaultScenario) {
+        init(scenario: [Shot] = FakeCameraSource.defaultScenario, authorization: CameraAuthorization = .authorized) {
             self.scenario = scenario.isEmpty ? Self.defaultScenario : scenario
+            self.authorization = authorization
             self.preview = Self.render(self.scenario[0], size: CGSize(width: 384, height: 512))
         }
 
         /// 起動引数のシナリオ文字列を読む
         static func parse(_ text: String) -> [Shot] {
-            text.split(separator: ",").map { part in
+            text.split(separator: ",").filter { $0.trimmingCharacters(in: .whitespaces) != "denied" }.map { part in
                 let item = part.trimmingCharacters(in: .whitespaces)
                 if item == "blank" { return .blank }
                 if item == "nocover" { return .noCover }
@@ -44,7 +46,7 @@
             }
         }
 
-        func requestAccess() async -> Bool { true }
+        func requestAccess() async -> Bool { authorization == .authorized }
         func start() {}
         func stop() {}
 
