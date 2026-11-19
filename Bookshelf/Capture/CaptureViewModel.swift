@@ -121,10 +121,15 @@ nonisolated final class CoverPipeline: @unchecked Sendable {
     private let processor = CoverProcessor()
     private let queue = DispatchQueue(label: "com.ryutaro3215.bookshelf.cover", qos: .userInitiated)
 
-    func process(_ data: Data, corners: CoverQuad? = nil) async throws -> ProcessedCover {
+    /// `fromLibrary` が true で書影の画像そのもの（CoverProcessor.isDigitalCover）なら、四隅を探さず画像全体を使う
+    func process(_ data: Data, corners: CoverQuad? = nil, fromLibrary: Bool = false) async throws -> ProcessedCover {
         try await withCheckedThrowingContinuation { continuation in
             queue.async { [processor] in
-                continuation.resume(with: Result { try processor.process(data, corners: corners) })
+                continuation.resume(
+                    with: Result {
+                        let whole = fromLibrary && corners == nil && CoverProcessor.isDigitalCover(data)
+                        return try processor.process(data, corners: corners, wholeImage: whole)
+                    })
             }
         }
     }
@@ -288,10 +293,11 @@ final class CaptureViewModel {
     }
 
     /// 撮影・ライブラリの画像を処理する。四隅を検出できれば登録待ちへ、できなければ手動調整（N 画面）へ。
+    /// ライブラリから選んだ書影の画像そのもの（撮影情報が無く表紙の形）は、四隅を探さずそのまま登録待ちへ入れる。
     /// 呼ぶ前に `processingCount` を1つ増やしておくこと（撮影は shutter、ライブラリは reserveImport が増やす）
-    func ingest(_ data: Data) async {
+    func ingest(_ data: Data, fromLibrary: Bool = false) async {
         do {
-            let result = try await pipeline.process(data)
+            let result = try await pipeline.process(data, fromLibrary: fromLibrary)
             if result.isDetected {
                 // あとで一覧から四隅を直せるよう、元の写真を縮小して一時ファイルに置く（N-041）
                 let source = await pipeline.adjustmentSource(data).flatMap(PendingSourceFile.init(data:))

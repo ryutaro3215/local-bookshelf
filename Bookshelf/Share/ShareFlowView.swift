@@ -213,7 +213,7 @@ struct ShareFlowView: View {
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
         // Figma の K-2・K-3 は白い地（iOS 26 の半透明のシートにしない）
-        .presentationBackground(Color.white)
+        .presentationBackground(BookshelfStyle.surface)
         // 範囲を選んだら共有先・プレビューは画面いっぱいに広げる
         .onChange(of: path) { _, steps in
             detent = steps.isEmpty && request.options.count > 1 ? rangeDetent : .large
@@ -311,7 +311,7 @@ private struct ShareRangeStep: View {
                 Text("次へ")
                     .font(BookshelfStyle.sans(16, .medium))
                     .tracking(0.5)
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(BookshelfStyle.onInk)
                     .frame(maxWidth: .infinity, minHeight: 52)
                     .background(Capsule().fill(BookshelfStyle.ink))
                     .contentShape(Capsule())
@@ -343,10 +343,10 @@ private struct ShareRangeStep: View {
                 ZStack {
                     Circle()
                         .stroke(isOn ? BookshelfStyle.ink : BookshelfStyle.checkOff, lineWidth: isOn ? 0 : 1.5)
-                        .background(Circle().fill(isOn ? BookshelfStyle.ink : Color.white))
+                        .background(Circle().fill(isOn ? BookshelfStyle.ink : BookshelfStyle.surface))
                         .frame(width: 20, height: 20)
                     if isOn {
-                        Circle().fill(Color.white).frame(width: 7, height: 7)
+                        Circle().fill(BookshelfStyle.onInk).frame(width: 7, height: 7)
                     }
                 }
                 let layout =
@@ -372,7 +372,7 @@ private struct ShareRangeStep: View {
             .frame(maxWidth: .infinity, minHeight: 60)
             .background(
                 RoundedRectangle(cornerRadius: 18)
-                    .fill(isOn ? Color.white : BookshelfStyle.fill)
+                    .fill(isOn ? BookshelfStyle.surface : BookshelfStyle.fill)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 18)
@@ -466,7 +466,7 @@ private struct ShareDestinationStep: View {
             .padding(.bottom, 8)
             .accessibilityIdentifier("share.cancel")
         }
-        .background(Color.white)
+        .background(BookshelfStyle.background)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("share.destinations")
     }
@@ -605,7 +605,7 @@ private struct SharePreviewStep: View {
                         Text(post)
                             .font(BookshelfStyle.sans(16, .medium))
                             .tracking(0.5)
-                            .foregroundStyle(Color.white)
+                            .foregroundStyle(BookshelfStyle.onInk)
                             .frame(maxWidth: .infinity, minHeight: 52)
                             .background(Capsule().fill(BookshelfStyle.ink))
                             .contentShape(Capsule())
@@ -617,7 +617,7 @@ private struct SharePreviewStep: View {
                     Text("写真に保存")
                         .font(BookshelfStyle.sans(destination == .photos ? 16 : 15, .medium))
                         .tracking(0.5)
-                        .foregroundStyle(destination == .photos ? Color.white : BookshelfStyle.ink)
+                        .foregroundStyle(destination == .photos ? BookshelfStyle.onInk : BookshelfStyle.ink)
                         .frame(maxWidth: .infinity, minHeight: destination == .photos ? 52 : 50)
                         .background(Capsule().fill(destination == .photos ? BookshelfStyle.ink : BookshelfStyle.fill))
                         .contentShape(Capsule())
@@ -630,7 +630,7 @@ private struct SharePreviewStep: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 8)
         }
-        .background(Color.white)
+        .background(BookshelfStyle.background)
         .toolbar(.hidden, for: .navigationBar)
         .sheet(item: $activityImage) { item in
             ActivityView(image: item.image)
@@ -778,10 +778,11 @@ private struct SharedImageView: View {
 
     private func guide(_ text: LocalizedStringKey) -> some View {
         ZStack {
+            // 共有画像（外観によらず明るい）の上に重ねるので、外観で色を変えない
             Color(red: 0xE0 / 255, green: 0xDC / 255, blue: 0xD8 / 255).opacity(0.92)
             Text(text)
                 .font(BookshelfStyle.sans(10))
-                .foregroundStyle(BookshelfStyle.sub)
+                .foregroundStyle(ShareFonts.note)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
                 .padding(.horizontal, 8)

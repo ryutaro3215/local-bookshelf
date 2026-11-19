@@ -81,7 +81,7 @@ struct ShelfListView: View {
                     onDelete: { delete(shelf) })
             }
         }
-        .background(Color.white)
+        .background(BookshelfStyle.background)
         .toolbar(.hidden, for: .navigationBar)
         .animation(.easeOut(duration: 0.15), value: renaming?.persistentModelID)
         .animation(.easeOut(duration: 0.15), value: deleting?.persistentModelID)
@@ -432,7 +432,7 @@ struct GenreRow: View {
                     .foregroundStyle(BookshelfStyle.sub)
                     .padding(.horizontal, 8)
                     .frame(height: 20)
-                    .overlay(Capsule().stroke(Color(red: 0xD0 / 255, green: 0xD0 / 255, blue: 0xD0 / 255)))
+                    .overlay(Capsule().stroke(BookshelfStyle.adaptive(0xD0D0D0, 0x3A3A3A)))
                     .padding(.trailing, 10)
             }
             Text("\(count)冊")
@@ -448,7 +448,7 @@ struct GenreRow: View {
         .background {
             if isDragging {
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.white)
+                    .fill(BookshelfStyle.surface)
                     .shadow(color: .black.opacity(0.14), radius: 12, x: 0, y: 6)
             }
         }

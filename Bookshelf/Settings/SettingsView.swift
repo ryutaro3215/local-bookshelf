@@ -9,6 +9,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showsGenres = false
     @State private var showsLicense = false
+    @Environment(AppearanceSettings.self) private var appearanceSettings
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,6 +34,9 @@ struct SettingsView: View {
                     .accessibilityAddTraits(.isButton)
                     .accessibilityIdentifier("settings.genres")
                     Footnote(text: String(localized: "ジャンル（棚）の追加・名前の変更・並び替え・削除"))
+                    SectionLabel(text: String(localized: "外観"))
+                        .padding(.top, 26)
+                    appearanceCard
                     SectionLabel(text: String(localized: "プライバシー"))
                         .padding(.top, 26)
                     privacyCard
@@ -57,7 +61,7 @@ struct SettingsView: View {
                 .padding(.bottom, 32)
             }
         }
-        .background(Color.white)
+        .background(BookshelfStyle.background)
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(isPresented: $showsGenres) {
             ShelfListView(store: store)
@@ -65,6 +69,38 @@ struct SettingsView: View {
         .navigationDestination(isPresented: $showsLicense) {
             LicenseView()
         }
+    }
+
+    /// 外観（システムに合わせる・ライト・ダーク）。選んだ行にチェック
+    private var appearanceCard: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(AppAppearance.allCases.enumerated()), id: \.element) { index, option in
+                if index > 0 { CardSeparator() }
+                Button {
+                    appearanceSettings.appearance = option
+                } label: {
+                    HStack {
+                        Text(option.label)
+                            .font(BookshelfStyle.sans(16))
+                            .tracking(0.5)
+                            .foregroundStyle(BookshelfStyle.ink)
+                        Spacer()
+                        if appearanceSettings.appearance == option {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(BookshelfStyle.ink)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 48)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(appearanceSettings.appearance == option ? .isSelected : [])
+                .accessibilityIdentifier("settings.appearance.\(option.rawValue)")
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: 16).fill(BookshelfStyle.fill))
     }
 
     /// ジャンルの数（買いたい本・未分類は数えない。Figma F-1「29件」＝初期28＋マイジャンル1）
@@ -158,7 +194,7 @@ struct LicenseView: View {
                 .padding(.bottom, 32)
             }
         }
-        .background(Color.white)
+        .background(BookshelfStyle.background)
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(item: $shownFont) { font in
             LicenseTextView(font: font)
@@ -233,7 +269,7 @@ struct LicenseTextView: View {
                 .padding(.bottom, 32)
             }
         }
-        .background(Color.white)
+        .background(BookshelfStyle.background)
         .toolbar(.hidden, for: .navigationBar)
     }
 }

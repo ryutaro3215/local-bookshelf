@@ -192,7 +192,7 @@ private struct PageDots: View {
         HStack(spacing: 6) {
             ForEach(0..<3, id: \.self) { i in
                 Capsule()
-                    .fill(i == index ? BookshelfStyle.ink : Color(red: 0xDA / 255, green: 0xDA / 255, blue: 0xDA / 255))
+                    .fill(i == index ? BookshelfStyle.ink : BookshelfStyle.grabber)
                     .frame(width: i == index ? 18 : 6, height: 6)
             }
         }
@@ -244,7 +244,7 @@ private struct PrimaryButton: View {
             Text(title)
                 .font(BookshelfStyle.sans(16, .medium))
                 .tracking(0.5)
-                .foregroundStyle(Color.white)
+                .foregroundStyle(BookshelfStyle.onInk)
                 // 大きい文字では2行まで折り返す（省略しない。N5）
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
@@ -311,7 +311,7 @@ private struct WelcomePage: View {
                 .padding(.bottom, 12)
         }
         .frame(maxWidth: .infinity)
-        .background(Color.white.ignoresSafeArea())
+        .background(BookshelfStyle.background.ignoresSafeArea())
     }
 }
 
@@ -362,7 +362,7 @@ private struct SampleCover: View {
             VStack(spacing: 0) {
                 Text(title)
                     .font(.custom("Noto Serif JP", size: width * 0.12).weight(.semibold))
-                    .foregroundStyle(dark ? Color.white : BookshelfStyle.ink)
+                    .foregroundStyle(dark ? Color.white : Color(red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.5)
@@ -435,7 +435,7 @@ private struct FirstShelfPage: View {
             .padding(.top, 30)
             .padding(.bottom, 42)
         }
-        .background(Color.white.ignoresSafeArea())
+        .background(BookshelfStyle.background.ignoresSafeArea())
     }
 
     private var headings: some View {
@@ -556,7 +556,7 @@ private struct CameraPermissionPage: View {
             .accessibilityIdentifier("onboarding.permission.library")
         }
         .frame(maxWidth: .infinity)
-        .background(Color.white.ignoresSafeArea())
+        .background(BookshelfStyle.background.ignoresSafeArea())
     }
 }
 
@@ -602,7 +602,7 @@ private struct FirstBookSheet: View {
         }
         .frame(maxWidth: .infinity)
         .presentationDetents([.height(330)])
-        .presentationBackground(Color.white)
+        .presentationBackground(BookshelfStyle.surface)
         .presentationCornerRadius(28)
         .presentationDragIndicator(.visible)
     }

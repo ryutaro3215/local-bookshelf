@@ -562,3 +562,22 @@
 - notes:
   - 開発言語を en にするとカタログの基準の言語（ja）と食い違い、exportLocalizations が失敗した。カタログの基準も en にし、ja の値を全件に入れて解消（日本語の表示は変わらない）
   - CameraController の onQuad を let にする件（N-036④）は取り下げ、rollback のテスト（N-068②）は N-099 に、見た目の差は N-097 に移した
+
+## オーナーの指摘の修正（書影の画像・縦スワイプ・棚一覧の文字・ダークモード） — done (2026-11-19)
+- changed:
+  - 書影の画像: Imaging/CoverProcessor.swift（isDigitalCover: 撮影情報が無く縦長〜正方形の画像。wholeImage で四隅を探さない）、Capture/CaptureViewModel.swift・PhotoImportHandler.swift（ライブラリから選んだ書影は画像全体を使う）、BookshelfTests/PhotoImportTests.swift（テストの写真に撮影情報を付けた・書影とカメラの写真のテスト2件）
+  - 縦スワイプ: Shelf/ShelfScreen.swift（棚表示を縦のページ送りのスクロール shelfPager に。棚の名前・本の並び・右の点を各ページに置く。見えていない棚は識別子を付けない pageIdentifier）、Shelf/ShelfCollectionView.swift（onVerticalSwipe を任意に・見えていない棚の識別子を外す）
+  - ダークモード: Settings/AppAppearance.swift（新規。外観の保存とウインドウへの反映）、Settings/SettingsView.swift（「外観」の欄）、BookshelfApp.swift（AppearanceSettings・-UITestAppearance）、Capture/CaptureView.swift（BookshelfStyle の色をライト・ダークで変わるように。onInk・background・surface を追加）、ほか画面の固定の白・黒を色のトークンに（PendingList・BookEdit・BookDetail・PurchaseAction・Search・ShelfCell・ShelfEdit・DisplayMenu・ShelfList・ShelfReorderHandler・Onboarding・ShelfScreen・MonthGrid・Settings・ShareFlowView）。preferredColorScheme(.light) を外した。撮影画面と共有画像は変えない
+  - 棚一覧の文字: Shelf/ShelfPickerSheet.swift（シートの地を明示。端末がダークのとき地だけ黒くなっていた）
+  - 文言: Localizable.xcstrings（外観・システムに合わせる・ライト・ダーク）
+  - テスト: BookshelfUITests/AppearanceUITests.swift（新規。外観の保存・ダークで主な画面のスクリーンショット）
+  - 文書: .dev/requirements.md（F1-4・F4-4・F6-8）、.dev/design-brief.md（§2-1 ダークの色）
+- verify:
+  - ShelfUITests・ReorderUITests 16件通過（縦のページ送りで棚を変える・長押しの移動と取り消し）
+  - AppearanceUITests 2件通過。ダークのスクリーンショット9枚（閲覧・棚を選ぶシート・表示メニュー・設定・ジャンル管理・詳細・編集・検索・登録方法）で、文字と地が同じ色になっていないことを目で確認
+  - `swift format lint` → 出力なし / `scripts/check-no-network.sh` → OK
+- notes:
+  - ダークの配色は Figma に無く担当が決めた（design-brief §2-1）。Figma に足すかはオーナー判断
+  - 縦のページの隣の棚は、SwiftUI の accessibilityHidden では UI テスト・読み上げから消えなかったため、見えていない棚には識別子を付けない形にした
+  - グリッド表示と購入月別は今までどおり（縦のページ送りは棚表示だけ）
+  - 全件のテストで LocalizationUITests が1件失敗: グリッドから棚表示に戻すと、縦のページが先頭の棚のまま開くことがあった（見えている棚と画面の棚がずれ、長押しが効かない）。開いたときに今の棚へ送るようにして解消（ShelfScreen.shelfPager の ScrollViewReader）

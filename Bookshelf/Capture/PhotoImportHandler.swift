@@ -22,6 +22,7 @@ extension PhotosPickerItem: ImportablePhoto {
 /// - 選んだ時点で、枚数分（登録待ちの残りまで）を上限の数に予約する（読み込み中に撮影しても30冊を超えない）
 /// - 1枚ずつ順に読み込み、補正が終わってから次を読む。原寸のデータは処理が終われば手放す
 /// - 四隅を見つけられなかった写真は、上向きに縮小した JPEG だけを手動調整待ちとして持つ（原寸・展開済みの画像は持たない）
+/// - 書影の画像そのもの（カメラの撮影情報が無く、表紙の形の画像）は四隅を探さず、画像全体を表紙にする
 /// - 登録の確定は撮影と同じ `CaptureViewModel.register`（データ追加日＝登録した日時、購入済みなら購入日＝その日付。F3）
 @MainActor
 enum PhotoImportHandler {
@@ -44,7 +45,7 @@ enum PhotoImportHandler {
                 unreadable += 1
                 continue
             }
-            await model.ingest(data)
+            await model.ingest(data, fromLibrary: true)
         }
         if unreadable > 0 {
             model.errorMessage = String(localized: "\(unreadable)枚の写真を読み込めませんでした")

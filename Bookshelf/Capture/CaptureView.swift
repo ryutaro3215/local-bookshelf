@@ -2,20 +2,46 @@ import CoreText
 import PhotosUI
 import SwiftData
 import SwiftUI
+import UIKit
 import os
 
 // MARK: - デザインのトークン（.dev/design-brief.md §2）
 
-/// 色・書体（design-brief §2）。T5 で撮影登録の画面のために置いた。T6 で共通のトークン定義に移す想定
+/// 色・書体（design-brief §2）。T5 で撮影登録の画面のために置いた。T6 で共通のトークン定義に移す想定。
+/// 色はライト（Figma の値）とダーク（2026-11-19 オーナー指示で追加。design-brief §2-3）で変わる。
+/// 共有画像（ShareFonts）と撮影画面（camera〜）は外観によらず同じ色
 nonisolated enum BookshelfStyle {
-    static let ink = Color(red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255)
-    static let sub = Color(red: 0x8E / 255, green: 0x8E / 255, blue: 0x8E / 255)
-    static let faint = Color(red: 0xBD / 255, green: 0xBD / 255, blue: 0xBD / 255)
-    static let fill = Color(red: 0xF2 / 255, green: 0xF2 / 255, blue: 0xF2 / 255)
-    static let line = Color(red: 0xE6 / 255, green: 0xE6 / 255, blue: 0xE6 / 255)
-    static let panelLine = Color(red: 0xED / 255, green: 0xED / 255, blue: 0xED / 255)
-    static let checkOff = Color(red: 0xC4 / 255, green: 0xC4 / 255, blue: 0xC4 / 255)
-    static let grabber = Color(red: 0xDA / 255, green: 0xDA / 255, blue: 0xDA / 255)
+    /// ライトとダークで変わる色（16進の RGB）
+    static func adaptive(_ light: UInt32, _ dark: UInt32) -> Color {
+        Color(uiColor: adaptiveUI(light, dark))
+    }
+
+    /// UIKit の部品で使う、ライトとダークで変わる色
+    static func adaptiveUI(_ light: UInt32, _ dark: UInt32) -> UIColor {
+        UIColor { traits in rgb(traits.userInterfaceStyle == .dark ? dark : light) }
+    }
+
+    static func rgb(_ value: UInt32) -> UIColor {
+        UIColor(
+            red: CGFloat((value >> 16) & 0xFF) / 255, green: CGFloat((value >> 8) & 0xFF) / 255,
+            blue: CGFloat(value & 0xFF) / 255, alpha: 1)
+    }
+
+    /// 文字・主ボタンの地（ライト #141414・ダーク #EDEDED）
+    static let ink = adaptive(0x141414, 0xEDEDED)
+    /// ink を地にしたときの文字（主ボタンの文字・トースト）
+    static let onInk = adaptive(0xFFFFFF, 0x141414)
+    static let sub = adaptive(0x8E8E8E, 0x9A9A9A)
+    static let faint = adaptive(0xBDBDBD, 0x5C5C5C)
+    static let fill = adaptive(0xF2F2F2, 0x1F1F1F)
+    static let line = adaptive(0xE6E6E6, 0x2C2C2C)
+    static let panelLine = adaptive(0xEDEDED, 0x262626)
+    static let checkOff = adaptive(0xC4C4C4, 0x4A4A4A)
+    static let grabber = adaptive(0xDADADA, 0x3A3A3A)
+    /// 画面の地（ライト 白・ダーク #121212）
+    static let background = adaptive(0xFFFFFF, 0x121212)
+    /// 地の上に浮かぶ面（ダイアログ・メニュー・シート。ライト 白・ダーク #1E1E1E）
+    static let surface = adaptive(0xFFFFFF, 0x1E1E1E)
     /// 撮影画面・四隅調整の地とボタン
     static let cameraBackground = Color(red: 0x0B / 255, green: 0x0B / 255, blue: 0x0B / 255)
     static let cameraControl = Color.white.opacity(0.14)
@@ -76,6 +102,7 @@ struct RegistrationMethodSheet: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         .presentationDetents([isLarge ? .large : .height(420)])
+        .presentationBackground(BookshelfStyle.surface)
         .presentationCornerRadius(28)
         .presentationDragIndicator(.visible)
     }
@@ -120,7 +147,7 @@ struct RegistrationMethodSheet: View {
                     .font(.system(size: 17, weight: .regular))
                     .foregroundStyle(BookshelfStyle.ink)
                     .frame(width: 44, height: 44)
-                    .background(Circle().fill(Color.white))
+                    .background(Circle().fill(BookshelfStyle.surface))
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(BookshelfStyle.sans(16, .medium))

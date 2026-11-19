@@ -87,7 +87,7 @@ struct BookDetailView: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: purchase.toast?.id)
-        .background(Color.white)
+        .background(BookshelfStyle.background)
         .toolbar(.hidden, for: .navigationBar)
         .task(id: "\(book.id)-\(coverRevision)") {
             cover = await CoverImageCache.shared.original(for: book.id, in: store)
@@ -253,7 +253,7 @@ struct BookDetailView: View {
                 Text("購入した")
                     .font(BookshelfStyle.sans(16, .medium))
                     .tracking(0.5)
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(BookshelfStyle.onInk)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(Capsule().fill(BookshelfStyle.ink))

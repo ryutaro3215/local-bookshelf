@@ -80,8 +80,7 @@ struct BookEditView: View {
             }
             .scrollDismissesKeyboard(.interactively)
         }
-        .background(Color.white.ignoresSafeArea())
-        .preferredColorScheme(.light)
+        .background(BookshelfStyle.background.ignoresSafeArea())
         .task(id: book.id) {
             // 撮り直しの画面から戻ったときにもう一度読まない（表紙をもう出している）
             guard cover == nil else { return }
@@ -331,7 +330,7 @@ struct BookEditView: View {
                     .foregroundStyle(BookshelfStyle.ink)
                     .padding(.horizontal, 12)
                     .frame(minHeight: 30)
-                    .background(Capsule().fill(Color.white))
+                    .background(Capsule().fill(BookshelfStyle.surface))
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
             }
@@ -465,7 +464,7 @@ struct TitleEditField: View {
             .frame(height: 50)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white)
+                    .fill(BookshelfStyle.surface)
                     .stroke(BookshelfStyle.ink, lineWidth: 1.5)
             )
             .accessibilityLabel("題名")
@@ -543,7 +542,7 @@ struct OwnershipSwitch: View {
             segment(String(localized: "買いたい"), .wanted, id: "edit.ownership.wanted")
         }
         .padding(3)
-        .background(RoundedRectangle(cornerRadius: 18).fill(Color.white))
+        .background(RoundedRectangle(cornerRadius: 18).fill(BookshelfStyle.surface))
     }
 
     private func segment(_ label: String, _ value: Ownership, id: String) -> some View {
@@ -553,7 +552,7 @@ struct OwnershipSwitch: View {
         } label: {
             Text(label)
                 .font(BookshelfStyle.sans(13, selected ? .medium : .regular))
-                .foregroundStyle(selected ? Color.white : BookshelfStyle.sub)
+                .foregroundStyle(selected ? BookshelfStyle.onInk : BookshelfStyle.sub)
                 .frame(width: isVertical ? nil : 76, height: isVertical ? nil : 30)
                 .frame(maxWidth: isVertical ? .infinity : nil, minHeight: isVertical ? 44 : nil)
                 .padding(.horizontal, isVertical ? 12 : 0)

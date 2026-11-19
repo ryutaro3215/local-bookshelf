@@ -64,8 +64,7 @@ struct PendingListView: View {
             .scrollDismissesKeyboard(.interactively)
             footer
         }
-        .background(Color.white.ignoresSafeArea())
-        .preferredColorScheme(.light)
+        .background(BookshelfStyle.background.ignoresSafeArea())
         // 選べる枚数は登録待ちの残りまで（F1-8）
         .photosPicker(
             isPresented: $isPickingPhotos, selection: $photoItems, maxSelectionCount: max(model.remaining, 1),
@@ -257,7 +256,7 @@ struct PendingListView: View {
             Button(action: register) {
                 Text(model.untitledCount > 0 ? "題名を入力すると登録できます" : "\(model.items.count)冊を登録")
                     .font(BookshelfStyle.sans(16, .medium))
-                    .foregroundStyle(model.canRegister ? Color.white : BookshelfStyle.faint)
+                    .foregroundStyle(model.canRegister ? BookshelfStyle.onInk : BookshelfStyle.faint)
                     .frame(maxWidth: .infinity, minHeight: 52)
                     .background(Capsule().fill(model.canRegister ? BookshelfStyle.ink : BookshelfStyle.fill))
             }
@@ -358,12 +357,12 @@ struct PendingRow: View {
             item.owned.toggle()
         } label: {
             RoundedRectangle(cornerRadius: 6)
-                .fill(item.owned ? BookshelfStyle.ink : Color.white)
+                .fill(item.owned ? BookshelfStyle.ink : BookshelfStyle.background)
                 .overlay {
                     if item.owned {
                         Image(systemName: "checkmark")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(BookshelfStyle.onInk)
                     } else {
                         RoundedRectangle(cornerRadius: 6).stroke(BookshelfStyle.checkOff, lineWidth: 1.5)
                     }
@@ -397,7 +396,7 @@ struct PendingRow: View {
                     .overlay(alignment: .bottomTrailing) {
                         Image(systemName: "crop")
                             .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(BookshelfStyle.onInk)
                             .frame(width: 18, height: 18)
                             .background(Circle().fill(BookshelfStyle.ink.opacity(0.75)))
                             .offset(x: 5, y: 5)
@@ -541,8 +540,7 @@ struct PendingTitleEditor: View {
                 Spacer()
             }
         }
-        .background(Color.white.ignoresSafeArea())
-        .preferredColorScheme(.light)
+        .background(BookshelfStyle.background.ignoresSafeArea())
         // キーボードの上に「前の本」「次の本へ」（C-3）。キーボードが出ていないときは画面の下に出る
         .safeAreaInset(edge: .bottom, spacing: 0) {
             stepBar
@@ -578,7 +576,7 @@ struct PendingTitleEditor: View {
                     Image(systemName: "chevron.right")
                 }
                 .font(BookshelfStyle.sans(15, .medium))
-                .foregroundStyle(Color.white)
+                .foregroundStyle(BookshelfStyle.onInk)
                 .padding(.horizontal, 18)
                 .frame(height: 32)
                 .background(Capsule().fill(BookshelfStyle.ink))

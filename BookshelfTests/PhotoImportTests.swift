@@ -32,8 +32,29 @@ struct PhotoImportTests {
     }
 
     /// 合成の写真（机の上の、少し傾いた表紙）
+    /// カメラで撮った写真（撮影情報 TIFF Make/Model 付き。書影の画像そのものとは扱われない）
     static func photo(_ shot: FakeCameraSource.Shot, size: CGSize = CGSize(width: 1536, height: 2048)) -> Data {
-        FakeCameraSource.render(shot, size: size).jpegData(compressionQuality: 0.9) ?? Data()
+        let plain = FakeCameraSource.render(shot, size: size).jpegData(compressionQuality: 0.9) ?? Data()
+        return withProperties(
+            plain,
+            [kCGImagePropertyTIFFDictionary: [kCGImagePropertyTIFFMake: "Apple", kCGImagePropertyTIFFModel: "iPhone"]])
+    }
+
+    /// 書影の画像そのもの（撮影情報なし。ネットで保存した表紙・書き出した画像を想定）
+    static func digitalCover(_ shot: FakeCameraSource.Shot, size: CGSize = CGSize(width: 600, height: 860)) -> Data {
+        FakeCameraSource.render(shot, size: size).pngData() ?? Data()
+    }
+
+    static func withProperties(_ data: Data, _ properties: [CFString: Any]) -> Data {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+            let type = CGImageSourceGetType(source)
+        else { return data }
+        let output = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(output as CFMutableData, type, 1, nil) else {
+            return data
+        }
+        CGImageDestinationAddImageFromSource(destination, source, 0, properties as CFDictionary)
+        return CGImageDestinationFinalize(destination) ? output as Data : data
     }
 
     // MARK: - acceptance
@@ -116,6 +137,37 @@ struct PhotoImportTests {
         // 前の写真は、次の写真を読む前に登録待ちに入っている
         #expect(tracker.itemsAtLoad == [0, 1, 2])
         #expect(model.items.count == 3)
+    }
+
+    // MARK: - 書影の画像そのもの
+
+    @Test("書影の画像そのもの（撮影情報なし・表紙の形）は四隅を探さず、画像全体をそのまま表紙にする")
+    func digitalCoverIsUsedAsIs() async throws {
+        #expect(CoverProcessor.isDigitalCover(Self.digitalCover(.noCover)))
+        #expect(!CoverProcessor.isDigitalCover(Self.photo(.noCover)))
+        // 横長の画像（画面のスクリーンショットなど）は書影とみなさない
+        #expect(!CoverProcessor.isDigitalCover(Self.digitalCover(.noCover, size: CGSize(width: 1200, height: 800))))
+
+        let model = try makeModel()
+        // 四隅のある絵（机の上の表紙）でも、書影の画像なら内側を切り抜かない
+        await model.importPhotos([
+            FakePhoto(Self.digitalCover(.cover("PAPER COMETS"))), FakePhoto(Self.digitalCover(.noCover)),
+        ])
+        #expect(model.adjustments.isEmpty)
+        #expect(model.items.count == 2)
+        for item in model.items {
+            let size = try #require(Self.pixelSize(item.image))
+            #expect(Int(size.width) == 600 && Int(size.height) == 860)
+            #expect(item.corners == CoverQuad.inset(0))
+        }
+    }
+
+    @Test("撮影したカメラの写真は今までどおり四隅を探す（見つからなければ手動調整へ）")
+    func cameraPhotoStillDetectsCorners() async throws {
+        let model = try makeModel()
+        await model.importPhotos([FakePhoto(Self.photo(.noCover))])
+        #expect(model.items.isEmpty)
+        #expect(model.adjustments.count == 1)
     }
 
     // MARK: - 手動調整待ちのメモリ（N-034）

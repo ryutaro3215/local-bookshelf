@@ -41,3 +41,6 @@
   - 構成: `plutil -lint Bookshelf.entitlements Bookshelf/PrivacyInfo.xcprivacy` → OK。Release ビルド BUILD SUCCEEDED
   - テスト: builder の全テスト（ユニット87・UI 64 通過）をログで確認。今回の差分は書き込みのオプションと署名の設定だけで、動作に関わるコードの変更は ImageStore の2行だけ
   - そのほかの項目（入力の検証・SQL・XSS・パストラバーサル・認証・依存・デバッグ設定・CORS・バックアップ）は前回の監査から変わっていない（今回の差分はそれらに触れていない）
+
+### 追記 (2026-11-19) — 実機でのデータ保護の確認
+- N-094: オーナーが実機で確認し、問題なし（保護クラスは Complete。docs/device-checklist.md §9 の手順）。再監査の [medium] は解消

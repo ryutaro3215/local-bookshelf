@@ -45,7 +45,7 @@ struct DisplayMenu: View {
                 ScrollView { items }
             }
             .frame(width: isLarge ? nil : 270)
-            .background(RoundedRectangle(cornerRadius: 24).fill(Color.white))
+            .background(RoundedRectangle(cornerRadius: 24).fill(BookshelfStyle.surface))
             .shadow(color: .black.opacity(0.16), radius: 15, x: 0, y: 10)
             .padding(.leading, 30)
             .padding(.trailing, isLarge ? 30 : 0)

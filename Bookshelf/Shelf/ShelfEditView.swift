@@ -121,7 +121,7 @@ struct GenreAddView: View {
             }
             .scrollDismissesKeyboard(.interactively)
         }
-        .background(Color.white)
+        .background(BookshelfStyle.background)
     }
 
     private var isDuplicate: Bool { isTaken(GenreName.limit(name)) }
@@ -282,7 +282,7 @@ struct GenreDialog<Content: View>: View {
     let dialogID: String
     @ViewBuilder let content: () -> Content
 
-    private let divider = Color(red: 0xE4 / 255, green: 0xE4 / 255, blue: 0xE4 / 255)
+    private let divider = BookshelfStyle.line
 
     var body: some View {
         ZStack {
@@ -327,7 +327,7 @@ struct GenreDialog<Content: View>: View {
                 .frame(height: 48)
             }
             .frame(width: 290)
-            .background(RoundedRectangle(cornerRadius: 18).fill(Color.white))
+            .background(RoundedRectangle(cornerRadius: 18).fill(BookshelfStyle.surface))
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .accessibilityElement(children: .contain)
             .accessibilityAddTraits(.isModal)
@@ -354,7 +354,7 @@ struct LimitedTextField: UIViewRepresentable {
         field.text = text
         field.font = Self.font(size: size)
         field.adjustsFontForContentSizeCategory = true
-        field.textColor = UIColor(red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255, alpha: 1)
+        field.textColor = BookshelfStyle.adaptiveUI(0x141414, 0xEDEDED)
         // カーソルの色も文字と同じ黒（Figma F-3・F-4b。N-068⑥）
         field.tintColor = field.textColor
         field.returnKeyType = .done

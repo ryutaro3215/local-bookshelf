@@ -33,13 +33,15 @@ nonisolated struct CoverProcessor {
     var detector = CoverDetector()
     private let context = CIContext()
 
-    /// 画像データ（JPEG・HEIC など）を処理する。corners を渡すとその四隅で補正する（手動調整用）
-    func process(_ data: Data, corners manual: CoverQuad? = nil) throws -> ProcessedCover {
+    /// 画像データ（JPEG・HEIC など）を処理する。corners を渡すとその四隅で補正する（手動調整用）。
+    /// `wholeImage` が true なら四隅を探さず、画像全体を表紙として使う（書影の画像そのものを選んだとき）
+    func process(_ data: Data, corners manual: CoverQuad? = nil, wholeImage: Bool = false) throws -> ProcessedCover {
         let source = try uprightImage(from: data)
-        let corners = try manual ?? detector.detect(in: source)
+        let full = CoverQuad.inset(0)
+        let corners = try manual ?? (wholeImage ? full : detector.detect(in: source))
 
         var output = CIImage(cgImage: source)
-        if let corners {
+        if let corners, corners != full {
             let p = corners.pixelPoints(width: source.width, height: source.height)
             let filter = CIFilter.perspectiveCorrection()
             filter.inputImage = output
@@ -54,6 +56,31 @@ nonisolated struct CoverProcessor {
         let image = try render(output, longSide: Self.maxLongSide)
         let thumbnail = try render(output, longSide: Self.thumbnailLongSide)
         return ProcessedCover(image: try jpeg(image), thumbnail: try jpeg(thumbnail), corners: corners)
+    }
+
+    /// 書影の画像そのもの（カメラで撮った写真ではない）か。写真ライブラリから選んだ画像に使う。
+    /// - カメラの撮影情報（機種・レンズ・露出）が無い（ネットで保存した書影・スクリーンショット・書き出した画像）
+    /// - 縦長か正方形に近い（表紙の形。横長の画面のスクリーンショットなどは除く）
+    /// 当てはまれば四隅を探さず画像全体を表紙にする。外れても登録待ちの一覧で四隅を直せる（N-041）
+    static func isDigitalCover(_ data: Data) -> Bool {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+            let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+            var width = props[kCGImagePropertyPixelWidth] as? Double,
+            var height = props[kCGImagePropertyPixelHeight] as? Double, width > 0, height > 0
+        else { return false }
+        let tiff = props[kCGImagePropertyTIFFDictionary] as? [CFString: Any] ?? [:]
+        let exif = props[kCGImagePropertyExifDictionary] as? [CFString: Any] ?? [:]
+        let fromCamera =
+            tiff[kCGImagePropertyTIFFMake] != nil || tiff[kCGImagePropertyTIFFModel] != nil
+            || exif[kCGImagePropertyExifLensModel] != nil || exif[kCGImagePropertyExifExposureTime] != nil
+            || exif[kCGImagePropertyExifFNumber] != nil
+        guard !fromCamera else { return false }
+        // 向き（5〜8 は90度回転）を反映した縦横
+        if let orientation = props[kCGImagePropertyOrientation] as? Int, (5...8).contains(orientation) {
+            swap(&width, &height)
+        }
+        let ratio = width / height
+        return ratio >= 0.45 && ratio <= 1.05
     }
 
     /// 向き（EXIF Orientation）を反映した上向きの画像を作る。大きすぎる画像は作業サイズまで縮める

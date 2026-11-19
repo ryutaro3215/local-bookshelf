@@ -59,6 +59,8 @@ struct ShelfPickerSheet: View {
                 }
             }
         }
+        // 地の色を明示する（端末がダークモードのとき、地だけ黒くなって文字が読めなかった）
+        .presentationBackground(BookshelfStyle.surface)
         .presentationDetents([.large])
         .presentationCornerRadius(28)
         .presentationDragIndicator(.visible)

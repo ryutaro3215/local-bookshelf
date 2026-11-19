@@ -91,7 +91,7 @@ struct MonthGridView: View {
         .padding(.top, 14)
         .padding(.bottom, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(BookshelfStyle.background)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier("monthGrid.header.\(group.id)")

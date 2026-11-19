@@ -71,13 +71,22 @@ struct ShelfScreen: View {
         let current = all.first { $0.id == currentID } ?? all.first
         NavigationStack(path: $path) {
             ZStack {
-                Color.white.ignoresSafeArea()
+                BookshelfStyle.background.ignoresSafeArea()
                 VStack(spacing: 0) {
                     VStack(spacing: 0) {
                         if books.isEmpty || current == nil {
                             emptyLibrary
                         } else if grouping == .month {
                             monthContent
+                        } else if let current, mode == .shelf {
+                            // 棚表示: 縦に棚を並べたページのスクロール（指に合わせて動き、途中で止めても離すと近い棚にそろう）
+                            shelfPager(current, all: all)
+                                #if DEBUG
+                                    .onAppear {
+                                        PerfProbe.shared.shelfShown(
+                                            dataFolder: environment.store.images.directory.deletingLastPathComponent())
+                                    }
+                                #endif
                         } else if let current {
                             header(current, all: all)
                             content(current, all: all)
@@ -375,7 +384,7 @@ struct ShelfScreen: View {
                         .font(BookshelfStyle.sans(12))
                         .tracking(0.5)
                         .foregroundStyle(BookshelfStyle.sub)
-                        .accessibilityIdentifier("shelf.count")
+                        .pageIdentifier("shelf.count")
                 }
                 .padding(.horizontal, 70)
                 .contentShape(Rectangle())
@@ -386,7 +395,7 @@ struct ShelfScreen: View {
             .accessibilityValue("\(current.books.count)冊")
             .accessibilityHint("棚の一覧を開きます")
             .accessibilityAddTraits(.isButton)
-            .accessibilityIdentifier("shelf.title")
+            .pageIdentifier("shelf.title")
             .accessibilityAction(named: "次の棚") { move(by: 1, from: current, in: all) }
             .accessibilityAction(named: "前の棚") { move(by: -1, from: current, in: all) }
             HStack {
@@ -405,7 +414,7 @@ struct ShelfScreen: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("共有")
-                    .accessibilityIdentifier("shelf.share")
+                    .pageIdentifier("shelf.share")
                 }
             }
             .padding(.trailing, 22)
@@ -414,14 +423,84 @@ struct ShelfScreen: View {
         .padding(.top, 44)
     }
 
-    // MARK: - 中（棚表示・グリッド表示）
+    // MARK: - 中（棚表示: 縦に棚を並べたページ）
+
+    /// 棚表示の縦のスクロール（2026-11-19 オーナー指示）。棚1つが1ページで、棚の名前・本の並び・右の点も一緒に動く。
+    /// 画面のボタン以外のどこを上下になぞっても指に合わせて棚が動き、途中で指を止めればそこで止まり、
+    /// 離すと近い方の棚にそろう（ページ送り）。長押しで本を選んでいる間・スクラバーをなぞっている間は動かさない
+    private func shelfPager(_ current: BrowseShelf, all: [BrowseShelf]) -> some View {
+        ScrollViewReader { proxy in
+            pagerScroll(current, all: all)
+                // 開いたとき（グリッド・購入月別から戻ったときなど）は、今の棚のページから始める
+                // （scrollPosition だけでは先頭のページのまま開くことがあった）
+                .onAppear { proxy.scrollTo(current.id, anchor: .top) }
+        }
+    }
+
+    private func pagerScroll(_ current: BrowseShelf, all: [BrowseShelf]) -> some View {
+        ScrollView(.vertical) {
+            LazyVStack(spacing: 0) {
+                ForEach(all) { shelf in
+                    let isCurrent = shelf.id == current.id
+                    VStack(spacing: 0) {
+                        header(shelf, all: all)
+                            .accessibilityHidden(!isCurrent)
+                        Group {
+                            if shelf.isWishlist && shelf.books.isEmpty {
+                                wishlistEmpty(swipes: false)
+                            } else {
+                                shelfView(shelf, all: all, isCurrent: isCurrent)
+                            }
+                        }
+                        .accessibilityHidden(!isCurrent)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                        .overlay(alignment: .topTrailing) {
+                            ShelfIndicator(
+                                count: all.count, index: all.firstIndex { $0.id == shelf.id } ?? 0,
+                                onStep: { move(by: $0, from: shelf, in: all) }
+                            )
+                            .padding(.trailing, 26)
+                            .padding(.top, indicatorTop)
+                            .accessibilityHidden(!isCurrent)
+                        }
+                    }
+                    .containerRelativeFrame(.vertical)
+                    .contentShape(Rectangle())
+                    .environment(\.isCurrentPage, isCurrent)
+                    // 見えていない棚は読み上げ・UI テストの対象にしない（同じ識別子が重ならないように。
+                    // 棚の名前・本の並び・右の点のそれぞれで隠す。UIKit の本の並びは isCurrent で隠す）
+                    .id(shelf.id)
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .scrollTargetBehavior(.paging)
+        .scrollIndicators(.hidden)
+        .scrollPosition(id: pagerPosition(all))
+        .scrollDisabled(editing.selection != nil || isScrubbing)
+        .accessibilityIdentifier("shelf.pager")
+    }
+
+    /// 縦のスクロールで見えている棚（スクロールで棚が変わったら「直前に使った棚」として記録する。N-031・F1-5）
+    private func pagerPosition(_ all: [BrowseShelf]) -> Binding<PersistentIdentifier?> {
+        Binding(
+            get: { currentID ?? all.first?.id },
+            set: { id in
+                guard let id, id != currentID, let shelf = all.first(where: { $0.id == id }) else { return }
+                editing.clearSelection()
+                currentID = id
+                environment.recent.record(shelf.shelf)
+            })
+    }
+
+    // MARK: - 中（グリッド表示・買いたい本0冊）
 
     @ViewBuilder
     private func content(_ current: BrowseShelf, all: [BrowseShelf]) -> some View {
         ZStack {
             Group {
                 if current.isWishlist && current.books.isEmpty {
-                    wishlistEmpty
+                    wishlistEmpty(swipes: true)
                 } else if mode == .grid {
                     grid(current, all: all)
                 } else {
@@ -455,7 +534,7 @@ struct ShelfScreen: View {
     /// 棚インジケーター（Figma 45:21007）の上端。書影の下・本の情報の横（y≈548）
     private var indicatorTop: CGFloat { 388 }
 
-    private func shelfView(_ base: BrowseShelf, all: [BrowseShelf]) -> some View {
+    private func shelfView(_ base: BrowseShelf, all: [BrowseShelf], isCurrent: Bool = true) -> some View {
         // 長押しで選んだ本を横にドラッグしている間は、行き先の位置に並べて見せる（H-1）
         let current = base.with(books: editing.previewBooks(base.books, shelfID: base.id))
         let selection = editing.selection.flatMap { $0.shelfID == base.id ? $0 : nil }
@@ -479,7 +558,9 @@ struct ShelfScreen: View {
                     onCenterChange: { positions[current.id] = $0 },
                     onTapBook: { openDetail(current.books[$0], from: current) },
                     onTapSlot: { open(from: current.shelf) },
-                    onVerticalSwipe: { move(by: $0, from: current, in: all) },
+                    // 棚をかえる縦の動きは外側のスクロール（shelfPager）に任せる
+                    onVerticalSwipe: nil,
+                    isAccessible: isCurrent,
                     selectedIndex: selection?.to,
                     onReorderEvent: { handleReorder($0, in: base) },
                     onTapWhileSelected: { editing.clearSelection() })
@@ -526,7 +607,7 @@ struct ShelfScreen: View {
                     .foregroundStyle(BookshelfStyle.ink)
                     .lineLimit(1)
                     .padding(.horizontal, 56)
-                    .accessibilityIdentifier("shelf.bookTitle")
+                    .pageIdentifier("shelf.bookTitle")
                 SelectionInfo(selection: selection, allowsReorder: current.allowsReorder, count: current.books.count)
                     .padding(.top, 6)
                     // 上下にドラッグしている間（H-2）は案内を消す（Figma H-2。N-064）
@@ -539,7 +620,7 @@ struct ShelfScreen: View {
                     .foregroundStyle(BookshelfStyle.ink)
                     .lineLimit(1)
                     .padding(.horizontal, 56)
-                    .accessibilityIdentifier("shelf.bookTitle")
+                    .pageIdentifier("shelf.bookTitle")
                 if current.isWishlist {
                     HStack(spacing: 10) {
                         Text(book.shelf?.displayName ?? InitialGenres.unsortedDisplayName)
@@ -551,28 +632,28 @@ struct ShelfScreen: View {
                             .foregroundStyle(BookshelfStyle.sub)
                             .padding(.horizontal, 8)
                             .frame(height: 20)
-                            .overlay(Capsule().stroke(Color(red: 0xD0 / 255, green: 0xD0 / 255, blue: 0xD0 / 255)))
+                            .overlay(Capsule().stroke(BookshelfStyle.adaptive(0xD0D0D0, 0x3A3A3A)))
                     }
                     .accessibilityElement(children: .combine)
-                    .accessibilityIdentifier("shelf.bookMeta")
+                    .pageIdentifier("shelf.bookMeta")
                 } else if let date = book.purchaseDate {
                     Text("\(BookDates.format(date)) 購入")
                         .font(BookshelfStyle.sans(12))
                         .foregroundStyle(BookshelfStyle.sub)
-                        .accessibilityIdentifier("shelf.bookMeta")
+                        .pageIdentifier("shelf.bookMeta")
                 }
                 Text("\(index + 1) / \(current.books.count)")
                     .font(BookshelfStyle.sans(11))
                     .tracking(1)
                     .foregroundStyle(BookshelfStyle.faint)
                     .padding(.top, 2)
-                    .accessibilityIdentifier("shelf.position")
+                    .pageIdentifier("shelf.position")
             } else {
                 Text("この棚に本を追加")
                     .font(BookshelfStyle.sans(18, .medium))
                     .tracking(0.5)
                     .foregroundStyle(BookshelfStyle.ink)
-                    .accessibilityIdentifier("shelf.bookTitle")
+                    .pageIdentifier("shelf.bookTitle")
                 Text("タップして撮影・登録先  \(current.shelf.displayName)")
                     .font(BookshelfStyle.sans(12))
                     .tracking(0.5)
@@ -582,7 +663,7 @@ struct ShelfScreen: View {
                     .tracking(1)
                     .foregroundStyle(BookshelfStyle.faint)
                     .padding(.top, 2)
-                    .accessibilityIdentifier("shelf.position")
+                    .pageIdentifier("shelf.position")
             }
         }
         .frame(maxWidth: .infinity)
@@ -616,7 +697,8 @@ struct ShelfScreen: View {
     }
 
     /// 買いたい本が0冊のとき（M-2）
-    private var wishlistEmpty: some View {
+    /// `swipes` が true なら、この画面の上下・左右のスワイプで棚をかえる（グリッド表示のとき。棚表示は外側のスクロール）
+    private func wishlistEmpty(swipes: Bool) -> some View {
         VStack(spacing: 0) {
             EmptyCoverBox(kind: .wishlist)
                 .padding(.top, 100)
@@ -626,7 +708,7 @@ struct ShelfScreen: View {
                 .tracking(0.5)
                 .foregroundStyle(BookshelfStyle.ink)
                 .padding(.top, 30)
-                .accessibilityIdentifier("wishlist.emptyTitle")
+                .pageIdentifier("wishlist.emptyTitle")
             Text("登録するときに「購入済み」のチェックを外すと、\nここに並びます。")
                 .font(BookshelfStyle.sans(12))
                 .tracking(0.5)
@@ -634,7 +716,7 @@ struct ShelfScreen: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(BookshelfStyle.sub)
                 .padding(.top, 12)
-                .accessibilityIdentifier("wishlist.emptyMessage")
+                .pageIdentifier("wishlist.emptyMessage")
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity)
@@ -649,10 +731,11 @@ struct ShelfScreen: View {
                     // グリッド表示では左右スワイプで棚をかえる（N-052。ヒント「←→ 棚をかえる」のとおり）
                     move(by: value.translation.width < 0 ? 1 : -1, from: current, in: all)
                 }
-            }
+            },
+            isEnabled: swipes
         )
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("wishlist.empty")
+        .pageIdentifier("wishlist.empty")
     }
 
     /// 本が1冊もないとき（§10.6。通常は初回チュートリアル T14 で1冊登録するため出ない）。＋から登録へ誘導する
@@ -666,7 +749,7 @@ struct ShelfScreen: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("本を追加")
-            .accessibilityIdentifier("library.emptyAdd")
+            .pageIdentifier("library.emptyAdd")
             Text("まだ本がありません")
                 .font(BookshelfStyle.sans(18, .medium))
                 .tracking(0.5)
@@ -680,7 +763,7 @@ struct ShelfScreen: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityIdentifier("library.empty")
+        .pageIdentifier("library.empty")
     }
 
     // MARK: - 購入月別（T13。F6-7・J-1〜J-4）
@@ -874,7 +957,7 @@ struct ShelfScreen: View {
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 20, weight: .regular))
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(BookshelfStyle.onInk)
                     .frame(width: 48, height: 48)
                     .background(Circle().fill(BookshelfStyle.ink))
             }
@@ -1085,7 +1168,7 @@ struct ShelfIndicator: View {
         .accessibilityElement()
         .accessibilityLabel(label)
         .accessibilityValue("\(index + 1) / \(count)")
-        .accessibilityIdentifier("shelf.indicator")
+        .pageIdentifier("shelf.indicator")
         .accessibilityAdjustableAction { direction in
             switch direction {
             case .increment: step(1)
@@ -1207,7 +1290,7 @@ struct Scrubber: View {
             @unknown default: break
             }
         }
-        .accessibilityIdentifier("shelf.scrubber")
+        .pageIdentifier("shelf.scrubber")
     }
 }
 
@@ -1243,9 +1326,9 @@ struct ScrubPreview: View {
         .padding(.vertical, 12)
         .padding(.horizontal, 14)
         .frame(width: 176)
-        .background(RoundedRectangle(cornerRadius: 20).fill(Color.white))
+        .background(RoundedRectangle(cornerRadius: 20).fill(BookshelfStyle.surface))
         .shadow(color: .black.opacity(0.16), radius: 15, x: 0, y: 10)
-        .accessibilityIdentifier("shelf.scrubPreview")
+        .pageIdentifier("shelf.scrubPreview")
         .task(id: item.id) {
             image = CoverImageCache.shared.cachedThumbnail(for: item.id)
             if image == nil {
@@ -1285,5 +1368,29 @@ struct MethodSheetHost: View {
     var body: some View {
         RegistrationMethodSheet(
             shelves: shelves, destination: $destination, onSelect: { onSelect($0, destination) }, onCancel: onCancel)
+    }
+}
+
+// MARK: - 縦に並んだ棚のうち、見えている棚だけに識別子を付ける
+
+extension EnvironmentValues {
+    /// 縦に並んだ棚（shelfPager）のうち、いま見えている棚か。見えていない棚は識別子を付けない
+    /// （読み上げ・UI テストで同じ識別子が重ならないように。グリッド・購入月別などでは常に true）
+    @Entry var isCurrentPage = true
+}
+
+/// 見えている棚のときだけ識別子を付ける
+struct PageIdentifier: ViewModifier {
+    @Environment(\.isCurrentPage) private var isCurrentPage
+    let identifier: String
+
+    func body(content: Content) -> some View {
+        content.accessibilityIdentifier(isCurrentPage ? identifier : "")
+    }
+}
+
+extension View {
+    func pageIdentifier(_ identifier: String) -> some View {
+        modifier(PageIdentifier(identifier: identifier))
     }
 }

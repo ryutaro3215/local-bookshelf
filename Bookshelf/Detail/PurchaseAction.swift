@@ -114,7 +114,7 @@ struct PurchaseToastView: View {
             Text(toast.message)
                 .font(BookshelfStyle.sans(15))
                 .tracking(0.5)
-                .foregroundStyle(Color.white)
+                .foregroundStyle(BookshelfStyle.onInk)
                 .lineLimit(1)
                 .accessibilityIdentifier("toast.message")
             Spacer(minLength: 12)
@@ -124,7 +124,7 @@ struct PurchaseToastView: View {
                         .font(BookshelfStyle.sans(15, .medium))
                         .tracking(0.5)
                         .underline()
-                        .foregroundStyle(Color.white)
+                        .foregroundStyle(BookshelfStyle.onInk)
                         .frame(height: 44)
                         .contentShape(Rectangle())
                 }

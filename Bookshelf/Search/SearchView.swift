@@ -30,8 +30,7 @@ struct SearchView: View {
                 resultList(results)
             }
         }
-        .background(Color.white.ignoresSafeArea())
-        .preferredColorScheme(.light)
+        .background(BookshelfStyle.background.ignoresSafeArea())
         .onAppear { focused = true }
     }
 
@@ -161,7 +160,7 @@ struct SearchResultRow: View {
     @State private var cover: UIImage?
 
     /// 強調の地（design-brief §3「検索結果の強調」）
-    static let highlight = Color(red: 0xE3 / 255, green: 0xE3 / 255, blue: 0xE3 / 255)
+    static let highlight = BookshelfStyle.adaptive(0xE3E3E3, 0x3A3A3A)
 
     var body: some View {
         Button(action: onTap) {

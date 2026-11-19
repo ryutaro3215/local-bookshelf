@@ -117,7 +117,7 @@ final class ShelfCell: UICollectionViewCell {
         coverView.contentMode = .scaleToFill
         coverView.clipsToBounds = true
         coverView.layer.cornerRadius = 2
-        coverView.backgroundColor = UIColor(white: 0.93, alpha: 1)
+        coverView.backgroundColor = BookshelfStyle.adaptiveUI(0xEDEDED, 0x2A2A2A)
         contentView.addSubview(coverView)
         shadeView.backgroundColor = .black
         shadeView.alpha = 0
@@ -235,7 +235,7 @@ struct EmptyCoverBox: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color(red: 0xFA / 255, green: 0xFA / 255, blue: 0xFA / 255))
+                .fill(BookshelfStyle.adaptive(0xFAFAFA, 0x1A1A1A))
             RoundedRectangle(cornerRadius: 3)
                 .strokeBorder(BookshelfStyle.faint, style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
             switch kind {
@@ -243,7 +243,7 @@ struct EmptyCoverBox: View {
                 VStack(spacing: 14) {
                     Image(systemName: "plus")
                         .font(.system(size: 22, weight: .regular))
-                        .foregroundStyle(Color.white)
+                        .foregroundStyle(BookshelfStyle.onInk)
                         .frame(width: 52, height: 52)
                         .background(Circle().fill(BookshelfStyle.ink))
                     Text("本を追加")

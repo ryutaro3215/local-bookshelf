@@ -365,7 +365,7 @@ struct SelectionArrows: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(BookshelfStyle.ink)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(Color.white))
+                .background(Circle().fill(BookshelfStyle.surface))
                 .shadow(color: .black.opacity(0.14), radius: 6, x: 0, y: 2)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
@@ -496,7 +496,7 @@ struct MoveShelfSheet: View {
                 )
                 .font(BookshelfStyle.sans(16, .medium))
                 .tracking(0.5)
-                .foregroundStyle(Color.white)
+                .foregroundStyle(BookshelfStyle.onInk)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
@@ -521,7 +521,7 @@ struct MoveShelfSheet: View {
             .accessibilityIdentifier("move.cancel")
         }
         .presentationDetents([.height(582), .large])
-        .presentationBackground(Color.white)
+        .presentationBackground(BookshelfStyle.surface)
         .presentationCornerRadius(28)
         .presentationDragIndicator(.visible)
     }
@@ -610,7 +610,7 @@ struct DeleteBookDialog: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 26)
                 .padding(.bottom, 20)
-                Rectangle().fill(Color(red: 0xE4 / 255, green: 0xE4 / 255, blue: 0xE4 / 255)).frame(height: 1)
+                Rectangle().fill(BookshelfStyle.line).frame(height: 1)
                 HStack(spacing: 0) {
                     Button(action: onCancel) {
                         Text("キャンセル")
@@ -622,7 +622,7 @@ struct DeleteBookDialog: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("delete.cancel")
-                    Rectangle().fill(Color(red: 0xE4 / 255, green: 0xE4 / 255, blue: 0xE4 / 255)).frame(width: 1)
+                    Rectangle().fill(BookshelfStyle.line).frame(width: 1)
                     Button(action: onDelete) {
                         Text("削除")
                             .font(BookshelfStyle.sans(16, .bold))
@@ -637,7 +637,7 @@ struct DeleteBookDialog: View {
                 .frame(height: 48)
             }
             .frame(width: 290)
-            .background(RoundedRectangle(cornerRadius: 18).fill(Color.white))
+            .background(RoundedRectangle(cornerRadius: 18).fill(BookshelfStyle.surface))
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .accessibilityElement(children: .contain)
             .accessibilityAddTraits(.isModal)
@@ -659,7 +659,7 @@ struct UndoToast: View {
             Text(toast.message)
                 .font(BookshelfStyle.sans(15))
                 .tracking(0.5)
-                .foregroundStyle(Color.white)
+                .foregroundStyle(BookshelfStyle.onInk)
                 .lineLimit(1)
                 .accessibilityIdentifier("toast.message")
             Spacer(minLength: 12)
@@ -669,7 +669,7 @@ struct UndoToast: View {
                         .font(BookshelfStyle.sans(15, .medium))
                         .tracking(0.5)
                         .underline()
-                        .foregroundStyle(Color.white)
+                        .foregroundStyle(BookshelfStyle.onInk)
                         .frame(height: 44)
                         .contentShape(Rectangle())
                 }
@@ -742,11 +742,11 @@ struct GridBookMenu: View {
             row(
                 "詳細を見る", symbol: "chevron.right", color: BookshelfStyle.ink, symbolColor: BookshelfStyle.faint,
                 id: "gridMenu.detail", action: onDetail)
-            Rectangle().fill(Color(red: 0xE8 / 255, green: 0xE8 / 255, blue: 0xE8 / 255)).frame(height: 1)
+            Rectangle().fill(BookshelfStyle.line).frame(height: 1)
             row("別の棚へ移動", symbol: "chevron.up", color: BookshelfStyle.ink, id: "gridMenu.move", action: onMove)
-            Rectangle().fill(Color(red: 0xE8 / 255, green: 0xE8 / 255, blue: 0xE8 / 255)).frame(height: 1)
+            Rectangle().fill(BookshelfStyle.line).frame(height: 1)
             row("削除", symbol: "trash", color: BookshelfStyle.danger, id: "gridMenu.delete", action: onDelete)
-            Rectangle().fill(Color(red: 0xF4 / 255, green: 0xF4 / 255, blue: 0xF4 / 255)).frame(height: 8)
+            Rectangle().fill(BookshelfStyle.fill).frame(height: 8)
             Text(note ?? (allowsReorder ? "そのままドラッグで並べ替え" : "買いたい本は登録した順に並びます") as LocalizedStringKey)
                 .font(BookshelfStyle.sans(12))
                 .tracking(0.5)
@@ -757,7 +757,7 @@ struct GridBookMenu: View {
                 .accessibilityHidden(true)
         }
         .frame(width: Self.width)
-        .background(Color.white)
+        .background(BookshelfStyle.background)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.16), radius: 15, x: 0, y: 10)
         .accessibilityElement(children: .contain)

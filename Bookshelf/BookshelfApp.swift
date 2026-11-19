@@ -18,6 +18,9 @@ struct BookshelfApp: App {
                 // 初回はチュートリアル（F1-7。T14）、終えていれば閲覧画面
                 AppRootView(environment: environment)
                     .modelContainer(environment.container)
+                    .environment(environment.appearance)
+                    // 起動したウインドウに、保存した外観を付ける
+                    .onAppear { environment.appearance.apply() }
             case .failure(let error):
                 Text("データを開けませんでした（\(error.localizedDescription)）")
                     .padding()
@@ -32,12 +35,22 @@ final class AppEnvironment {
     let container: ModelContainer
     let store: LibraryStore
     let recent: RecentShelves
+    let appearance: AppearanceSettings
     private let arguments: [String]
 
     init(container: ModelContainer, images: ImageStore, defaults: UserDefaults, arguments: [String]) throws {
         self.container = container
         self.store = LibraryStore(container: container, images: images)
         self.recent = RecentShelves(defaults: defaults)
+        self.appearance = AppearanceSettings(defaults: defaults)
+        #if DEBUG
+            // UI テスト・スクリーンショット用: 起動引数 `-UITestAppearance dark` で外観を決める
+            if let index = arguments.firstIndex(of: "-UITestAppearance"), index + 1 < arguments.count,
+                let value = AppAppearance(rawValue: arguments[index + 1])
+            {
+                appearance.appearance = value
+            }
+        #endif
         self.arguments = arguments
         try store.seedIfNeeded()
     }

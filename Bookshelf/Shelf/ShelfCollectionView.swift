@@ -105,8 +105,11 @@ struct ShelfCollectionView: UIViewRepresentable {
     let onCenterChange: (Int) -> Void
     let onTapBook: (Int) -> Void
     let onTapSlot: () -> Void
-    /// 縦スワイプ（+1 = 次の棚・上へ、-1 = 前の棚・下へ）
-    let onVerticalSwipe: (Int) -> Void
+    /// 縦スワイプ（+1 = 次の棚・上へ、-1 = 前の棚・下へ）。nil なら縦スワイプを見張らない
+    /// （ジャンル別の棚は外側の縦のスクロールで棚をかえるので nil。購入月別は月・年をかえるのに使う）
+    let onVerticalSwipe: ((Int) -> Void)?
+    /// 読み上げ・UI テストの対象にするか（縦に並んだ棚のうち、見えていない棚は false）
+    var isAccessible = true
     /// 長押しで選んでいる本（nil = 選んでいない）。選択中はスクロール・縦スワイプを止める（T7）
     var selectedIndex: Int?
     /// 長押し・選択中のドラッグ（F5-1b）
@@ -132,7 +135,7 @@ struct ShelfCollectionView: UIViewRepresentable {
         view.prefetchDataSource = context.coordinator
         view.accessibilityIdentifier = "shelf.carousel"
         var swipes: [UIGestureRecognizer] = []
-        for direction in [UISwipeGestureRecognizer.Direction.up, .down] {
+        for direction in [UISwipeGestureRecognizer.Direction.up, .down] where onVerticalSwipe != nil {
             let swipe = UISwipeGestureRecognizer(
                 target: context.coordinator, action: #selector(Coordinator.handleSwipe(_:)))
             swipe.direction = direction
@@ -146,6 +149,7 @@ struct ShelfCollectionView: UIViewRepresentable {
     }
 
     func updateUIView(_ view: ShelfCarouselView, context: Context) {
+        view.accessibilityElementsHidden = !isAccessible
         context.coordinator.apply(self, to: view, force: false)
     }
 
@@ -171,7 +175,23 @@ struct ShelfCollectionView: UIViewRepresentable {
 
         private var itemCount: Int { parent.items.count + (parent.showsSlot ? 1 : 0) }
 
+        /// 見えていない棚（縦に並んだ棚の隣）は識別子を外す（UI テスト・読み上げで同じ識別子が重ならないように）
+        private func applyIdentifiers(_ accessible: Bool, to view: ShelfCarouselView) {
+            view.accessibilityIdentifier = accessible ? "shelf.carousel" : nil
+            for cell in view.visibleCells {
+                guard let indexPath = view.indexPath(for: cell) else { continue }
+                if cell is ShelfSlotCell {
+                    cell.accessibilityIdentifier = accessible ? "shelf.slot" : nil
+                } else {
+                    cell.accessibilityIdentifier = accessible ? "shelf.book.\(indexPath.item)" : nil
+                }
+            }
+        }
+
         func apply(_ next: ShelfCollectionView, to view: ShelfCarouselView, force: Bool) {
+            if force || next.isAccessible != parent.isAccessible {
+                applyIdentifiers(next.isAccessible, to: view)
+            }
             let previous = parent.items
             let previousShowsSlot = parent.showsSlot
             var changed = force || next.items != parent.items || next.showsSlot != parent.showsSlot
@@ -239,12 +259,16 @@ struct ShelfCollectionView: UIViewRepresentable {
             -> UICollectionViewCell
         {
             if indexPath.item >= parent.items.count {
-                return collectionView.dequeueReusableCell(withReuseIdentifier: ShelfSlotCell.reuseID, for: indexPath)
+                let slot = collectionView.dequeueReusableCell(
+                    withReuseIdentifier: ShelfSlotCell.reuseID, for: indexPath)
+                slot.accessibilityIdentifier = parent.isAccessible ? "shelf.slot" : nil
+                return slot
             }
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ShelfCell.reuseID, for: indexPath)
             if let cell = cell as? ShelfCell {
                 let index = indexPath.item
                 cell.configure(parent.items[index], index: index, count: parent.items.count, store: parent.store)
+                if !parent.isAccessible { cell.accessibilityIdentifier = nil }
                 // VoiceOver では長押しの代わりに「選択」の操作で選ぶ（N5）。操作は中央の本にだけ出す（N-064）
                 cell.selectAction = UIAccessibilityCustomAction(
                     name: String(localized: "選択して並べ替え・移動・削除")
@@ -307,7 +331,7 @@ struct ShelfCollectionView: UIViewRepresentable {
         }
 
         @objc func handleSwipe(_ gesture: UISwipeGestureRecognizer) {
-            parent.onVerticalSwipe(gesture.direction == .up ? 1 : -1)
+            parent.onVerticalSwipe?(gesture.direction == .up ? 1 : -1)
         }
 
         func gestureRecognizer(
