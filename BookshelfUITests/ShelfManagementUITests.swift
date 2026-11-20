@@ -198,4 +198,21 @@ final class ShelfManagementUITests: XCTestCase {
         element(app, "genres.back").tap()
         XCTAssertEqual(element(app, "settings.genres").value as? String, "28件")
     }
+
+    /// 画面の左端から右へスワイプして戻れる（ジャンル管理 → 設定 → 本棚）
+    func testEdgeSwipeGoesBack() {
+        let app = launch(seed: "小説:2")
+        openGenres(app)
+        edgeSwipe(app)
+        XCTAssertTrue(element(app, "settings.title").waitForExistence(timeout: 5))
+        edgeSwipe(app)
+        XCTAssertTrue(app.buttons["shelf.title"].waitForExistence(timeout: 5))
+        wait(element(app, "settings.title"), "exists == false")
+    }
+
+    private func edgeSwipe(_ app: XCUIApplication) {
+        let window = app.windows.firstMatch
+        let start = window.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: window.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)))
+    }
 }
