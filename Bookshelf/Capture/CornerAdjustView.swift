@@ -140,7 +140,7 @@ struct CornerAdjustView: View {
             } label: {
                 Text("この範囲で使う")
                     .font(BookshelfStyle.sans(15, .medium))
-                    .foregroundStyle(BookshelfStyle.ink)
+                    .foregroundStyle(BookshelfStyle.cameraInk)
                     .frame(maxWidth: .infinity, minHeight: 52)
                     .background(Capsule().fill(Color.white))
             }

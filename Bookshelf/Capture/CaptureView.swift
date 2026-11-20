@@ -45,6 +45,8 @@ nonisolated enum BookshelfStyle {
     /// 撮影画面・四隅調整の地とボタン
     static let cameraBackground = Color(red: 0x0B / 255, green: 0x0B / 255, blue: 0x0B / 255)
     static let cameraControl = Color.white.opacity(0.14)
+    /// 撮影画面の白いボタンの文字（外観に関係なく #141414。ink はダークで明るくなり、白地に読めなくなるため）
+    static let cameraInk = Color(red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255)
 
     /// 同梱の書体（SIL Open Font License。Bookshelf/Resources/Fonts）
     static let fontFiles = ["NotoSansJP-VariableFont_wght", "NotoSerifJP-VariableFont_wght"]
@@ -452,7 +454,7 @@ struct CaptureView: View {
             Text("ここを押して撮影")
                 .font(BookshelfStyle.sans(14, .medium))
                 .tracking(0.5)
-                .foregroundStyle(BookshelfStyle.ink)
+                .foregroundStyle(BookshelfStyle.cameraInk)
                 .padding(.horizontal, 16)
                 .frame(height: 34)
                 .background(Capsule().fill(Color.white))
@@ -546,7 +548,7 @@ struct CaptureView: View {
         } label: {
             Text("完了")
                 .font(BookshelfStyle.sans(15, .medium))
-                .foregroundStyle(BookshelfStyle.ink)
+                .foregroundStyle(BookshelfStyle.cameraInk)
                 .frame(width: 76, height: 40)
                 .background(Capsule().fill(Color.white))
                 .padding(4)
@@ -593,7 +595,7 @@ struct CaptureView: View {
                 } label: {
                     Text("設定を開く")
                         .font(BookshelfStyle.sans(16, .medium))
-                        .foregroundStyle(BookshelfStyle.ink)
+                        .foregroundStyle(BookshelfStyle.cameraInk)
                         .frame(maxWidth: .infinity, minHeight: 52)
                         .background(Capsule().fill(Color.white))
                 }
