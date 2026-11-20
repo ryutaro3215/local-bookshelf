@@ -115,19 +115,11 @@ struct MonthBrowseView: View {
                 selectedIndex: selection?.to,
                 onReorderEvent: onReorderEvent,
                 onTapWhileSelected: onTapWhileSelected)
-            if let selection, let book = group.books.first(where: { $0.id == selection.bookID }) {
-                SelectionArrows(
-                    selection: selection, allowsReorder: false, count: group.books.count,
-                    onStep: { _ in },
-                    onMove: { onMoveBook(book) },
-                    onDelete: { onDeleteBook(book) }
-                )
-                .offset(y: -PinLayout.liftHeight)
-            }
+
         }
         .frame(height: 324)
         .padding(.top, 64)
-        .animation(.easeOut(duration: 0.15), value: selection)
+        .animation(.spring(duration: 0.35, bounce: 0.25), value: selection)
     }
 
     // MARK: - 本の情報（題名 → ジャンル・購入日 → 位置。年は下に月の並び）
@@ -144,9 +136,13 @@ struct MonthBrowseView: View {
                     .lineLimit(1)
                     .padding(.horizontal, 56)
                     .accessibilityIdentifier("shelf.bookTitle")
-                if let selection {
-                    SelectionInfo(selection: selection, allowsReorder: false, count: group.books.count)
-                        .padding(.top, 6)
+                if let selection, let selected = group.books.first(where: { $0.id == selection.bookID }) {
+                    SelectionInfo(
+                        selection: selection, allowsReorder: false, count: group.books.count,
+                        onMove: { onMoveBook(selected) },
+                        onDelete: { onDeleteBook(selected) }
+                    )
+                    .padding(.top, 10)
                 } else {
                     Text(meta(of: book))
                         .font(BookshelfStyle.sans(12))
@@ -172,7 +168,8 @@ struct MonthBrowseView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, selection == nil ? 0 : 17)
+        .padding(.top, selection == nil ? 0 : 12)
+        .animation(.spring(duration: 0.35, bounce: 0.2), value: selection != nil)
         .contentShape(Rectangle())
         .onTapGesture {
             if selection != nil { onTapWhileSelected() }

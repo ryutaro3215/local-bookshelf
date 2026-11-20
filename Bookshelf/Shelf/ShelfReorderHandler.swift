@@ -120,10 +120,10 @@ final class ShelfEditing {
         var from: Int
         /// 横にドラッグしている間の、行き先の位置
         var to: Int
-        /// ドラッグの向き（決まるまでは nil）
+        /// ドラッグの向き（決まるまでは nil。縦の動きは何もしない）
         var axis: Axis?
-        /// 縦にドラッグしている量（上 = 負）
-        var lift: CGFloat = 0
+        /// 指を横にずらしたまま止めている間に、続けて動いた冊数（右 = 正）
+        var autoSteps = 0
     }
 
     /// 移動の取り消しのトースト（D-3）
@@ -144,11 +144,16 @@ final class ShelfEditing {
 
     /// 横に1冊ずつ入れ替える指の移動量
     static let stepWidth: CGFloat = 60
-    /// 上下に指を動かして、移動・削除にする量
-    static let verticalThreshold: CGFloat = 60
+    /// 横にずらしたまま指を止めてから、続けて動き始めるまでの時間と、1冊ずつ動く間隔
+    static let autoMoveDelay: Duration = .milliseconds(450)
+    static let autoMoveInterval: Duration = .milliseconds(220)
     private static let logger = Logger(subsystem: "com.ryutaro3215.bookshelf", category: "ShelfEditing")
 
     var selection: Selection?
+    /// 横にずらしたまま止めている間、端まで1冊ずつ動かし続ける
+    private var autoMove: Task<Void, Never>?
+    /// 指の移動量で決まる冊数（変わったら、続けて動かすのを待ち直す）
+    private var fingerSteps = 0
     /// 「移動先の棚を選ぶ」シートを出す本（D-2）
     var moving: Book?
     /// 削除の確認を出す本（H-2）
@@ -166,6 +171,8 @@ final class ShelfEditing {
         switch event {
         case .began(let index):
             guard books.indices.contains(index) else { return nil }
+            stopAutoMove()
+            fingerSteps = 0
             selection = Selection(bookID: books[index].id, shelfID: shelfID, from: index, to: index, axis: nil)
             return nil
         case .changed(let delta):
@@ -176,33 +183,38 @@ final class ShelfEditing {
             switch current.axis {
             case .horizontal where allowsReorder:
                 let steps = Int((delta.width / Self.stepWidth).rounded(.towardZero))
-                let target = min(max(current.from + steps, 0), max(books.count - 1, 0))
+                let last = max(books.count - 1, 0)
+                let target = min(max(current.from + steps + current.autoSteps, 0), last)
+                // 端より先へは進めない（端で止まっていた分は数えない）
+                current.autoSteps = target - current.from - steps
                 if target != current.to {
                     UISelectionFeedbackGenerator().selectionChanged()
                 }
                 current.to = target
-            case .vertical:
-                current.lift = max(min(delta.height, 80), -80)
+                if steps != fingerSteps {
+                    // 指が1冊分動いたら、そこで止まるのを待ち直す（中央へ戻したら止める）
+                    fingerSteps = steps
+                    startAutoMove(direction: steps.signum(), last: last)
+                }
             default:
                 break
             }
             selection = current
             return nil
-        case .ended(let delta):
+        case .ended:
+            // 指を離しても選択は続き、浮いた本の下の「別の棚へ移動」「削除」から選ぶ
+            stopAutoMove()
+            fingerSteps = 0
             guard var current = selection else { return nil }
             let axis = current.axis
             let from = current.from
             let to = current.to
             current.axis = nil
-            current.lift = 0
+            current.autoSteps = 0
             current.from = to
             selection = current
             if axis == .horizontal, allowsReorder, from != to {
                 return .reorder(bookID: current.bookID, to: to)
-            }
-            if axis == .vertical {
-                if delta.height < -Self.verticalThreshold { return .move(bookID: current.bookID) }
-                if delta.height > Self.verticalThreshold { return .delete(bookID: current.bookID) }
             }
             return nil
         }
@@ -223,7 +235,32 @@ final class ShelfEditing {
         return ShelfOrdering.moved(books, from: selection.from, to: selection.to)
     }
 
+    /// 横にずらしたまま止めていると、少し待ってから端まで1冊ずつ動かし続ける。direction が 0 なら止める
+    private func startAutoMove(direction: Int, last: Int) {
+        stopAutoMove()
+        guard direction != 0 else { return }
+        autoMove = Task { [weak self] in
+            try? await Task.sleep(for: Self.autoMoveDelay)
+            while !Task.isCancelled {
+                guard let self, var current = self.selection, current.axis == .horizontal else { return }
+                let next = current.to + direction
+                guard (0...last).contains(next) else { return }
+                current.to = next
+                current.autoSteps += direction
+                withAnimation(.easeOut(duration: 0.2)) { self.selection = current }
+                UISelectionFeedbackGenerator().selectionChanged()
+                try? await Task.sleep(for: Self.autoMoveInterval)
+            }
+        }
+    }
+
+    private func stopAutoMove() {
+        autoMove?.cancel()
+        autoMove = nil
+    }
+
     func clearSelection() {
+        stopAutoMove()
         selection = nil
     }
 
@@ -326,24 +363,16 @@ final class ShelfEditing {
 
 // MARK: - 選択中の矢印（D-1・H-1）
 
-/// 長押しで選んだ中央の本のまわりに出す、操作の向きの丸いボタン（上: 別の棚へ・下: 削除・左右: 並べ替え）
+/// 長押しで選んだ中央の本の左右に出す、並べ替えの丸いボタン（別の棚へ・削除は本の情報の下の SelectionInfo）
 struct SelectionArrows: View {
     let selection: ShelfEditing.Selection
     let allowsReorder: Bool
     let count: Int
     let onStep: (Int) -> Void
-    let onMove: () -> Void
-    let onDelete: () -> Void
 
     var body: some View {
         let dragging = selection.axis == .horizontal
         ZStack {
-            if !dragging {
-                arrow("chevron.up", label: "別の棚へ移動", id: "select.up", action: onMove)
-                    .offset(y: -154)
-                arrow("chevron.down", label: "削除", id: "select.down", action: onDelete)
-                    .offset(y: 154)
-            }
             if allowsReorder {
                 if selection.to > 0 && (!dragging || selection.to < selection.from) {
                     arrow("chevron.left", label: "前へ並べ替え", id: "select.left") { onStep(-1) }
@@ -355,7 +384,6 @@ struct SelectionArrows: View {
                 }
             }
         }
-        .offset(y: selection.lift * 0.5)
     }
 
     private func arrow(_ symbol: String, label: LocalizedStringKey, id: String, action: @escaping () -> Void)
@@ -377,11 +405,13 @@ struct SelectionArrows: View {
     }
 }
 
-/// 選択中の本の情報の下に出す、操作の案内（D-1）と並べ替え中の位置（H-1）
+/// 選択中の本の情報の下に出す、操作の選択肢（別の棚へ移動・削除）と並べ替え中の位置（H-1）
 struct SelectionInfo: View {
     let selection: ShelfEditing.Selection
     let allowsReorder: Bool
     let count: Int
+    let onMove: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
         VStack(spacing: 10) {
@@ -391,20 +421,22 @@ struct SelectionInfo: View {
                     .tracking(1)
                     .foregroundStyle(BookshelfStyle.sub)
                     .accessibilityIdentifier("select.position")
-                Text("左右にスワイプで1冊ずつ入れ替え・指を離して確定")
+                Text("左右にずらすと入れ替え・そのまま止めると端まで続けて移動")
                     .font(BookshelfStyle.sans(11))
                     .tracking(0.3)
                     .foregroundStyle(BookshelfStyle.faint)
             } else {
-                HStack(spacing: 18) {
-                    if allowsReorder {
-                        guide(["chevron.left", "chevron.right"], "並べ替え")
-                    }
-                    guide(["chevron.up"], "別の棚へ")
-                    guide(["chevron.down"], "削除")
+                // 長押しで本が浮いたら、下からふわっと選択肢が出る
+                HStack(spacing: 10) {
+                    action("別の棚へ移動", symbol: "arrow.up.right", color: BookshelfStyle.ink, id: "select.move", perform: onMove)
+                    action("削除", symbol: "trash", color: BookshelfStyle.danger, id: "select.delete", perform: onDelete)
                 }
-                .accessibilityElement(children: .combine)
-                .accessibilityIdentifier("select.guide")
+                .transition(.opacity.combined(with: .offset(y: 10)).combined(with: .scale(scale: 0.96)))
+                if allowsReorder {
+                    guide(["chevron.left", "chevron.right"], "並べ替え")
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("select.guide")
+                }
                 Text("選択中（タップで解除）")
                     .font(BookshelfStyle.sans(11))
                     .tracking(0.5)
@@ -412,6 +444,31 @@ struct SelectionInfo: View {
                     .accessibilityIdentifier("select.state")
             }
         }
+    }
+
+    /// 選択肢のボタン（白い角丸の地・柔らかい影）
+    private func action(
+        _ title: LocalizedStringKey, symbol: String, color: Color, id: String, perform: @escaping () -> Void
+    ) -> some View {
+        Button(action: perform) {
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.system(size: 14, weight: .medium))
+                Text(title)
+                    .font(BookshelfStyle.sans(15, .medium))
+                    .tracking(0.5)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(color)
+            .padding(.horizontal, 18)
+            .frame(height: 44)
+            .background(Capsule().fill(BookshelfStyle.surface))
+            .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 4)
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityIdentifier(id)
     }
 
     private func guide(_ symbols: [String], _ text: LocalizedStringKey) -> some View {

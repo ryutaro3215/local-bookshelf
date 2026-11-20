@@ -134,7 +134,7 @@ extension LibraryStore {
         try applyOrder(known + rest)
     }
 
-    /// 本を別の棚の末尾へ移す（長押し＋上スワイプ・グリッドのメニュー。F5-2）。所持状況は変えない。
+    /// 本を別の棚の末尾へ移す（長押しのメニュー・グリッドのメニュー。F5-2）。所持状況は変えない。
     /// 戻り値で `undoMove` を呼ぶと元の棚・元の位置へ戻る
     @discardableResult
     func moveBook(_ book: Book, to shelf: Shelf) throws -> ShelfMoveRecord {

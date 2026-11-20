@@ -575,6 +575,50 @@
         }
       }
     },
+    "%lld冊のうち%lld冊のジャンルを選びました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genres chosen: %2$lld of %1$lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld冊のうち%2$lld冊のジャンルを選びました"
+          }
+        }
+      }
+    },
+    "%lld冊をジャンルに分けました" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sorted %lld book into genres"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sorted %lld books into genres"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld冊をジャンルに分けました"
+          }
+        }
+      }
+    },
     "%lld冊を登録" : {
       "localizations" : {
         "en" : {
@@ -1381,6 +1425,22 @@
         }
       }
     },
+    "システムに合わせる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Match System"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システムに合わせる"
+          }
+        }
+      }
+    },
     "ジャンル" : {
       "localizations" : {
         "en" : {
@@ -1409,6 +1469,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ジャンル（棚）の追加・名前の変更・並び替え・削除"
+          }
+        }
+      }
+    },
+    "ジャンルに分けられませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't sort into genres"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンルに分けられませんでした"
+          }
+        }
+      }
+    },
+    "ジャンルに分ける" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort into Genres"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンルに分ける"
           }
         }
       }
@@ -1457,6 +1549,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ジャンルを追加できませんでした"
+          }
+        }
+      }
+    },
+    "ジャンルを選びます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chooses a genre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンルを選びます"
           }
         }
       }
@@ -1633,6 +1741,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "そのままドラッグで並べ替え"
+          }
+        }
+      }
+    },
+    "ダーク" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dark"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダーク"
           }
         }
       }
@@ -1905,6 +2029,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ライセンス"
+          }
+        }
+      }
+    },
+    "ライト" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライト"
           }
         }
       }
@@ -2514,6 +2654,7 @@
       }
     },
     "別の棚へ" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2723,16 +2864,16 @@
     },
     "同じ名前のジャンルがすでにあります" : {
       "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "同じ名前のジャンルがすでにあります"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "A genre with this name already exists"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同じ名前のジャンルがすでにあります"
           }
         }
       }
@@ -2833,6 +2974,22 @@
         }
       }
     },
+    "外観" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外観"
+          }
+        }
+      }
+    },
     "好きな作家やシリーズの棚も作れます" : {
       "localizations" : {
         "en" : {
@@ -2897,18 +3054,18 @@
         }
       }
     },
-    "左右にスワイプで1冊ずつ入れ替え・指を離して確定" : {
+    "左右にずらすと入れ替え・そのまま止めると端まで続けて移動" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipe left or right to move one spot · Release to confirm"
+            "value" : "Slide to move · Hold to keep moving to the end"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "左右にスワイプで1冊ずつ入れ替え・指を離して確定"
+            "value" : "左右にずらすと入れ替え・そのまま止めると端まで続けて移動"
           }
         }
       }
@@ -3401,18 +3558,34 @@
         }
       }
     },
-    "本の削除は、棚で長押し → 下スワイプ" : {
+    "本ごとにジャンルを選んで、まとめて保存します" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To delete a book, long-press it on the shelf → swipe down"
+            "value" : "Choose a genre for each book, then save them all at once."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "本の削除は、棚で長押し → 下スワイプ"
+            "value" : "本ごとにジャンルを選んで、まとめて保存します"
+          }
+        }
+      }
+    },
+    "本の削除は、棚で長押し → 削除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To delete a book, long-press it on the shelf → Delete"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本の削除は、棚で長押し → 削除"
           }
         }
       }
@@ -4147,16 +4320,16 @@
     },
     "表紙の四隅を直す" : {
       "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "表紙の四隅を直す"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Adjust Cover Corners"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表紙の四隅を直す"
           }
         }
       }
@@ -4339,16 +4512,32 @@
     },
     "角を動かして、表紙のふちに合わせてください" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag the corners to the edges of the cover"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "角を動かして、表紙のふちに合わせてください"
           }
-        },
+        }
+      }
+    },
+    "言語" : {
+      "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drag the corners to the edges of the cover"
+            "value" : "Language"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "言語"
           }
         }
       }
@@ -5081,194 +5270,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "題名順"
-          }
-        }
-      }
-    },
-    "システムに合わせる" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Match System"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "システムに合わせる"
-          }
-        }
-      }
-    },
-    "ダーク" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dark"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ダーク"
-          }
-        }
-      }
-    },
-    "ライト" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Light"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ライト"
-          }
-        }
-      }
-    },
-    "外観" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appearance"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "外観"
-          }
-        }
-      }
-    },
-    "言語" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Language"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "言語"
-          }
-        }
-      }
-    },
-    "ジャンルに分ける" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sort into Genres"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ジャンルに分ける"
-          }
-        }
-      }
-    },
-    "本ごとにジャンルを選んで、まとめて保存します" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose a genre for each book, then save them all at once."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本ごとにジャンルを選んで、まとめて保存します"
-          }
-        }
-      }
-    },
-    "%lld冊のうち%lld冊のジャンルを選びました" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Genres chosen: %2$lld of %1$lld"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$lld冊のうち%2$lld冊のジャンルを選びました"
-          }
-        }
-      }
-    },
-    "ジャンルを選びます" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chooses a genre"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ジャンルを選びます"
-          }
-        }
-      }
-    },
-    "ジャンルに分けられませんでした" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't sort into genres"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ジャンルに分けられませんでした"
-          }
-        }
-      }
-    },
-    "%lld冊をジャンルに分けました" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Sorted %lld book into genres"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Sorted %lld books into genres"
-                }
-              }
-            }
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld冊をジャンルに分けました"
           }
         }
       }

@@ -124,12 +124,12 @@ final class MonthModeUITests: XCTestCase {
         let carousel = app.collectionViews["shelf.carousel"]
         XCTAssertTrue(carousel.waitForExistence(timeout: 5))
         carousel.press(forDuration: 0.8)
-        XCTAssertTrue(app.buttons["select.up"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["select.down"].exists)
+        XCTAssertTrue(app.buttons["select.move"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["select.delete"].exists)
         XCTAssertFalse(app.buttons["select.left"].exists)
         XCTAssertFalse(app.buttons["select.right"].exists)
         // 削除の確認を出して、取り消す
-        app.buttons["select.down"].tap()
+        app.buttons["select.delete"].tap()
         XCTAssertTrue(element(app, "delete.cancel").waitForExistence(timeout: 5))
         element(app, "delete.cancel").tap()
         XCTAssertEqual(monthTitle(app).value as? String, "2冊")

@@ -615,13 +615,10 @@ struct ShelfScreen: View {
                     selectedIndex: selection?.to,
                     onReorderEvent: { handleReorder($0, in: base) },
                     onTapWhileSelected: { editing.clearSelection() })
-                // 上下にドラッグしている間（H-2）は矢印を消す（Figma H-2。N-064）
-                if let selection, selection.axis != .vertical {
+                if let selection {
                     SelectionArrows(
                         selection: selection, allowsReorder: base.allowsReorder, count: base.books.count,
-                        onStep: { step($0, in: base) },
-                        onMove: { request(.move(bookID: selection.bookID), in: base) },
-                        onDelete: { request(.delete(bookID: selection.bookID), in: base) }
+                        onStep: { step($0, in: base) }
                     )
                     .offset(y: -PinLayout.liftHeight)
                 }
@@ -629,8 +626,8 @@ struct ShelfScreen: View {
             .frame(height: 324)
             .padding(.top, 64)
             .opacity(isScrubbing ? 0.35 : 1)
-            .animation(.easeOut(duration: 0.15), value: selection)
-            bookInfo(current, index: index, selection: selection)
+            .animation(.spring(duration: 0.35, bounce: 0.25), value: selection)
+            bookInfo(current, base: base, index: index, selection: selection)
                 .opacity(isScrubbing ? 0 : 1)
                 // 題名の下でも、横スワイプで前後の本へめくる（書影の並びがその本までアニメーションで動く）
                 .bookSwipe(isEnabled: selection == nil && !isScrubbing) { flip($0, on: current) }
@@ -650,7 +647,9 @@ struct ShelfScreen: View {
 
     /// 本の情報（題名 → 購入日 → 位置。買いたい本はジャンルと「買いたい」のタグ。空き枠は追加の案内）
     @ViewBuilder
-    private func bookInfo(_ current: BrowseShelf, index: Int, selection: ShelfEditing.Selection?) -> some View {
+    private func bookInfo(_ current: BrowseShelf, base: BrowseShelf, index: Int, selection: ShelfEditing.Selection?)
+        -> some View
+    {
         VStack(spacing: 6) {
             if let selection, index < current.books.count {
                 // 長押しで選んだ本（D-1）・横にドラッグしている途中（H-1）
@@ -661,10 +660,12 @@ struct ShelfScreen: View {
                     .lineLimit(1)
                     .padding(.horizontal, 56)
                     .pageIdentifier("shelf.bookTitle")
-                SelectionInfo(selection: selection, allowsReorder: current.allowsReorder, count: current.books.count)
-                    .padding(.top, 6)
-                    // 上下にドラッグしている間（H-2）は案内を消す（Figma H-2。N-064）
-                    .opacity(selection.axis == .vertical ? 0 : 1)
+                SelectionInfo(
+                    selection: selection, allowsReorder: current.allowsReorder, count: current.books.count,
+                    onMove: { request(.move(bookID: selection.bookID), in: base) },
+                    onDelete: { request(.delete(bookID: selection.bookID), in: base) }
+                )
+                .padding(.top, 10)
             } else if index < current.books.count {
                 let book = current.books[index]
                 Text(book.title)
@@ -720,8 +721,9 @@ struct ShelfScreen: View {
             }
         }
         .frame(maxWidth: .infinity)
-        // 選択中は Figma D-1 のとおり、下の矢印の分だけ題名を下げる
-        .padding(.top, selection == nil ? 0 : 17)
+        // 選択中は浮かせた本の分だけ題名を下げる
+        .padding(.top, selection == nil ? 0 : 12)
+        .animation(.spring(duration: 0.35, bounce: 0.2), value: selection != nil)
         .contentShape(Rectangle())
         .onTapGesture {
             if selection != nil { editing.clearSelection() }

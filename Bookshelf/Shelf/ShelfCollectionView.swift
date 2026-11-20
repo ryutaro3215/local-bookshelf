@@ -17,8 +17,9 @@ final class PinLayout: UICollectionViewLayout {
     static let lifts: [CGFloat] = [0, 5.5, 10, 12.5, 14.5]
     /// 中央から何冊目まで見せるか
     static let visibleRange: CGFloat = 4.5
-    /// 長押しで選んだ本を浮かせる量（design-brief §6: 上へ 12pt 前後）
-    static let liftHeight: CGFloat = 12
+    /// 長押しで選んだ本を浮かせる量と、少し大きくする倍率（ふわっと手前に浮き上がって見せる）
+    static let liftHeight: CGFloat = 18
+    static let liftScale: CGFloat = 1.06
 
     /// 長押しで選んでいる本（浮かせて影を濃くする）
     var liftedIndex: Int?
@@ -63,7 +64,7 @@ final class PinLayout: UICollectionViewLayout {
         attributes.center = CGPoint(
             x: bounds.minX + bounds.width / 2 + side * Self.interpolate(Self.offsets, far, extra: 20),
             y: bounds.height / 2 - Self.interpolate(Self.lifts, far, extra: 2) - (lifted ? Self.liftHeight : 0))
-        let scale = Self.interpolate(Self.scales, far, extra: -0.08)
+        let scale = Self.interpolate(Self.scales, far, extra: -0.08) * (lifted ? Self.liftScale : 1)
         attributes.transform = CGAffineTransform(scaleX: scale, y: scale)
         // 手前の本ほど前に重なる
         attributes.zIndex = lifted ? Self.liftedZIndex : 1000 - Int(far * 100)
@@ -200,7 +201,16 @@ struct ShelfCollectionView: UIViewRepresentable {
             if let layout = view.collectionViewLayout as? PinLayout, layout.liftedIndex != next.selectedIndex {
                 layout.liftedIndex = next.selectedIndex
                 if !changed {
-                    UIView.animate(withDuration: 0.2) { layout.invalidateLayout() }
+                    // 選んだ本はばねのように少し弾んで浮き上がり、解除するとそっと戻る
+                    let lifting = next.selectedIndex != nil
+                    UIView.animate(
+                        withDuration: lifting ? 0.45 : 0.3, delay: 0,
+                        usingSpringWithDamping: lifting ? 0.62 : 1, initialSpringVelocity: 0,
+                        options: [.allowUserInteraction, .beginFromCurrentState]
+                    ) {
+                        layout.invalidateLayout()
+                        view.layoutIfNeeded()
+                    }
                 }
             }
             // 同じ本の並びが入れ替わっただけ（並べ替えの途中）のときは、本を動かすアニメーションで見せる

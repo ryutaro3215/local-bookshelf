@@ -71,7 +71,7 @@ struct BookEditView: View {
                     infoCard
                         .padding(.horizontal, 20)
                         .padding(.top, 20)
-                    Text("本の削除は、棚で長押し → 下スワイプ")
+                    Text("本の削除は、棚で長押し → 削除")
                         .font(BookshelfStyle.sans(11))
                         .foregroundStyle(BookshelfStyle.faint)
                         .padding(.top, 26)

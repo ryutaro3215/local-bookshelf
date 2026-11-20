@@ -122,14 +122,13 @@ final class ShelfManagementUITests: XCTestCase {
         element(app, "genres.edit").tap()
         wait(element(app, "genres.edit"), "label == '編集'")
 
-        // 閲覧画面で、小説の本を新しいジャンルへ移す（T7 の長押し＋上スワイプ）
+        // 閲覧画面で、小説の本を新しいジャンルへ移す（長押し →「別の棚へ移動」）
         backToBrowse(app)
         let carousel = app.collectionViews["shelf.carousel"]
         XCTAssertTrue(carousel.waitForExistence(timeout: 5))
-        let start = carousel.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        start.press(
-            forDuration: 1.0, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -150)), withVelocity: .slow,
-            thenHoldForDuration: 0.3)
+        carousel.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 1.0)
+        XCTAssertTrue(app.buttons["select.move"].waitForExistence(timeout: 5))
+        app.buttons["select.move"].tap()
         let row = element(app, "move.row.夜更けの書架")
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         XCTAssertEqual(row.value as? String, "0冊")

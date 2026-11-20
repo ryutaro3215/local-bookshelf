@@ -129,7 +129,7 @@ final class LocalizationUITests: XCTestCase {
         carousel.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 1.0)
         XCTAssertTrue(element(app, "select.state").waitForExistence(timeout: 5))
         assertNoJapanese(app, "本を選択")
-        app.buttons["select.up"].tap()
+        app.buttons["select.move"].tap()
         XCTAssertTrue(element(app, "move.title").waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons["move.row.小説"].label, "Fiction")
         assertNoJapanese(app, "移動先の棚")
@@ -139,7 +139,7 @@ final class LocalizationUITests: XCTestCase {
             carousel.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 1.0)
             XCTAssertTrue(element(app, "select.state").waitForExistence(timeout: 5))
         }
-        app.buttons["select.down"].tap()
+        app.buttons["select.delete"].tap()
         XCTAssertTrue(element(app, "delete.dialog").waitForExistence(timeout: 5))
         assertNoJapanese(app, "削除の確認")
         app.buttons["delete.cancel"].tap()
